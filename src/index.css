@@ -3,37 +3,37 @@
 
 :root {
   /* brand */
-  --primary:        #2D4739;
-  --primary-hover:  #243b2f;
-  --primary-light:  #EDF6F1;
+  --primary:        #1E2128;
+  --primary-hover:  #16181e;
+  --primary-light:  #ECEDF0;
   /* ui */
-  --secondary:      #768A7E;
-  --neutral-dark:   #4A4E51;
-  --neutral-light:  #F2F4F3;
-  --accent:         #C5A467;
-  --accent-light:   #F5EFE0;
+  --secondary:      #6B7280;
+  --neutral-dark:   #374151;
+  --neutral-light:  #F9FAFB;
+  --accent:         #4B5EAA;
+  --accent-light:   #EEF0F8;
   /* status */
-  --success:        #3A7D5A;
-  --success-light:  #EDF6F1; /* intentionally same as --primary-light */
-  --danger:         #A63D2F;
-  --danger-light:   #FAEAE8;
-  --warning:        #9A7230;
-  --warning-light:  #FDF6E8;
-  --info:           #3D6B8A;
-  --info-light:     #EAF2F8;
+  --success:        #2E7D52;
+  --success-light:  #EAF5EE;
+  --danger:         #C0392B;
+  --danger-light:   #FAEAEA;
+  --warning:        #D4860A;
+  --warning-light:  #FDF3E3;
+  --info:           #2471A3;
+  --info-light:     #E6F2FB;
   /* surface */
   --white:          #ffffff;
-  --border:         #E3E8E5;
-  --shadow-sm:      0 1px 3px rgba(45,71,57,.07), 0 2px 6px rgba(45,71,57,.04);
-  --shadow-md:      0 4px 14px rgba(45,71,57,.1), 0 1px 4px rgba(45,71,57,.06);
+  --border:         #E5E7EB;
+  --shadow-sm:      0 1px 3px rgba(30,33,40,.07), 0 2px 6px rgba(30,33,40,.04);
+  --shadow-md:      0 4px 14px rgba(30,33,40,.1), 0 1px 4px rgba(30,33,40,.06);
   --radius-sm:      6px;
   --radius-md:      10px;
   --radius-lg:      14px;
   /* text */
-  --text-primary:   #1C2B23;
-  --text-secondary: #4A4E51;
-  --text-muted:     #768A7E;
-  --text-on-dark:   #F2F4F3;
+  --text-primary:   #1E2128;
+  --text-secondary: #374151;
+  --text-muted:     #6B7280;
+  --text-on-dark:   #F9FAFB;
   /* layout */
   --sidebar-w:      240px;
   --sidebar-mini:   64px;
@@ -68,10 +68,10 @@ a { color: inherit; text-decoration: none; }
 /* global placeholder color — inline styles cannot target ::placeholder */
 input::placeholder { color: var(--text-muted); }
 
-code { font-family: var(--font-mono); font-size: 13px; background: var(--neutral-light); padding: 2px 6px; border-radius: var(--radius-sm); color: var(--primary); }
+code { font-family: var(--font-mono); font-size: 13px; background: var(--neutral-light); padding: 2px 6px; border-radius: var(--radius-sm); color: var(--accent); }
 
 ::-webkit-scrollbar       { width: 6px; height: 6px; }
-::-webkit-scrollbar-thumb { background: #d0d6d2; border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 
 /* responsive — page padding shrinks on small screens */

@@ -41,7 +41,7 @@ const NAV = [
 function NavIcon({ item, active }) {
   return (
     <svg width={18} height={18} viewBox="0 0 24 24" fill="none"
-      stroke={active ? 'var(--accent)' : 'rgba(242,244,243,.75)'}
+      stroke={active ? '#fff' : 'rgba(249,250,251,.6)'}
       strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"
       style={{ flexShrink: 0 }}
     >
@@ -63,7 +63,6 @@ export default function Sidebar({ open, collapsed, isMobile, onToggle, onClose }
   const [activeSub, setActiveSub] = useState(null)
   const [hovered,   setHovered]   = useState(null)
 
-  /* icon-only mode: label shown = when expanded OR mobile (always full-width) */
   const showLabel = isMobile ? true : !collapsed
 
   function handleItem(label, hasSub) {
@@ -77,7 +76,6 @@ export default function Sidebar({ open, collapsed, isMobile, onToggle, onClose }
     if (isMobile) onClose()
   }
 
-  /* reset open sub when collapsing on desktop/tablet */
   const handleToggle = useCallback(() => {
     if (!isMobile && !collapsed) setOpenSub(null)
     onToggle()
@@ -86,30 +84,22 @@ export default function Sidebar({ open, collapsed, isMobile, onToggle, onClose }
   return (
     <aside style={sidebarStyle(open, collapsed, isMobile)}>
 
+      {/* ── Brand bar ── */}
       <div style={brandBar}>
         <div style={brandMark}>uF</div>
         {showLabel && <span style={wordmark}>uniFITS</span>}
       </div>
 
-      <div style={userStrip}>
-        <div style={avatarStyle}>JD</div>
-        {showLabel && (
-          <div style={userInfo}>
-            <div style={userName}>Juan dela Cruz</div>
-            <div style={userRole}>Administrator</div>
-          </div>
-        )}
-      </div>
-
-      <nav style={navArea}>
+      {/* ── Navigation ── */}
+      <nav style={navArea} className="sidebar-nav-touch">
         {NAV.map(({ section, items }) => (
           <div key={section}>
             {showLabel && <div style={sectionLabel}>{section}</div>}
 
             {items.map((item) => {
               const { label, badge, sub } = item
-              const isActive = active   === label
-              const isOpen   = openSub  === label
+              const isActive = active  === label
+              const isOpen   = openSub === label
 
               return (
                 <div key={label}>
@@ -120,16 +110,23 @@ export default function Sidebar({ open, collapsed, isMobile, onToggle, onClose }
                     onMouseEnter={() => setHovered(label)}
                     onMouseLeave={() => setHovered(null)}
                   >
+                    {/* left accent pip on active item */}
+                    {isActive && <span style={activePip} />}
+
                     <span style={{ display: 'flex', alignItems: 'center', width: 20, height: 20, flexShrink: 0 }}>
                       <NavIcon item={item} active={isActive} />
                     </span>
 
                     {showLabel && <span style={navLabelStyle}>{label}</span>}
-                    {showLabel && badge != null && <span style={badgeStyle}>{badge}</span>}
+
+                    {showLabel && badge != null && (
+                      <span style={isActive ? badgeActiveStyle : badgeStyle}>{badge}</span>
+                    )}
 
                     {showLabel && sub && (
                       <svg width={14} height={14} viewBox="0 0 24 24" fill="none"
-                        stroke="rgba(242,244,243,.4)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+                        stroke={isActive ? 'rgba(255,255,255,.6)' : 'rgba(249,250,251,.35)'}
+                        strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
                         style={{ flexShrink: 0, transition: 'transform .2s', transform: isOpen ? 'rotate(90deg)' : 'none' }}
                       >
                         <polyline points="9 18 15 12 9 6" />
@@ -158,17 +155,17 @@ export default function Sidebar({ open, collapsed, isMobile, onToggle, onClose }
         ))}
       </nav>
 
-      {/* collapse button — hidden on mobile (drawer is closed via backdrop/nav tap) */}
+      {/* ── Collapse button — desktop/tablet only ── */}
       {!isMobile && (
         <div style={footerBar}>
           <button style={collapseBtn} onClick={handleToggle} title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
             <svg width={18} height={18} viewBox="0 0 24 24" fill="none"
-              stroke="rgba(242,244,243,.55)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+              stroke="rgba(249,250,251,.45)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
               style={{ flexShrink: 0, transition: 'transform .25s', transform: collapsed ? 'rotate(180deg)' : 'none' }}
             >
               <polyline points="15 18 9 12 15 6" />
             </svg>
-            {showLabel && <span style={{ fontSize: 13, color: 'rgba(242,244,243,.55)' }}>Collapse</span>}
+            {showLabel && <span style={{ fontSize: 13, color: 'rgba(249,250,251,.45)' }}>Collapse</span>}
           </button>
         </div>
       )}
@@ -177,7 +174,8 @@ export default function Sidebar({ open, collapsed, isMobile, onToggle, onClose }
   )
 }
 
-/* mobile: slide in/out via translateX | desktop: width transition */
+/* ─── styles ─────────────────────────────────────────────────── */
+
 const sidebarStyle = (open, collapsed, isMobile) => ({
   width: isMobile ? 'var(--sidebar-w)' : collapsed ? 'var(--sidebar-mini)' : 'var(--sidebar-w)',
   background: 'var(--primary)',
@@ -190,38 +188,62 @@ const sidebarStyle = (open, collapsed, isMobile) => ({
   transform: isMobile ? (open ? 'translateX(0)' : 'translateX(-100%)') : 'none',
 })
 
-const brandBar   = { height: 62, display: 'flex', alignItems: 'center', padding: '0 13px', gap: 10, flexShrink: 0, borderBottom: '1px solid rgba(255,255,255,.08)', overflow: 'hidden', whiteSpace: 'nowrap' }
-const brandMark  = { width: 36, height: 36, borderRadius: 9, flexShrink: 0, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 700, color: 'var(--primary)', letterSpacing: '-.5px' }
-const wordmark   = { fontFamily: 'var(--font-display)', fontSize: 20, color: 'var(--text-on-dark)', letterSpacing: '-.3px', lineHeight: 1 }
-const userStrip  = { padding: '11px 12px', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, overflow: 'hidden', borderBottom: '1px solid rgba(255,255,255,.08)' }
-const avatarStyle = { width: 38, height: 38, borderRadius: '50%', flexShrink: 0, background: 'rgba(197,164,103,.18)', border: '2px solid var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, color: 'var(--accent)' }
-const userInfo   = { overflow: 'hidden', whiteSpace: 'nowrap', minWidth: 0 }
-const userName   = { fontSize: 13, fontWeight: 600, color: 'var(--text-on-dark)', overflow: 'hidden', textOverflow: 'ellipsis' }
-const userRole   = { fontSize: 11, fontWeight: 500, color: 'var(--accent)' }
-const navArea    = { flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '8px 8px', scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,.1) transparent' }
-const sectionLabel = { fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'rgba(242,244,243,.35)', padding: '14px 10px 4px', whiteSpace: 'nowrap', userSelect: 'none' }
+const brandBar  = { height: 62, display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10, flexShrink: 0, borderBottom: '1px solid rgba(255,255,255,.08)', overflow: 'hidden', whiteSpace: 'nowrap' }
+const brandMark = { width: 36, height: 36, borderRadius: 9, flexShrink: 0, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 700, color: '#fff', letterSpacing: '-.5px' }
+const wordmark  = { fontFamily: 'var(--font-display)', fontSize: 20, color: 'var(--text-on-dark)', letterSpacing: '-.3px', lineHeight: 1 }
 
+const navArea      = { flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '8px 8px', scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,.1) transparent' }
+const sectionLabel = { fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'rgba(249,250,251,.3)', padding: '14px 10px 4px', whiteSpace: 'nowrap', userSelect: 'none' }
+
+/*
+ * Active state: solid --accent fill so it's unmistakably highlighted
+ * against the dark --primary sidebar background.
+ * Hover state: a subtle 7% white overlay — visible but not distracting.
+ */
 const navItemStyle = (active, hovered) => ({
   display: 'flex', alignItems: 'center', gap: 10,
-  padding: '10px 10px', borderRadius: 8, cursor: 'pointer',
-  color: active ? 'var(--accent)' : 'rgba(242,244,243,.7)',
-  fontSize: 13.5, fontWeight: active ? 500 : 400,
-  background: active ? 'rgba(197,164,103,.15)' : hovered ? 'rgba(255,255,255,.06)' : 'transparent',
+  padding: '9px 10px 9px 13px',
+  borderRadius: 8, cursor: 'pointer',
+  color: active ? '#fff' : 'rgba(249,250,251,.65)',
+  fontSize: 13.5, fontWeight: active ? 600 : 400,
+  background: active ? 'var(--accent)' : hovered ? 'rgba(255,255,255,.07)' : 'transparent',
   whiteSpace: 'nowrap', transition: 'background .15s, color .15s',
-  position: 'relative', userSelect: 'none', marginBottom: 1,
+  position: 'relative', userSelect: 'none', marginBottom: 2,
+  overflow: 'hidden',
 })
 
-const navLabelStyle = { flex: 1 }
-const badgeStyle    = { background: 'var(--accent)', color: 'var(--primary)', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 20, lineHeight: 1.5 }
+/* bright white pip on the left edge — adds a crisp visual anchor */
+const activePip = {
+  position: 'absolute', left: 0, top: '18%', bottom: '18%',
+  width: 3, borderRadius: '0 3px 3px 0',
+  background: 'rgba(255,255,255,.75)',
+  flexShrink: 0,
+}
+
+const navLabelStyle  = { flex: 1 }
+
+/* badge on inactive item */
+const badgeStyle = {
+  background: 'var(--accent)', color: '#fff',
+  fontSize: 10, fontWeight: 700,
+  padding: '1px 6px', borderRadius: 20, lineHeight: 1.5,
+}
+/* badge on active item — white pill so it stays readable on accent bg */
+const badgeActiveStyle = {
+  background: 'rgba(255,255,255,.25)', color: '#fff',
+  fontSize: 10, fontWeight: 700,
+  padding: '1px 6px', borderRadius: 20, lineHeight: 1.5,
+}
 
 const subItemStyle = (active, hovered) => ({
   display: 'flex', alignItems: 'center', gap: 10,
   padding: '8px 10px 8px 40px', borderRadius: 8, cursor: 'pointer',
-  color: active ? 'var(--accent)' : 'rgba(242,244,243,.55)',
+  color: active ? '#fff' : 'rgba(249,250,251,.5)',
   fontSize: 13, marginBottom: 1, userSelect: 'none',
-  background: hovered ? 'rgba(255,255,255,.06)' : 'transparent',
+  background: active ? 'rgba(75,94,170,.4)' : hovered ? 'rgba(255,255,255,.06)' : 'transparent',
   transition: 'background .15s, color .15s',
+  fontWeight: active ? 500 : 400,
 })
 
-const footerBar  = { padding: '10px 8px', borderTop: '1px solid rgba(255,255,255,.08)', flexShrink: 0 }
+const footerBar   = { padding: '10px 8px', borderTop: '1px solid rgba(255,255,255,.08)', flexShrink: 0 }
 const collapseBtn = { width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', borderRadius: 8, cursor: 'pointer', background: 'none', border: 'none', fontFamily: 'var(--font-body)', transition: 'background .15s' }
