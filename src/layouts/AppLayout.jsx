@@ -1,77 +1,82 @@
-import { useState, useEffect, useCallback } from 'react'
+// AppLayout.jsx — Main layout shell: sidebar + sticky header + scrollable content
+// Padding tightened to 16px 20px (was 24px 28px) to maximize usable content area
+import { useState, useEffect } from 'react'
 import Sidebar from '../components/Sidebar'
 import Header  from '../components/Header'
 import useBreakpoint from '../hooks/useBreakpoint'
 
-export default function AppLayout({ children, page, sub }) {
-  const bp = useBreakpoint()
+export default function AppLayout({ children, page, sub, navigate }) {
+  const { isMobile, isTablet } = useBreakpoint()
+  const [collapsed,   setCollapsed]   = useState(false)  // desktop icon-only mode
+  const [drawerOpen,  setDrawerOpen]  = useState(false)  // mobile slide-in drawer
 
-  /* sidebar open state — desktop starts expanded, tablet starts collapsed, mobile starts closed */
-  const [open,      setOpen]      = useState(bp === 'desktop')
-  const [collapsed, setCollapsed] = useState(bp === 'tablet')
-
-  /* sync defaults when breakpoint changes (e.g. resize from desktop to mobile) */
+  // Auto-collapse on tablet
   useEffect(() => {
-    if (bp === 'mobile')  { setOpen(false);  setCollapsed(false) }
-    if (bp === 'tablet')  { setOpen(true);   setCollapsed(true)  }
-    if (bp === 'desktop') { setOpen(true);   setCollapsed(false) }
-  }, [bp])
+    if (isTablet && !isMobile) setCollapsed(true)
+    if (!isTablet && !isMobile) setCollapsed(false)
+  }, [isTablet, isMobile])
 
-  /* mobile: toggle drawer open/closed | desktop/tablet: toggle collapse */
-  const handleToggle = useCallback(() => {
-    if (bp === 'mobile') setOpen(v => !v)
-    else { setCollapsed(v => !v); if (!collapsed) setOpen(false) }
-  }, [bp, collapsed])
+  // Close drawer when leaving mobile
+  useEffect(() => {
+    if (!isMobile) setDrawerOpen(false)
+  }, [isMobile])
 
-  const closeMobile = useCallback(() => { if (bp === 'mobile') setOpen(false) }, [bp])
-
-  /* how far the main content should shift */
-  const marginLeft = bp === 'mobile' ? 0
-    : collapsed ? 'var(--sidebar-mini)'
-    : 'var(--sidebar-w)'
+  const sidebarW = isMobile ? 0 : collapsed ? 64 : 240
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-app)' }}>
 
-      {/* mobile backdrop — tap to close */}
-      {bp === 'mobile' && open && (
-        <div onClick={closeMobile} style={backdrop} aria-hidden="true" />
+      {/* Mobile backdrop */}
+      {isMobile && drawerOpen && (
+        <div
+          onClick={() => setDrawerOpen(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', zIndex: 99, backdropFilter: 'blur(1px)' }}
+        />
       )}
 
+      {/* Sidebar */}
       <Sidebar
-        open={open}
+        open={isMobile ? drawerOpen : true}
         collapsed={collapsed}
-        isMobile={bp === 'mobile'}
-        onToggle={handleToggle}
-        onClose={closeMobile}
+        isMobile={isMobile}
+        onToggle={() => {
+          if (isMobile) setDrawerOpen(o => !o)
+          else setCollapsed(c => !c)
+        }}
+        onClose={() => setDrawerOpen(false)}
       />
 
-      <div style={mainArea(marginLeft)}>
+      {/* Main content area */}
+      <div style={{
+        flex: 1, display: 'flex', flexDirection: 'column',
+        marginLeft: sidebarW,
+        transition: 'margin-left .25s cubic-bezier(.4,0,.2,1)',
+        minWidth: 0,
+      }}>
+
+        {/* Sticky header */}
         <Header
           page={page}
           sub={sub}
-          isMobile={bp === 'mobile'}
-          onMenuClick={() => setOpen(v => !v)}
+          onMenuClick={() => {
+            if (isMobile) setDrawerOpen(o => !o)
+            else setCollapsed(c => !c)
+          }}
+          navigate={navigate}
         />
-        <main style={pageMain}>{children}</main>
-      </div>
 
+        {/* Page content — tighter padding to maximise content width */}
+        <main style={{
+          flex: 1,
+          padding: isMobile ? '14px 12px' : '16px 20px',  /* was 24px 28px — reduced to maximise space */
+          maxWidth: 1600,                                   /* raised from 1400 to let wide screens use more */
+          width: '100%',
+          margin: '0 auto',
+          boxSizing: 'border-box',
+        }}>
+          {children}
+        </main>
+      </div>
     </div>
   )
 }
-
-const backdrop = {
-  position: 'fixed', inset: 0,
-  background: 'rgba(0,0,0,.45)',
-  zIndex: 99,
-  backdropFilter: 'blur(2px)',
-}
-
-const mainArea = (ml) => ({
-  marginLeft: ml,
-  flex: 1, display: 'flex', flexDirection: 'column',
-  transition: 'margin-left .25s cubic-bezier(.4,0,.2,1)',
-  minWidth: 0, overflow: 'hidden',
-})
-
-const pageMain = { flex: 1, padding: 28, background: 'var(--neutral-light)' }

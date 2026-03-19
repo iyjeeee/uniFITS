@@ -1,21 +1,21 @@
+// useBreakpoint.js — Responsive breakpoint detection hook
 import { useState, useEffect } from 'react'
 
-const BP = { mobile: 768, tablet: 1024 }
-
-function get(w) {
-  if (w < BP.mobile) return 'mobile'
-  if (w < BP.tablet) return 'tablet'
-  return 'desktop'
-}
+const BREAKPOINTS = { mobile: 768, tablet: 1024 }
 
 export default function useBreakpoint() {
-  const [bp, setBp] = useState(() => get(window.innerWidth))
+  const [width, setWidth] = useState(window.innerWidth)
 
   useEffect(() => {
-    function update() { setBp(get(window.innerWidth)) }
-    window.addEventListener('resize', update)
-    return () => window.removeEventListener('resize', update)
+    const handler = () => setWidth(window.innerWidth)
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
   }, [])
 
-  return bp  // 'mobile' | 'tablet' | 'desktop'
+  return {
+    width,
+    isMobile:  width < BREAKPOINTS.mobile,
+    isTablet:  width >= BREAKPOINTS.mobile && width < BREAKPOINTS.tablet,
+    isDesktop: width >= BREAKPOINTS.tablet,
+  }
 }

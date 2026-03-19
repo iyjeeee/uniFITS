@@ -1,0 +1,647 @@
+// Announcements.jsx — Hub with paginated View All modals, pinned/unpinned sections
+import { useState, useRef, useEffect } from 'react'
+import {
+  Card, Button, Badge, StatusBadge,
+  InfoModal, ResponseModal, Input, Textarea,
+} from '../../components/ui'
+import {
+  MOCK_ANNOUNCEMENTS, MOCK_PROJECTS, MOCK_EVENTS,
+  formatDate, formatCurrency, relativeTime,
+} from '../../api/mockData'
+import { useOrg } from '../../context/OrgContext'
+
+/* ─── Calendar helpers ─────────────────────────────────────────── */
+function getDaysInMonth(y, m) { return new Date(y, m + 1, 0).getDate() }
+function getFirstDay(y, m)    { return new Date(y, m, 1).getDay() }
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December']
+const DAY_NAMES   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+
+/* ─── Solid-color tile palette ─────────────────────────────────── */
+const TILE_COLORS = ['#4B5EAA','#2E7D52','#2471A3','#7D3C98','#117A65','#C0392B','#D4860A','#1E2128']
+function tileColor(id) { return TILE_COLORS[(parseInt(id, 10) || 0) % TILE_COLORS.length] }
+
+/* ─── SVG icons ────────────────────────────────────────────────── */
+const Ico = {
+  Bell:   () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
+  Cal:    () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+  Proj:   () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>,
+  Event:  () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+  ChevL:  () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>,
+  ChevR:  () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>,
+  Pin:    () => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>,
+  MapPin: () => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>,
+  Clock:  () => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+  Plus:   () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  Arrow:  () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>,
+}
+
+/* ─── Pagination component ─────────────────────────────────────── */
+function Pagination({ page, total, onChange }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '12px 0 4px' }}>
+      <PageBtn disabled={page === 1} onClick={() => onChange(page - 1)}><Ico.ChevL /></PageBtn>
+      {Array.from({ length: total }, (_, i) => i + 1).map(p => (
+        <PageBtn key={p} active={p === page} onClick={() => onChange(p)}>{p}</PageBtn>
+      ))}
+      <PageBtn disabled={page === total} onClick={() => onChange(page + 1)}><Ico.ChevR /></PageBtn>
+    </div>
+  )
+}
+
+/* ─── Section label inside modal ───────────────────────────────── */
+function ModalSection({ icon, label, count, color = 'var(--accent)' }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0 8px', borderBottom: '2px solid var(--border)', marginBottom: 8 }}>
+      <span style={{ color, display: 'flex' }}>{icon}</span>
+      <span style={{ fontSize: 12, fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: '.08em' }}>{label}</span>
+      {count !== undefined && (
+        <span style={{ marginLeft: 'auto', background: color, color: '#fff', fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 20 }}>{count}</span>
+      )}
+    </div>
+  )
+}
+
+/* ════════════════════════════════════════════════════════════════
+   MAIN COMPONENT
+   ════════════════════════════════════════════════════════════════ */
+export default function Announcements() {
+  const org   = useOrg()
+  const today = new Date()
+
+  /* ── Announcement state ──────────────────────────────────────── */
+  const [announcements, setAnnouncements] = useState(MOCK_ANNOUNCEMENTS)
+  const [showNewModal,  setShowNewModal]  = useState(false)
+  const [showAllModal,  setShowAllModal]  = useState(false)
+  const [allAnnPage,    setAllAnnPage]    = useState(1)  // pagination inside All Announcements modal
+  const [viewAnn,       setViewAnn]       = useState(null)
+  const [form, setForm] = useState({ title: '', content: '', is_pinned: false })
+  const [annResponse,   setAnnResponse]   = useState(null)
+  const [pendingDelete, setPendingDelete] = useState(null)
+
+  /* ── Tile state ──────────────────────────────────────────────── */
+  const TILES_PER_PAGE = 8
+  const allTiles = [
+    ...MOCK_PROJECTS.filter(p => p.status !== 'completed' && p.status !== 'cancelled').map(p => ({ ...p, kind: 'project' })),
+    ...MOCK_EVENTS.filter(e => e.status !== 'completed').map(e => ({ ...e, kind: 'event' })),
+  ]
+  const [tilePage,   setTilePage]   = useState(1)
+  const [detailItem, setDetailItem] = useState(null)
+  const totalTilePages = Math.max(1, Math.ceil(allTiles.length / TILES_PER_PAGE))
+  const pagedTiles     = allTiles.slice((tilePage - 1) * TILES_PER_PAGE, tilePage * TILES_PER_PAGE)
+
+  /* ── Calendar state ──────────────────────────────────────────── */
+  const [year,        setYear]        = useState(today.getFullYear())
+  const [month,       setMonth]       = useState(today.getMonth())
+  const [showAllSched,setShowAllSched] = useState(false)
+  const [schedPage,   setSchedPage]   = useState(1)   // pagination inside schedule modal
+  const [selectedDay, setSelectedDay] = useState(null)
+
+  const daysInMonth = getDaysInMonth(year, month)
+  const firstDay    = getFirstDay(year, month)
+
+  /* ── Derived ─────────────────────────────────────────────────── */
+  const pinnedAnn  = announcements.filter(a => a.is_pinned)
+  const regularAnn = announcements.filter(a => !a.is_pinned)
+  const allSorted  = [...pinnedAnn, ...regularAnn]
+
+  const upcoming = [
+    ...MOCK_PROJECTS.filter(p => p.status !== 'completed' && p.status !== 'cancelled')
+      .map(p => ({ ...p, kind: 'project', date: p.start_date, name: p.title })),
+    ...MOCK_EVENTS.filter(e => e.status !== 'completed')
+      .map(e => ({ ...e, kind: 'event', date: e.event_date, name: e.title })),
+  ].sort((a, b) => new Date(a.date) - new Date(b.date))
+
+  // Paginated data for "All Announcements" modal — 5 per page
+  const ANN_MODAL_PER_PAGE = 10
+  const annModalPages      = Math.max(1, Math.ceil(allSorted.length / ANN_MODAL_PER_PAGE))
+  const pagedModalAnn      = allSorted.slice((allAnnPage - 1) * ANN_MODAL_PER_PAGE, allAnnPage * ANN_MODAL_PER_PAGE)
+
+  // Paginated data for "All Schedule" modal — 8 per page
+  const SCHED_MODAL_PER_PAGE = 10
+  const schedModalPages      = Math.max(1, Math.ceil(upcoming.length / SCHED_MODAL_PER_PAGE))
+  const pagedModalSched      = upcoming.slice((schedPage - 1) * SCHED_MODAL_PER_PAGE, schedPage * SCHED_MODAL_PER_PAGE)
+
+  /* ── Height sync ─────────────────────────────────────────────── */
+  const overviewRef = useRef(null)
+  const [overviewH, setOverviewH] = useState('auto')
+  useEffect(() => {
+    if (!overviewRef.current) return
+    const ro = new ResizeObserver(([e]) => setOverviewH(e.contentRect.height))
+    ro.observe(overviewRef.current)
+    return () => ro.disconnect()
+  }, [tilePage])
+
+  /* ── Calendar helpers ─────────────────────────────────────────── */
+  function getActivitiesOnDay(day) {
+    const ds    = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+    const dayMs = new Date(ds).getTime()
+    const projects = MOCK_PROJECTS.filter(p => {
+      if (p.status === 'completed' || p.status === 'cancelled') return false
+      return dayMs >= new Date(p.start_date).getTime() && dayMs <= new Date(p.end_date).getTime()
+    })
+    const events = MOCK_EVENTS.filter(e => {
+      if (e.status === 'completed') return false
+      return e.event_date === ds
+    })
+    return { projects, events }
+  }
+  function prevMonth() { if (month===0){setYear(y=>y-1);setMonth(11)}else setMonth(m=>m-1) }
+  function nextMonth() { if (month===11){setYear(y=>y+1);setMonth(0)}else setMonth(m=>m+1) }
+
+  /* ── Announcement CRUD ───────────────────────────────────────── */
+  function handleAdd() {
+    if (!form.title || !form.content) return
+    setAnnouncements(prev => [{ id: String(Date.now()), ...form, created_by: 'Current User', created_at: new Date().toISOString() }, ...prev])
+    setForm({ title:'', content:'', is_pinned:false })
+    setShowNewModal(false)
+    setAnnResponse({ variant:'success', title:'Announcement Posted', message:'Your announcement has been published and is now visible to all members.' })
+  }
+  function togglePin(id) {
+    const ann = announcements.find(a => a.id === id)
+    setAnnouncements(prev => prev.map(a => a.id === id ? { ...a, is_pinned: !a.is_pinned } : a))
+    setViewAnn(null)
+    setAnnResponse({ variant:'info', title: ann?.is_pinned ? 'Announcement Unpinned' : 'Announcement Pinned', message: ann?.is_pinned ? 'The announcement has been removed from the pinned section.' : 'The announcement is now pinned at the top of the list.' })
+  }
+  function confirmDelete(id) { setViewAnn(null); setPendingDelete(id) }
+  function handleDelete() {
+    setAnnouncements(prev => prev.filter(a => a.id !== pendingDelete))
+    setPendingDelete(null)
+    setAnnResponse({ variant:'danger', title:'Announcement Deleted', message:'The announcement has been permanently removed and is no longer visible to members.' })
+  }
+
+  /* ── Display limits ──────────────────────────────────────────── */
+  const ANN_LIMIT   = 5
+  const SCHED_LIMIT = 5
+  const panelAnn    = allSorted.slice(0, ANN_LIMIT)
+  const panelSched  = upcoming.slice(0, SCHED_LIMIT)
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+
+      {/* ══ TOP ROW ══════════════════════════════════════════════════ */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 300px', gap:14 }}>
+
+        {/* LEFT — tile overview */}
+        <Card ref={overviewRef} style={{ display:'flex', flexDirection:'column' }}>
+          <div style={{ padding:'12px 16px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
+            <div>
+              <div style={{ fontSize:13.5, fontWeight:600 }}>Project &amp; Event Overview</div>
+              <div style={{ fontSize:11.5, color:'var(--text-muted)', marginTop:1 }}>Ongoing &amp; upcoming activities</div>
+            </div>
+            <div style={{ display:'flex', gap:12, alignItems:'center' }}>
+              <LegendDot color="var(--accent)"  label={`${org.project_label}s`} />
+              <LegendDot color="var(--success)" label={`${org.event_label}s`} />
+            </div>
+          </div>
+
+          <div style={{ padding:'14px 16px', flex:1 }}>
+            {pagedTiles.length === 0
+              ? <div style={{ textAlign:'center', padding:'40px 0', color:'var(--text-muted)', fontSize:13 }}>No active activities.</div>
+              : (
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12 }}>
+                  {pagedTiles.map(item => (
+                    <TileCard key={`${item.kind}-${item.id}`} item={item} org={org} onClick={() => setDetailItem(item)} />
+                  ))}
+                </div>
+              )
+            }
+          </div>
+
+          {/* Always-visible pagination */}
+          <div style={{ padding:'10px 16px', borderTop:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
+            <div style={{ fontSize:12, color:'var(--text-muted)' }}>Page {tilePage} of {totalTilePages} · {allTiles.length} total</div>
+            <div style={{ display:'flex', gap:4 }}>
+              <PageBtn disabled={tilePage===1}              onClick={() => setTilePage(p=>p-1)}><Ico.ChevL /></PageBtn>
+              {Array.from({ length: totalTilePages }, (_,i) => i+1).map(p => (
+                <PageBtn key={p} active={p===tilePage} onClick={() => setTilePage(p)}>{p}</PageBtn>
+              ))}
+              <PageBtn disabled={tilePage===totalTilePages} onClick={() => setTilePage(p=>p+1)}><Ico.ChevR /></PageBtn>
+            </div>
+          </div>
+        </Card>
+
+        {/* RIGHT — Announcements */}
+        <Card style={{ display:'flex', flexDirection:'column', minHeight: overviewH || 0 }}>
+          <div style={{ padding:'12px 14px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:7 }}>
+              <span style={{ color:'var(--accent)', display:'flex' }}><Ico.Bell /></span>
+              <span style={{ fontSize:13.5, fontWeight:600 }}>Announcements</span>
+            </div>
+            <button onClick={() => setShowNewModal(true)} title="New Announcement"
+              style={{ width:28, height:28, borderRadius:7, border:'none', background:'var(--accent)', color:'#fff', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 2px 8px rgba(75,94,170,.3)' }}>
+              <Ico.Plus />
+            </button>
+          </div>
+
+          <div style={{ flex:1, overflowY:'auto', minHeight:0 }}>
+            {panelAnn.length === 0
+              ? <div style={{ padding:'24px', textAlign:'center', color:'var(--text-muted)', fontSize:13 }}>No announcements yet. Click + to add one.</div>
+              : panelAnn.map(a => <AnnRow key={a.id} a={a} onClick={() => setViewAnn(a)} />)
+            }
+          </div>
+
+          {/* View All — centered */}
+          <div style={{ padding:'12px 14px', borderTop:'1px solid var(--border)', flexShrink:0, textAlign:'center' }}>
+            <button
+              onClick={() => { setAllAnnPage(1); setShowAllModal(true) }}
+              style={{ padding:'8px 24px', borderRadius:8, border:'1px solid var(--border)', background:'var(--neutral-light)', cursor:'pointer', fontSize:13, fontWeight:600, color:'var(--accent)', fontFamily:'var(--font-body)' }}>
+              View All Announcements ({allSorted.length})
+            </button>
+          </div>
+        </Card>
+      </div>
+
+      {/* ══ BOTTOM ROW ═══════════════════════════════════════════════ */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 300px', gap:14 }}>
+
+        {/* Calendar */}
+        <Card>
+          <div style={{ padding:'12px 18px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+            <button onClick={prevMonth} style={calNavBtn}><Ico.ChevL /></button>
+            <div style={{ fontSize:15, fontWeight:700 }}>{MONTH_NAMES[month]} {year}</div>
+            <button onClick={nextMonth} style={calNavBtn}><Ico.ChevR /></button>
+          </div>
+
+          <div style={{ padding:'14px 18px' }}>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', marginBottom:6 }}>
+              {DAY_NAMES.map(d => (
+                <div key={d} style={{ textAlign:'center', fontSize:10.5, fontWeight:700, color:'var(--text-muted)', padding:'2px 0', textTransform:'uppercase', letterSpacing:'.06em' }}>{d}</div>
+              ))}
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:3 }}>
+              {Array.from({ length: firstDay }).map((_, i) => <div key={`e${i}`} />)}
+              {Array.from({ length: daysInMonth }, (_, i) => i+1).map(day => {
+                const isToday = day===today.getDate() && month===today.getMonth() && year===today.getFullYear()
+                const { projects, events } = getActivitiesOnDay(day)
+                const hasAct = projects.length>0 || events.length>0
+                return (
+                  <div key={day} onClick={() => hasAct && setSelectedDay({ day, projects, events })}
+                    style={{ minHeight:66, padding:'5px 4px 4px', borderRadius:7,
+                      background: isToday ? 'var(--accent-light)' : hasAct ? 'rgba(0,0,0,.015)' : 'transparent',
+                      border: isToday ? '2px solid rgba(75,94,170,.4)' : hasAct ? '1px solid var(--border)' : '1px solid transparent',
+                      cursor: hasAct ? 'pointer' : 'default' }}>
+                    <div style={{ textAlign:'center', fontSize:12.5, fontWeight: isToday ? 700 : 400, color: isToday ? 'var(--accent)' : 'var(--text-primary)', marginBottom:3 }}>{day}</div>
+                    {projects.slice(0,1).map(p => <div key={p.id} style={{ fontSize:8.5, background:'var(--accent)', color:'#fff', borderRadius:3, padding:'1px 3px', marginBottom:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{p.title}</div>)}
+                    {events.slice(0,1).map(e => <div key={e.id} style={{ fontSize:8.5, background:'var(--success)', color:'#fff', borderRadius:3, padding:'1px 3px', marginBottom:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{e.title}</div>)}
+                    {(projects.length+events.length > 2) && <div style={{ fontSize:9, color:'var(--text-muted)', textAlign:'center' }}>+{projects.length+events.length-2}</div>}
+                  </div>
+                )
+              })}
+            </div>
+            <div style={{ display:'flex', gap:16, marginTop:12, paddingTop:12, borderTop:'1px solid var(--border)' }}>
+              <LegendDot color="var(--accent)"  label={`${org.project_label} (span)`} />
+              <LegendDot color="var(--success)" label={org.event_label} />
+              <div style={{ fontSize:11.5, color:'var(--text-muted)', marginLeft:'auto' }}>Click days for details</div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Upcoming Schedule */}
+        <Card style={{ display:'flex', flexDirection:'column' }}>
+          <div style={{ padding:'12px 16px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:7, flexShrink:0 }}>
+            <span style={{ color:'var(--accent)', display:'flex' }}><Ico.Cal /></span>
+            <span style={{ fontSize:13.5, fontWeight:600 }}>Upcoming Schedule</span>
+          </div>
+          <div style={{ flex:1, padding:'4px 0' }}>
+            {panelSched.length === 0
+              ? <div style={{ padding:'24px', textAlign:'center', color:'var(--text-muted)', fontSize:13 }}>No upcoming activities.</div>
+              : panelSched.map(a => <ScheduleItem key={`${a.kind}-${a.id}`} a={a} />)
+            }
+          </div>
+          {/* View All — centered */}
+          <div style={{ padding:'12px 16px', borderTop:'1px solid var(--border)', flexShrink:0, textAlign:'center' }}>
+            <button
+              onClick={() => { setSchedPage(1); setShowAllSched(true) }}
+              style={{ padding:'8px 24px', borderRadius:8, border:'1px solid var(--border)', background:'var(--neutral-light)', cursor:'pointer', fontSize:13, fontWeight:600, color:'var(--accent)', fontFamily:'var(--font-body)' }}>
+              View All Schedule ({upcoming.length})
+            </button>
+          </div>
+        </Card>
+      </div>
+
+      {/* ══ MODALS ══════════════════════════════════════════════════ */}
+
+      {/* Announcement detail */}
+      {viewAnn && (
+        <InfoModal open={!!viewAnn} onClose={() => setViewAnn(null)}
+          title={viewAnn.title}
+          subtitle={`By ${viewAnn.created_by} · ${relativeTime(viewAnn.created_at)}`}
+          accentColor={viewAnn.is_pinned ? 'var(--accent)' : 'var(--text-muted)'}
+          footer={
+            <div style={{ display:'flex', gap:8, width:'100%', justifyContent:'space-between' }}>
+              <div style={{ display:'flex', gap:8 }}>
+                <Button variant="secondary" size="sm" onClick={() => togglePin(viewAnn.id)}>{viewAnn.is_pinned ? 'Unpin' : 'Pin'}</Button>
+                <Button variant="danger" size="sm" onClick={() => confirmDelete(viewAnn.id)}>Delete</Button>
+              </div>
+              <Button variant="secondary" onClick={() => setViewAnn(null)}>Close</Button>
+            </div>
+          }>
+          <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+            {viewAnn.is_pinned && (
+              <div style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 12px', background:'var(--accent-light)', borderRadius:8, border:'1px solid rgba(75,94,170,.2)', color:'var(--accent)', fontSize:13, fontWeight:600 }}>
+                <Ico.Pin /> Pinned Announcement
+              </div>
+            )}
+            <p style={{ fontSize:15, lineHeight:1.75, color:'var(--text-secondary)', margin:0 }}>{viewAnn.content}</p>
+          </div>
+        </InfoModal>
+      )}
+
+      {/* New Announcement */}
+      <InfoModal open={showNewModal} onClose={() => setShowNewModal(false)}
+        title="New Announcement"
+        subtitle="Post an update visible to all members"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setShowNewModal(false)}>Cancel</Button>
+            <Button onClick={handleAdd}>Post Announcement</Button>
+          </>
+        }>
+        <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+          <Input label="Title" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Announcement title" required />
+          <Textarea label="Content" value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} placeholder="Write your announcement here…" rows={6} required />
+          <label style={{ display:'flex', alignItems:'center', gap:10, fontSize:13.5, cursor:'pointer' }}>
+            <input type="checkbox" checked={form.is_pinned} onChange={e => setForm(f => ({ ...f, is_pinned: e.target.checked }))} style={{ accentColor:'var(--accent)', width:15, height:15 }} />
+            Pin this announcement to the top
+          </label>
+        </div>
+      </InfoModal>
+
+      {/* ── View All Announcements — with pinned/unpinned sections + pagination ── */}
+      <InfoModal open={showAllModal} onClose={() => setShowAllModal(false)}
+        title="All Announcements"
+        subtitle={`${allSorted.length} total · ${pinnedAnn.length} pinned · ${regularAnn.length} unpinned`}>
+        <div>
+          {/* Pinned section */}
+          {pinnedAnn.length > 0 && (
+            <div style={{ marginBottom: 20 }}>
+              <ModalSection
+                icon={<Ico.Pin />}
+                label="Pinned"
+                count={pinnedAnn.length}
+                color="var(--accent)"
+              />
+              {pinnedAnn.map(a => (
+                <AnnRow key={a.id} a={a} onClick={() => { setShowAllModal(false); setViewAnn(a) }} />
+              ))}
+            </div>
+          )}
+
+          {/* Unpinned section */}
+          {regularAnn.length > 0 && (
+            <div>
+              <ModalSection
+                icon={<Ico.Bell />}
+                label="Recent Posts"
+                count={regularAnn.length}
+                color="var(--text-secondary)"
+              />
+              {/* Paginated unpinned list */}
+              {pagedModalAnn
+                .filter(a => !a.is_pinned)
+                .map(a => (
+                  <AnnRow key={a.id} a={a} onClick={() => { setShowAllModal(false); setViewAnn(a) }} />
+                ))}
+              {/* Show all pinned on first page too if they were included in slice */}
+              {allSorted
+                .filter(a => !a.is_pinned)
+                .slice((allAnnPage - 1) * ANN_MODAL_PER_PAGE, allAnnPage * ANN_MODAL_PER_PAGE)
+                .filter((a, _, arr) => !pagedModalAnn.filter(p => !p.is_pinned).find(p => p.id === a.id))
+                .map(a => (
+                  <AnnRow key={a.id} a={a} onClick={() => { setShowAllModal(false); setViewAnn(a) }} />
+                ))}
+            </div>
+          )}
+
+          {/* Pagination for unpinned */}
+          {regularAnn.length > ANN_MODAL_PER_PAGE && (
+            <Pagination
+              page={allAnnPage}
+              total={Math.ceil(regularAnn.length / ANN_MODAL_PER_PAGE)}
+              onChange={setAllAnnPage}
+            />
+          )}
+
+          {allSorted.length === 0 && (
+            <div style={{ textAlign:'center', padding:'32px 0', color:'var(--text-muted)', fontSize:13 }}>
+              No announcements yet.
+            </div>
+          )}
+        </div>
+      </InfoModal>
+
+      {/* ── View All Schedule — with pagination ───────────────────── */}
+      <InfoModal open={showAllSched} onClose={() => setShowAllSched(false)}
+        title="Full Upcoming Schedule"
+        subtitle={`${upcoming.length} activities · Page ${schedPage} of ${schedModalPages} · 10 per page`}>
+        <div>
+          {pagedModalSched.map(a => <ScheduleItem key={`${a.kind}-${a.id}`} a={a} />)}
+          <Pagination page={schedPage} total={schedModalPages} onChange={setSchedPage} />
+        </div>
+      </InfoModal>
+
+      {/* Tile detail */}
+      {detailItem && (
+        <InfoModal open={!!detailItem} onClose={() => setDetailItem(null)}
+          title={detailItem.title}
+          subtitle={detailItem.kind==='project' ? `${org.project_label} · ${detailItem.project_type||''}` : org.event_label}
+          accentColor={detailItem.kind==='project' ? 'var(--accent)' : 'var(--success)'}
+          footer={<Button variant="secondary" onClick={() => setDetailItem(null)}>Close</Button>}>
+          <DetailContent item={detailItem} org={org} />
+        </InfoModal>
+      )}
+
+      {/* Calendar day detail */}
+      {selectedDay && (
+        <InfoModal open={!!selectedDay} onClose={() => setSelectedDay(null)}
+          title={`${MONTH_NAMES[month]} ${selectedDay.day}, ${year}`}
+          subtitle="Activities on this day">
+          <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+            {selectedDay.projects.map(p => <DayCard key={p.id} item={{ ...p, kind:'project' }} org={org} />)}
+            {selectedDay.events.map(e => <DayCard key={e.id} item={{ ...e, kind:'event' }} org={org} />)}
+          </div>
+        </InfoModal>
+      )}
+
+      {/* Delete confirm */}
+      <ResponseModal
+        open={!!pendingDelete}
+        onClose={() => setPendingDelete(null)}
+        variant="danger"
+        title="Delete Announcement?"
+        message="This will permanently remove the announcement. All members will lose access to this post and it cannot be recovered."
+        confirmLabel="Yes, Delete"
+        cancelLabel="Cancel"
+        onConfirm={handleDelete}
+      />
+
+      {/* Action feedback */}
+      <ResponseModal
+        open={!!annResponse}
+        onClose={() => setAnnResponse(null)}
+        variant={annResponse?.variant || 'success'}
+        title={annResponse?.title  || ''}
+        message={annResponse?.message || ''}
+        confirmLabel="Got it"
+      />
+    </div>
+  )
+}
+
+/* ─── Sub-components (same as before, solid colors) ─────────────────────────  */
+function TileCard({ item, org, onClick }) {
+  const isProject = item.kind === 'project'
+  const accentC   = isProject ? 'var(--accent)' : 'var(--success)'
+  const pct = item.target_funding > 0 ? Math.min(100, Math.round((item.current_funding / item.target_funding) * 100)) : null
+  return (
+    <div onClick={onClick}
+      style={{ borderRadius:10, overflow:'hidden', border:'1px solid var(--border)', cursor:'pointer', background:'#fff', display:'flex', flexDirection:'column', transition:'transform .18s, box-shadow .18s' }}
+      onMouseEnter={e => { e.currentTarget.style.transform='translateY(-3px)'; e.currentTarget.style.boxShadow='0 8px 24px rgba(0,0,0,.12)' }}
+      onMouseLeave={e => { e.currentTarget.style.transform=''; e.currentTarget.style.boxShadow='' }}>
+      <div style={{ height:80, background: tileColor(item.id), position:'relative', flexShrink:0, display:'flex', alignItems:'flex-end', padding:'8px 10px' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:4, background:'rgba(0,0,0,.35)', borderRadius:5, padding:'3px 7px' }}>
+          <span style={{ color:'#fff', display:'flex' }}>{isProject ? <Ico.Proj /> : <Ico.Event />}</span>
+          <span style={{ fontSize:10, fontWeight:700, color:'#fff', textTransform:'uppercase', letterSpacing:'.06em' }}>{isProject ? org.project_label : org.event_label}</span>
+        </div>
+        <div style={{ position:'absolute', top:8, right:8 }}><StatusBadge status={item.status} /></div>
+      </div>
+      <div style={{ padding:'10px 11px 12px', flex:1, display:'flex', flexDirection:'column', gap:6 }}>
+        <div style={{ fontSize:12.5, fontWeight:700, lineHeight:1.35, overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' }}>{item.title}</div>
+        <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+          {item.location && <div style={{ display:'flex', alignItems:'center', gap:4, fontSize:11, color:'var(--text-muted)' }}><Ico.MapPin />{item.location}</div>}
+          <div style={{ display:'flex', alignItems:'center', gap:4, fontSize:11, color:'var(--text-muted)' }}>
+            <Ico.Clock />{isProject ? formatDate(item.start_date) : `${formatDate(item.event_date)}${item.event_time ? ` · ${item.event_time}` : ''}`}
+          </div>
+        </div>
+        {pct !== null && (
+          <div style={{ marginTop:'auto' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'var(--text-muted)', marginBottom:3 }}>
+              <span>Funded</span><span style={{ fontWeight:700, color:accentC }}>{pct}%</span>
+            </div>
+            <div style={{ height:3, background:'var(--border)', borderRadius:3, overflow:'hidden' }}>
+              <div style={{ height:'100%', background:accentC, width:`${pct}%`, borderRadius:3 }} />
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function DetailContent({ item, org }) {
+  const isProject = item.kind === 'project'
+  const accentC   = isProject ? 'var(--accent)' : 'var(--success)'
+  const bgC       = isProject ? 'var(--accent-light)' : 'var(--success-light)'
+  const pct = item.target_funding > 0 ? Math.min(100, Math.round((item.current_funding / item.target_funding) * 100)) : null
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
+      <div style={{ height:140, borderRadius:12, background: tileColor(item.id), position:'relative', overflow:'hidden', display:'flex', alignItems:'flex-end', padding:'18px 20px' }}>
+        <div style={{ background:'rgba(0,0,0,.50)', borderRadius:8, padding:'10px 16px' }}>
+          <div style={{ fontSize:20, fontWeight:800, color:'#fff', lineHeight:1.2 }}>{item.title}</div>
+          {item.description && <div style={{ fontSize:13, color:'rgba(255,255,255,.8)', marginTop:4, lineHeight:1.5 }}>{item.description}</div>}
+        </div>
+        <div style={{ position:'absolute', top:14, right:14 }}><StatusBadge status={item.status} /></div>
+      </div>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:12 }}>
+        {[
+          ['Location', item.location || '—'],
+          isProject ? ['Duration', `${formatDate(item.start_date)} – ${formatDate(item.end_date)}`] : ['Date & Time', `${formatDate(item.event_date)}${item.event_time ? ` · ${item.event_time}` : ''}`],
+          ['Target Funding', item.target_funding>0 ? formatCurrency(item.target_funding, org.currency_symbol) : 'Not Required'],
+          ['Current Funding', item.current_funding>0 ? formatCurrency(item.current_funding, org.currency_symbol) : '—'],
+        ].map(([k,v]) => (
+          <div key={k} style={{ padding:'12px 14px', borderRadius:10, background:'var(--neutral-light)', border:'1px solid var(--border)' }}>
+            <div style={{ fontSize:11, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'.07em', marginBottom:4 }}>{k}</div>
+            <div style={{ fontSize:14, fontWeight:600 }}>{v}</div>
+          </div>
+        ))}
+      </div>
+      {pct !== null && (
+        <div style={{ padding:'16px 18px', borderRadius:10, background:bgC, border:`1px solid ${accentC}25` }}>
+          <div style={{ display:'flex', justifyContent:'space-between', fontSize:13, marginBottom:8 }}>
+            <span style={{ fontWeight:600, color:accentC }}>Funding Progress</span>
+            <span style={{ fontWeight:700, color:accentC }}>{pct}%</span>
+          </div>
+          <div style={{ height:10, background:'rgba(0,0,0,.08)', borderRadius:10, overflow:'hidden' }}>
+            <div style={{ height:'100%', background:accentC, width:`${pct}%`, borderRadius:10 }} />
+          </div>
+          <div style={{ display:'flex', justifyContent:'space-between', fontSize:11.5, color:'var(--text-muted)', marginTop:6 }}>
+            <span>{formatCurrency(item.current_funding, org.currency_symbol)} raised</span>
+            <span>{formatCurrency(item.target_funding, org.currency_symbol)} goal</span>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function DayCard({ item, org }) {
+  const isProject = item.kind === 'project'
+  const accentC   = isProject ? 'var(--accent)' : 'var(--success)'
+  const bgC       = isProject ? 'var(--accent-light)' : 'var(--success-light)'
+  return (
+    <div style={{ borderRadius:10, overflow:'hidden', border:`1px solid ${accentC}22` }}>
+      <div style={{ height:36, background: tileColor(item.id) }} />
+      <div style={{ padding:'12px 14px', background:bgC }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:5 }}>
+          <span style={{ color:accentC }}>{isProject ? <Ico.Proj /> : <Ico.Event />}</span>
+          <span style={{ fontSize:14, fontWeight:700, color:accentC }}>{item.title}</span>
+        </div>
+        <div style={{ fontSize:13, color:'var(--text-secondary)', lineHeight:1.6 }}>{item.description}</div>
+        <div style={{ fontSize:12, color:'var(--text-muted)', marginTop:5 }}>{item.location}{item.event_time ? ` · ${item.event_time}` : ''}</div>
+      </div>
+    </div>
+  )
+}
+
+function AnnRow({ a, onClick }) {
+  return (
+    <div onClick={onClick}
+      style={{ display:'flex', alignItems:'flex-start', gap:9, padding:'10px 14px', cursor:'pointer', borderBottom:'1px solid var(--border)', background: a.is_pinned ? 'rgba(75,94,170,.025)' : 'transparent', transition:'background .12s' }}
+      onMouseEnter={e => e.currentTarget.style.background = a.is_pinned ? 'rgba(75,94,170,.05)' : 'var(--neutral-light)'}
+      onMouseLeave={e => e.currentTarget.style.background = a.is_pinned ? 'rgba(75,94,170,.025)' : 'transparent'}>
+      {a.is_pinned && <span style={{ color:'var(--accent)', display:'flex', flexShrink:0, marginTop:3 }}><Ico.Pin /></span>}
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ fontSize:13, fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{a.title}</div>
+        <div style={{ fontSize:11.5, color:'var(--text-muted)', marginTop:2 }}>{a.created_by} · {relativeTime(a.created_at)}</div>
+      </div>
+      <span style={{ color:'var(--text-muted)', flexShrink:0, marginTop:3 }}><Ico.Arrow /></span>
+    </div>
+  )
+}
+
+function ScheduleItem({ a }) {
+  const d  = new Date(a.date)
+  const dd = isNaN(d) ? '??' : d.getDate()
+  const mm = isNaN(d) ? '???' : MONTH_NAMES[d.getMonth()].slice(0,3)
+  return (
+    <div style={{ display:'flex', gap:10, alignItems:'flex-start', padding:'9px 16px', borderBottom:'1px solid var(--border)' }}>
+      <div style={{ width:36, height:36, borderRadius:8, background: a.kind==='event' ? 'var(--success-light)' : 'var(--accent-light)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+        <div style={{ fontSize:12.5, fontWeight:700, color: a.kind==='event' ? 'var(--success)' : 'var(--accent)', lineHeight:1 }}>{dd}</div>
+        <div style={{ fontSize:9, color: a.kind==='event' ? 'var(--success)' : 'var(--accent)', lineHeight:1, marginTop:1 }}>{mm}</div>
+      </div>
+      <div style={{ minWidth:0 }}>
+        <div style={{ fontSize:13, fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{a.name}</div>
+        <div style={{ marginTop:3 }}><Badge variant={a.kind==='event' ? 'success' : 'accent'}>{a.kind}</Badge></div>
+      </div>
+    </div>
+  )
+}
+
+function LegendDot({ color, label }) {
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:5, fontSize:11.5, color:'var(--text-muted)' }}>
+      <div style={{ width:8, height:8, borderRadius:'50%', background:color }} />{label}
+    </div>
+  )
+}
+
+function PageBtn({ children, active, disabled, onClick }) {
+  return (
+    <button onClick={onClick} disabled={disabled}
+      style={{ display:'flex', alignItems:'center', justifyContent:'center', width:28, height:28, borderRadius:6, border:'1px solid var(--border)', background: active ? 'var(--accent)' : disabled ? 'var(--neutral-light)' : '#fff', color: active ? '#fff' : disabled ? 'var(--text-muted)' : 'var(--text-primary)', cursor: disabled ? 'not-allowed' : 'pointer', fontSize:12, fontWeight: active ? 700 : 400 }}>
+      {children}
+    </button>
+  )
+}
+
+const calNavBtn = { display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, borderRadius:7, border:'1px solid var(--border)', background:'#fff', cursor:'pointer', color:'var(--text-secondary)' }

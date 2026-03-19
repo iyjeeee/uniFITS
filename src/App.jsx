@@ -1,61 +1,126 @@
+// App.jsx — Root router that connects all pages to the sidebar navigation
+// Uses a simple hash-based router (no react-router needed) for zero-dependency routing
+import { useState, useEffect } from 'react'
 import AppLayout from './layouts/AppLayout'
-import useBreakpoint from './hooks/useBreakpoint'
+import { OrgProvider } from './context/OrgContext'
 
-function DashboardPlaceholder() {
-  const bp = useBreakpoint()
+// ── Page imports ─────────────────────────────────────────────────
+import Login            from './pages/login/Login'
+import ForgotPassword   from './pages/login/ForgotPassword'
+import Dashboard        from './pages/dashboard/Dashboard'
+import Announcements    from './pages/announcements/Announcements'
+// Calendar is now merged into Announcements — no separate import needed
+import Employees        from './pages/employees/Employees'
+import AddEmployee      from './pages/employees/AddEmployee'
+import EditEmployee     from './pages/employees/EditEmployee'
+import EmployeeDetails  from './pages/employees/EmployeeDetails'
+import RolesPage        from './pages/employees/RolesPage'
+import Attendance       from './pages/employees/Attendance'
+import Projects         from './pages/projects/Projects'
+import AddProject       from './pages/projects/AddProject'
+import EditProject      from './pages/projects/EditProject'
+import ProjectDetail    from './pages/projects/ProjectDetail'
+import Events           from './pages/events/Events'
+import AddEvent         from './pages/events/AddEvent'
+import EditEvent        from './pages/events/EditEvent'
+import EventDetail      from './pages/events/EventDetail'
+import Funds            from './pages/funds/Funds'
+import AddFund          from './pages/funds/AddFund'
+import EditFund         from './pages/funds/EditFund'
+import Transactions     from './pages/transactions/Transactions'
+import AddTransaction   from './pages/transactions/AddTransaction'
+import Utilities        from './pages/transactions/Utilities'
+import Profile          from './pages/profile/Profile'
+import EditProfile      from './pages/profile/EditProfile'
+import PersonalTransactions from './pages/profile/PersonalTransactions'
+import EmployeeReport   from './pages/reports/EmployeeReport'
+import FundReport       from './pages/reports/FundReport'
+import ClubReport       from './pages/reports/ClubReport'
+import AuditLogs        from './pages/audit/AuditLogs'
+import Settings         from './pages/settings/Settings'
+import Backup           from './pages/settings/Backup'
 
-  const kpiCols = bp === 'mobile' ? '1fr 1fr' : bp === 'tablet' ? '1fr 1fr' : 'repeat(4, 1fr)'
-  const padding  = bp === 'mobile' ? 16 : 28
+// ── Route map: hash → { component, page title, subtitle } ────────
+const ROUTES = {
+  '/login':               { Component: Login,               auth: false },
+  '/forgot-password':     { Component: ForgotPassword,      auth: false },
+  '/dashboard':           { Component: Dashboard,           page: 'Dashboard',      sub: 'Overview' },
+  '/announcements':       { Component: Announcements,       page: 'Announcements',  sub: 'News & Updates' },
+  '/announcements/calendar': { Component: Announcements,    page: 'Announcements',  sub: 'Calendar View' }, // Calendar merged into Announcements
+  '/employees':           { Component: Employees,           page: 'Employees',      sub: 'Manage Employees' },
+  '/employees/add':       { Component: AddEmployee,         page: 'Employees',      sub: 'Add Employee' },
+  '/employees/edit':      { Component: EditEmployee,        page: 'Employees',      sub: 'Edit Employee' },
+  '/employees/details':   { Component: EmployeeDetails,     page: 'Employees',      sub: 'Employee Details' },
+  '/employees/roles':     { Component: RolesPage,           page: 'Employees',      sub: 'Roles & Permissions' },
+  '/employees/attendance':{ Component: Attendance,          page: 'Employees',      sub: 'Attendance Records' },
+  '/projects':            { Component: Projects,            page: 'Projects',       sub: 'Manage Projects' },
+  '/projects/add':        { Component: AddProject,          page: 'Projects',       sub: 'Add Project' },
+  '/projects/edit':       { Component: EditProject,         page: 'Projects',       sub: 'Edit Project' },
+  '/projects/detail':     { Component: ProjectDetail,       page: 'Projects',       sub: 'Project Details' },
+  '/events':              { Component: Events,              page: 'Events',         sub: 'Manage Events' },
+  '/events/add':          { Component: AddEvent,            page: 'Events',         sub: 'Add Event' },
+  '/events/edit':         { Component: EditEvent,           page: 'Events',         sub: 'Edit Event' },
+  '/events/detail':       { Component: EventDetail,         page: 'Events',         sub: 'Event Details' },
+  '/funds':               { Component: Funds,               page: 'Funds',          sub: 'Manage Funds' },
+  '/funds/add':           { Component: AddFund,             page: 'Funds',          sub: 'Add Fund' },
+  '/funds/edit':          { Component: EditFund,            page: 'Funds',          sub: 'Edit Fund' },
+  '/transactions':        { Component: Transactions,        page: 'Transactions',   sub: 'All Transactions' },
+  '/transactions/add':    { Component: AddTransaction,      page: 'Transactions',   sub: 'Add Transaction' },
+  '/transactions/utilities': { Component: Utilities,        page: 'Transactions',   sub: 'Utilities' },
+  '/profile':             { Component: Profile,             page: 'My Profile',     sub: 'Personal Information' },
+  '/profile/edit':        { Component: EditProfile,         page: 'My Profile',     sub: 'Edit Profile' },
+  '/profile/transactions':{ Component: PersonalTransactions,page: 'My Profile',     sub: 'Personal Transactions' },
+  '/reports/employees':   { Component: EmployeeReport,      page: 'Reports',        sub: 'Employee Report' },
+  '/reports/funds':       { Component: FundReport,          page: 'Reports',        sub: 'Fund Report' },
+  '/reports/club':        { Component: ClubReport,          page: 'Reports',        sub: 'Club Report' },
+  '/audit':               { Component: AuditLogs,           page: 'Audit Logs',     sub: 'System Activity' },
+  '/settings':            { Component: Settings,            page: 'Settings',       sub: 'System Configuration' },
+  '/settings/backup':     { Component: Backup,              page: 'Settings',       sub: 'Backup & Recovery' },
+}
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-      <div style={{ display: 'grid', gridTemplateColumns: kpiCols, gap: bp === 'mobile' ? 12 : 16 }}>
-        {[
-          { label: 'Total employees', value: '138',    trend: '+4 this month', color: 'var(--success)', bg: 'var(--success-light)' },
-          { label: 'Overall balance',  value: '₱1.24M', trend: '+12.4%',        color: 'var(--warning)', bg: 'var(--accent-light)'  },
-          { label: 'Active projects',  value: '24',     trend: '24 active',     color: 'var(--info)',    bg: 'var(--info-light)'    },
-          { label: 'Upcoming events',  value: '8',      trend: '2 overdue',     color: 'var(--danger)',  bg: 'var(--danger-light)'  },
-        ].map(({ label, value, trend, color, bg }) => (
-          <div key={label} style={kpiCard}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div style={{ width: 38, height: 38, borderRadius: 10, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx={12} cy={12} r={9} />
-                </svg>
-              </div>
-              <span style={{ fontSize: 11, fontWeight: 500, padding: '2px 7px', borderRadius: 20, background: bg, color }}>{trend}</span>
-            </div>
-            <div>
-              <div style={{ fontFamily: 'var(--font-display)', fontSize: bp === 'mobile' ? 22 : 26, color: 'var(--text-primary)', lineHeight: 1 }}>{value}</div>
-              <div style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 4 }}>{label}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div style={card}>
-        <div style={cardHeader}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Recent transactions</span>
-          <a href="#" style={{ fontSize: 12.5, color: 'var(--secondary)', fontWeight: 500 }}>View all →</a>
-        </div>
-        <div style={{ padding: '20px', color: 'var(--text-muted)', fontSize: 13.5, textAlign: 'center' }}>
-          Connect your router and replace this with <code>&lt;TransactionsPage /&gt;</code>
-        </div>
-      </div>
-
-    </div>
-  )
+// Default org config — swap with real API response from /api/organizations/me
+const DEFAULT_ORG = {
+  name: 'uniFITS Demo Organization',
+  currency_symbol: '₱', currency_code: 'PHP',
+  people_label: 'Employee',   project_label: 'Project',
+  event_label: 'Event',       fund_label: 'Fund',
+  transaction_label: 'Transaction', utility_label: 'Utility',
+  attendance_label: 'Attendance', report_label: 'Report',
 }
 
 export default function App() {
+  // Simple hash-based routing state
+  const [hash, setHash] = useState(window.location.hash.replace('#', '') || '/login')
+  const [authed, setAuthed] = useState(false) // replace with real JWT check
+
+  // Listen to hash changes for navigation
+  useEffect(() => {
+    function onHashChange() {
+      setHash(window.location.hash.replace('#', '') || '/login')
+    }
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [])
+
+  // Navigate helper — used by Sidebar links
+  function navigate(path) {
+    window.location.hash = path
+  }
+
+  const route = ROUTES[hash] || ROUTES['/dashboard']
+  const { Component, page, sub, auth = true } = route
+
+  // Unauthenticated — show login/forgot screens
+  if (!authed || !auth) {
+    if (hash === '/forgot-password') return <OrgProvider orgData={DEFAULT_ORG}><ForgotPassword /></OrgProvider>
+    return <OrgProvider orgData={DEFAULT_ORG}><Login onLogin={() => { setAuthed(true); navigate('/dashboard') }} /></OrgProvider>
+  }
+
   return (
-    <AppLayout page="Dashboard" sub="Overview">
-      <DashboardPlaceholder />
-    </AppLayout>
+    <OrgProvider orgData={DEFAULT_ORG}>
+      <AppLayout page={page} sub={sub} navigate={navigate}>
+        <Component />
+      </AppLayout>
+    </OrgProvider>
   )
 }
-
-const kpiCard   = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 12, cursor: 'pointer' }
-const card      = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }
-const cardHeader = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: '1px solid var(--border)' }
