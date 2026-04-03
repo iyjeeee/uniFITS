@@ -1,5 +1,6 @@
 // Announcements.jsx — Hub with paginated View All modals, pinned/unpinned sections
-import { useState, useRef, useEffect } from 'react'
+// Fully responsive via useBreakpoint — calendar/tiles layout collapses on mobile
+import React, { useState, useRef, useEffect } from 'react'
 import {
   Card, Button, Badge, StatusBadge,
   InfoModal, ResponseModal, Input, Textarea,
@@ -9,6 +10,16 @@ import {
   formatDate, formatCurrency, relativeTime,
 } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
+import useBreakpoint from '../../hooks/useBreakpoint'
+
+/* ── Convert 24-hr "HH:MM" to 12-hr "h:MM AM/PM" ─────────────────── */
+function fmt12(t) {
+  if (!t) return null
+  const [h, m] = t.split(':').map(Number)
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  const h12  = h % 12 || 12
+  return `${h12}:${String(m).padStart(2,'0')} ${ampm}`
+}
 
 /* ─── Calendar helpers ─────────────────────────────────────────── */
 function getDaysInMonth(y, m) { return new Date(y, m + 1, 0).getDate() }
@@ -17,8 +28,9 @@ const MONTH_NAMES = ['January','February','March','April','May','June','July','A
 const DAY_NAMES   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
 
 /* ─── Solid-color tile palette ─────────────────────────────────── */
-const TILE_COLORS = ['#4B5EAA','#2E7D52','#2471A3','#7D3C98','#117A65','#C0392B','#D4860A','#1E2128']
-function tileColor(id) { return TILE_COLORS[(parseInt(id, 10) || 0) % TILE_COLORS.length] }
+/* Fixed type colors — project = brand blue, event = success green, for easy identification */
+const KIND_COLOR = { project: '#4B5EAA', event: '#2E7D52' }
+function tileColor(id, kind) { return KIND_COLOR[kind] || '#4B5EAA' }
 
 /* ─── SVG icons ────────────────────────────────────────────────── */
 const Ico = {
@@ -51,7 +63,7 @@ function Pagination({ page, total, onChange }) {
 /* ─── Section label inside modal ───────────────────────────────── */
 function ModalSection({ icon, label, count, color = 'var(--accent)' }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0 8px', borderBottom: '2px solid var(--border)', marginBottom: 8 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0 8px', borderBottom: '2px solid var(--border-table)', marginBottom: 8 }}>
       <span style={{ color, display: 'flex' }}>{icon}</span>
       <span style={{ fontSize: 12, fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: '.08em' }}>{label}</span>
       {count !== undefined && (
@@ -64,9 +76,92 @@ function ModalSection({ icon, label, count, color = 'var(--accent)' }) {
 /* ════════════════════════════════════════════════════════════════
    MAIN COMPONENT
    ════════════════════════════════════════════════════════════════ */
+/* ── CalDay — a single calendar day cell with smart activity display ── */
+/* Projects spanning multiple days show as a continuous bar:
+   - Start day: left-rounded pill with title
+   - Middle days: full-width bar (no text) — keeps reading clean
+   - End day: right-rounded pill
+   Single-day events show as a standard pill with title.                  */
+function CalDay({ day, isToday, hasAct, projects, events, totalActs, onClick }) {
+  const [hov, setHov] = React.useState(false)
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => { if (hasAct) setHov(true) }}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        minHeight: 72, padding: '5px 3px 4px', borderRadius: 8,
+        background: isToday
+          ? 'var(--accent-light)'
+          : hov
+          ? 'rgba(75,94,170,.07)'
+          : hasAct
+          ? 'rgba(0,0,0,.012)'
+          : 'transparent',
+        border: isToday
+          ? '2px solid rgba(75,94,170,.45)'
+          : hov
+          ? '1.5px solid rgba(75,94,170,.35)'
+          : hasAct
+          ? '1.5px solid var(--border-card)'
+          : '1px solid transparent',
+        cursor: hasAct ? 'pointer' : 'default',
+        /* Smooth hover transition — same as buttons */
+        transition: 'background .18s ease, border-color .18s ease, transform .18s ease, box-shadow .18s ease',
+        transform: hov && hasAct ? 'translateY(-2px)' : 'none',
+        boxShadow: hov && hasAct ? '0 0 0 2px rgba(0,0,0,.75), 0 5px 12px rgba(0,0,0,.14)' : 'none',
+      }}>
+
+      {/* Day number */}
+      <div style={{ textAlign:'center', fontSize:12.5, fontWeight: isToday ? 700 : 400, color: isToday ? 'var(--accent)' : 'var(--text-primary)', marginBottom: 4 }}>
+        {day}
+      </div>
+
+      {/* Project pills — continuous bar style for multi-day projects */}
+      {projects.slice(0,2).map(p => (
+        <div key={p.id} style={{
+          fontSize: p.isMid ? 7 : 8.5,
+          background: p.isMid ? 'rgba(75,94,170,.7)' : 'var(--accent)',
+          color: '#fff',
+          borderRadius: p.isStart ? '3px 0 0 3px'
+                       : p.isEnd  ? '0 3px 3px 0'
+                       : '0',
+          /* Start/End get padding and text; Mid gets thin silent bar */
+          padding: p.isMid ? '3px 2px' : '2px 4px',
+          marginBottom: 2, marginLeft: p.isStart ? 0 : -3, marginRight: p.isEnd ? 0 : -3,
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          display: 'block',
+        }}>
+          {p.isMid ? ' ' : p.title}
+        </div>
+      ))}
+
+      {/* Event pills — always single-day, standard pill */}
+      {events.slice(0, Math.max(0, 2 - projects.length)).map(e => (
+        <div key={e.id} style={{ fontSize:8.5, background:'var(--success)', color:'#fff', borderRadius:3, padding:'2px 4px', marginBottom:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+          {e.title}
+        </div>
+      ))}
+
+      {/* Overflow indicator */}
+      {totalActs > 2 && (
+        <div style={{ fontSize:9, color: isToday ? 'var(--accent)' : 'var(--text-muted)', textAlign:'center', fontWeight:600 }}>
+          +{totalActs - 2}
+        </div>
+      )}
+    </div>
+  )
+}
+
+
 export default function Announcements() {
   const org   = useOrg()
+  const { isMobile, isTablet } = useBreakpoint()
   const today = new Date()
+
+  /* ── Announcements layout helpers — responsive column counts ─── */
+  const twoColLayout  = isMobile ? '1fr' : '1fr 300px'   // announcements + calendar/tiles side panel
+  const tileGridCols  = isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)' // activity tile strip
 
   /* ── Announcement state ──────────────────────────────────────── */
   const [announcements, setAnnouncements] = useState(MOCK_ANNOUNCEMENTS)
@@ -179,11 +274,12 @@ export default function Announcements() {
     <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
 
       {/* ══ TOP ROW ══════════════════════════════════════════════════ */}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 300px', gap:14 }}>
+      <div style={{ display:'grid', gridTemplateColumns:twoColLayout, gap:14 }}>
 
         {/* LEFT — tile overview */}
-        <Card ref={overviewRef} style={{ display:'flex', flexDirection:'column' }}>
-          <div style={{ padding:'12px 16px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
+        <div ref={overviewRef} style={{ display:'flex', flexDirection:'column' }}>
+        <Card style={{ display:'flex', flexDirection:'column', flex: 1 }}>
+          <div style={{ padding:'12px 16px', borderBottom:'1px solid var(--border-inner)', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
             <div>
               <div style={{ fontSize:13.5, fontWeight:600 }}>Project &amp; Event Overview</div>
               <div style={{ fontSize:11.5, color:'var(--text-muted)', marginTop:1 }}>Ongoing &amp; upcoming activities</div>
@@ -198,7 +294,7 @@ export default function Announcements() {
             {pagedTiles.length === 0
               ? <div style={{ textAlign:'center', padding:'40px 0', color:'var(--text-muted)', fontSize:13 }}>No active activities.</div>
               : (
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12 }}>
+                <div style={{ display:'grid', gridTemplateColumns:tileGridCols, gap:12 }}>
                   {pagedTiles.map(item => (
                     <TileCard key={`${item.kind}-${item.id}`} item={item} org={org} onClick={() => setDetailItem(item)} />
                   ))}
@@ -208,7 +304,7 @@ export default function Announcements() {
           </div>
 
           {/* Always-visible pagination */}
-          <div style={{ padding:'10px 16px', borderTop:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
+          <div style={{ padding:'10px 16px', borderTop:'1px solid var(--border-inner)', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
             <div style={{ fontSize:12, color:'var(--text-muted)' }}>Page {tilePage} of {totalTilePages} · {allTiles.length} total</div>
             <div style={{ display:'flex', gap:4 }}>
               <PageBtn disabled={tilePage===1}              onClick={() => setTilePage(p=>p-1)}><Ico.ChevL /></PageBtn>
@@ -219,10 +315,11 @@ export default function Announcements() {
             </div>
           </div>
         </Card>
+        </div>
 
         {/* RIGHT — Announcements */}
         <Card style={{ display:'flex', flexDirection:'column', minHeight: overviewH || 0 }}>
-          <div style={{ padding:'12px 14px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
+          <div style={{ padding:'12px 14px', borderBottom:'1px solid var(--border-inner)', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
             <div style={{ display:'flex', alignItems:'center', gap:7 }}>
               <span style={{ color:'var(--accent)', display:'flex' }}><Ico.Bell /></span>
               <span style={{ fontSize:13.5, fontWeight:600 }}>Announcements</span>
@@ -241,10 +338,10 @@ export default function Announcements() {
           </div>
 
           {/* View All — centered */}
-          <div style={{ padding:'12px 14px', borderTop:'1px solid var(--border)', flexShrink:0, textAlign:'center' }}>
+          <div style={{ padding:'12px 14px', borderTop:'1px solid var(--border-inner)', flexShrink:0, textAlign:'center' }}>
             <button
               onClick={() => { setAllAnnPage(1); setShowAllModal(true) }}
-              style={{ padding:'8px 24px', borderRadius:8, border:'1px solid var(--border)', background:'var(--neutral-light)', cursor:'pointer', fontSize:13, fontWeight:600, color:'var(--accent)', fontFamily:'var(--font-body)' }}>
+              style={{ padding:'8px 24px', borderRadius:8, border:'1.5px solid var(--border-card)', background:'var(--neutral-light)', cursor:'pointer', fontSize:13, fontWeight:600, color:'var(--accent)', fontFamily:'var(--font-body)' }}>
               View All Announcements ({allSorted.length})
             </button>
           </div>
@@ -252,11 +349,11 @@ export default function Announcements() {
       </div>
 
       {/* ══ BOTTOM ROW ═══════════════════════════════════════════════ */}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 300px', gap:14 }}>
+      <div style={{ display:'grid', gridTemplateColumns:twoColLayout, gap:14 }}>
 
         {/* Calendar */}
         <Card>
-          <div style={{ padding:'12px 18px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <div style={{ padding:'12px 18px', borderBottom:'1px solid var(--border-inner)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
             <button onClick={prevMonth} style={calNavBtn}><Ico.ChevL /></button>
             <div style={{ fontSize:15, fontWeight:700 }}>{MONTH_NAMES[month]} {year}</div>
             <button onClick={nextMonth} style={calNavBtn}><Ico.ChevR /></button>
@@ -271,24 +368,32 @@ export default function Announcements() {
             <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:3 }}>
               {Array.from({ length: firstDay }).map((_, i) => <div key={`e${i}`} />)}
               {Array.from({ length: daysInMonth }, (_, i) => i+1).map(day => {
-                const isToday = day===today.getDate() && month===today.getMonth() && year===today.getFullYear()
+                const isToday   = day===today.getDate() && month===today.getMonth() && year===today.getFullYear()
                 const { projects, events } = getActivitiesOnDay(day)
-                const hasAct = projects.length>0 || events.length>0
+                const hasAct    = projects.length>0 || events.length>0
+                const totalActs = projects.length + events.length
+
+                // Determine visual style for each activity pill
+                // For projects spanning multiple days: show a subtle "continuing" indicator
+                // instead of a full pill on every day — only show full pill on start day
+                const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+                const projectPills = projects.map(p => {
+                  const isStart = p.start_date === ds
+                  const isEnd   = p.end_date   === ds
+                  return { ...p, isStart, isEnd, isMid: !isStart && !isEnd }
+                })
+
                 return (
-                  <div key={day} onClick={() => hasAct && setSelectedDay({ day, projects, events })}
-                    style={{ minHeight:66, padding:'5px 4px 4px', borderRadius:7,
-                      background: isToday ? 'var(--accent-light)' : hasAct ? 'rgba(0,0,0,.015)' : 'transparent',
-                      border: isToday ? '2px solid rgba(75,94,170,.4)' : hasAct ? '1px solid var(--border)' : '1px solid transparent',
-                      cursor: hasAct ? 'pointer' : 'default' }}>
-                    <div style={{ textAlign:'center', fontSize:12.5, fontWeight: isToday ? 700 : 400, color: isToday ? 'var(--accent)' : 'var(--text-primary)', marginBottom:3 }}>{day}</div>
-                    {projects.slice(0,1).map(p => <div key={p.id} style={{ fontSize:8.5, background:'var(--accent)', color:'#fff', borderRadius:3, padding:'1px 3px', marginBottom:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{p.title}</div>)}
-                    {events.slice(0,1).map(e => <div key={e.id} style={{ fontSize:8.5, background:'var(--success)', color:'#fff', borderRadius:3, padding:'1px 3px', marginBottom:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{e.title}</div>)}
-                    {(projects.length+events.length > 2) && <div style={{ fontSize:9, color:'var(--text-muted)', textAlign:'center' }}>+{projects.length+events.length-2}</div>}
-                  </div>
+                  <CalDay key={day}
+                    day={day} isToday={isToday} hasAct={hasAct}
+                    projects={projectPills} events={events}
+                    totalActs={totalActs}
+                    onClick={() => hasAct && setSelectedDay({ day, projects, events })}
+                  />
                 )
               })}
             </div>
-            <div style={{ display:'flex', gap:16, marginTop:12, paddingTop:12, borderTop:'1px solid var(--border)' }}>
+            <div style={{ display:'flex', gap:16, marginTop:12, paddingTop:12, borderTop:'1px solid var(--border-inner)' }}>
               <LegendDot color="var(--accent)"  label={`${org.project_label} (span)`} />
               <LegendDot color="var(--success)" label={org.event_label} />
               <div style={{ fontSize:11.5, color:'var(--text-muted)', marginLeft:'auto' }}>Click days for details</div>
@@ -298,7 +403,7 @@ export default function Announcements() {
 
         {/* Upcoming Schedule */}
         <Card style={{ display:'flex', flexDirection:'column' }}>
-          <div style={{ padding:'12px 16px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:7, flexShrink:0 }}>
+          <div style={{ padding:'12px 16px', borderBottom:'1px solid var(--border-inner)', display:'flex', alignItems:'center', gap:7, flexShrink:0 }}>
             <span style={{ color:'var(--accent)', display:'flex' }}><Ico.Cal /></span>
             <span style={{ fontSize:13.5, fontWeight:600 }}>Upcoming Schedule</span>
           </div>
@@ -309,10 +414,10 @@ export default function Announcements() {
             }
           </div>
           {/* View All — centered */}
-          <div style={{ padding:'12px 16px', borderTop:'1px solid var(--border)', flexShrink:0, textAlign:'center' }}>
+          <div style={{ padding:'12px 16px', borderTop:'1px solid var(--border-inner)', flexShrink:0, textAlign:'center' }}>
             <button
               onClick={() => { setSchedPage(1); setShowAllSched(true) }}
-              style={{ padding:'8px 24px', borderRadius:8, border:'1px solid var(--border)', background:'var(--neutral-light)', cursor:'pointer', fontSize:13, fontWeight:600, color:'var(--accent)', fontFamily:'var(--font-body)' }}>
+              style={{ padding:'8px 24px', borderRadius:8, border:'1.5px solid var(--border-card)', background:'var(--neutral-light)', cursor:'pointer', fontSize:13, fontWeight:600, color:'var(--accent)', fontFamily:'var(--font-body)' }}>
               View All Schedule ({upcoming.length})
             </button>
           </div>
@@ -353,7 +458,7 @@ export default function Announcements() {
         subtitle="Post an update visible to all members"
         footer={
           <>
-            <Button variant="secondary" onClick={() => setShowNewModal(false)}>Cancel</Button>
+            <Button variant="secondary" onClick={() => setShowNewModal(false)}>Close</Button>
             <Button onClick={handleAdd}>Post Announcement</Button>
           </>
         }>
@@ -446,7 +551,24 @@ export default function Announcements() {
           title={detailItem.title}
           subtitle={detailItem.kind==='project' ? `${org.project_label} · ${detailItem.project_type||''}` : org.event_label}
           accentColor={detailItem.kind==='project' ? 'var(--accent)' : 'var(--success)'}
-          footer={<Button variant="secondary" onClick={() => setDetailItem(null)}>Close</Button>}>
+          footer={
+            <div style={{ display:'flex', gap:10, justifyContent:'space-between', width:'100%' }}>
+              {/* "View Full Details" — redirects to the manage page for this item */}
+              <button
+                onClick={() => {
+                  setDetailItem(null)
+                  window.location.hash = detailItem.kind === 'project' ? '/projects' : '/events'
+                }}
+                style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'10px 20px', borderRadius:9, border:'none', background: detailItem.kind==='project' ? 'var(--accent)' : 'var(--success)', color:'#fff', fontSize:14, fontWeight:600, cursor:'pointer', fontFamily:'var(--font-body)' }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                View Full Details
+              </button>
+              <button onClick={() => setDetailItem(null)}
+                style={{ padding:'10px 24px', borderRadius:9, border:'1.5px solid var(--border-card)', background:'var(--neutral-light)', color:'var(--text-primary)', fontSize:14, fontWeight:600, cursor:'pointer', fontFamily:'var(--font-body)' }}>
+                Close
+              </button>
+            </div>
+          }>
           <DetailContent item={detailItem} org={org} />
         </InfoModal>
       )}
@@ -471,7 +593,7 @@ export default function Announcements() {
         title="Delete Announcement?"
         message="This will permanently remove the announcement. All members will lose access to this post and it cannot be recovered."
         confirmLabel="Yes, Delete"
-        cancelLabel="Cancel"
+        cancelLabel="Close"
         onConfirm={handleDelete}
       />
 
@@ -495,14 +617,24 @@ function TileCard({ item, org, onClick }) {
   const pct = item.target_funding > 0 ? Math.min(100, Math.round((item.current_funding / item.target_funding) * 100)) : null
   return (
     <div onClick={onClick}
-      style={{ borderRadius:10, overflow:'hidden', border:'1px solid var(--border)', cursor:'pointer', background:'#fff', display:'flex', flexDirection:'column', transition:'transform .18s, box-shadow .18s' }}
+      style={{ borderRadius:10, overflow:'hidden', border:'1.5px solid var(--border-card)', cursor:'pointer', background:'#fff', display:'flex', flexDirection:'column', transition:'transform .18s, box-shadow .18s' }}
       onMouseEnter={e => { e.currentTarget.style.transform='translateY(-3px)'; e.currentTarget.style.boxShadow='0 8px 24px rgba(0,0,0,.12)' }}
       onMouseLeave={e => { e.currentTarget.style.transform=''; e.currentTarget.style.boxShadow='' }}>
-      <div style={{ height:80, background: tileColor(item.id), position:'relative', flexShrink:0, display:'flex', alignItems:'flex-end', padding:'8px 10px' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:4, background:'rgba(0,0,0,.35)', borderRadius:5, padding:'3px 7px' }}>
+      {/* Default photo banner — solid color bg with centered icon illustration */}
+      <div style={{ height:88, background: tileColor(item.id, item.kind), position:'relative', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
+        {/* Large background icon as default "photo" */}
+        <div style={{ opacity:.18, color:'#fff', display:'flex' }}>
+          {isProject
+            ? <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+            : <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          }
+        </div>
+        {/* Type label pill — bottom-left */}
+        <div style={{ position:'absolute', bottom:8, left:8, display:'flex', alignItems:'center', gap:4, background:'rgba(0,0,0,.40)', borderRadius:5, padding:'3px 8px' }}>
           <span style={{ color:'#fff', display:'flex' }}>{isProject ? <Ico.Proj /> : <Ico.Event />}</span>
           <span style={{ fontSize:10, fontWeight:700, color:'#fff', textTransform:'uppercase', letterSpacing:'.06em' }}>{isProject ? org.project_label : org.event_label}</span>
         </div>
+        {/* Status badge — top-right */}
         <div style={{ position:'absolute', top:8, right:8 }}><StatusBadge status={item.status} /></div>
       </div>
       <div style={{ padding:'10px 11px 12px', flex:1, display:'flex', flexDirection:'column', gap:6 }}>
@@ -510,7 +642,7 @@ function TileCard({ item, org, onClick }) {
         <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
           {item.location && <div style={{ display:'flex', alignItems:'center', gap:4, fontSize:11, color:'var(--text-muted)' }}><Ico.MapPin />{item.location}</div>}
           <div style={{ display:'flex', alignItems:'center', gap:4, fontSize:11, color:'var(--text-muted)' }}>
-            <Ico.Clock />{isProject ? formatDate(item.start_date) : `${formatDate(item.event_date)}${item.event_time ? ` · ${item.event_time}` : ''}`}
+            <Ico.Clock />{isProject ? formatDate(item.start_date) : `${formatDate(item.event_date)}${item.event_time ? ' · ' + fmt12(item.event_time) : ''}`}
           </div>
         </div>
         {pct !== null && (
@@ -535,7 +667,7 @@ function DetailContent({ item, org }) {
   const pct = item.target_funding > 0 ? Math.min(100, Math.round((item.current_funding / item.target_funding) * 100)) : null
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
-      <div style={{ height:140, borderRadius:12, background: tileColor(item.id), position:'relative', overflow:'hidden', display:'flex', alignItems:'flex-end', padding:'18px 20px' }}>
+      <div style={{ height:140, borderRadius:12, background: tileColor(item.id, item.kind), position:'relative', overflow:'hidden', display:'flex', alignItems:'flex-end', padding:'18px 20px' }}>
         <div style={{ background:'rgba(0,0,0,.50)', borderRadius:8, padding:'10px 16px' }}>
           <div style={{ fontSize:20, fontWeight:800, color:'#fff', lineHeight:1.2 }}>{item.title}</div>
           {item.description && <div style={{ fontSize:13, color:'rgba(255,255,255,.8)', marginTop:4, lineHeight:1.5 }}>{item.description}</div>}
@@ -545,11 +677,11 @@ function DetailContent({ item, org }) {
       <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:12 }}>
         {[
           ['Location', item.location || '—'],
-          isProject ? ['Duration', `${formatDate(item.start_date)} – ${formatDate(item.end_date)}`] : ['Date & Time', `${formatDate(item.event_date)}${item.event_time ? ` · ${item.event_time}` : ''}`],
+          isProject ? ['Duration', `${formatDate(item.start_date)} – ${formatDate(item.end_date)}`] : ['Date & Time', `${formatDate(item.event_date)}${item.event_time ? ' · ' + fmt12(item.event_time) : ''}`],
           ['Target Funding', item.target_funding>0 ? formatCurrency(item.target_funding, org.currency_symbol) : 'Not Required'],
           ['Current Funding', item.current_funding>0 ? formatCurrency(item.current_funding, org.currency_symbol) : '—'],
         ].map(([k,v]) => (
-          <div key={k} style={{ padding:'12px 14px', borderRadius:10, background:'var(--neutral-light)', border:'1px solid var(--border)' }}>
+          <div key={k} style={{ padding:'12px 14px', borderRadius:10, background:'var(--neutral-light)', border:'1.5px solid var(--border-card)' }}>
             <div style={{ fontSize:11, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'.07em', marginBottom:4 }}>{k}</div>
             <div style={{ fontSize:14, fontWeight:600 }}>{v}</div>
           </div>
@@ -580,14 +712,24 @@ function DayCard({ item, org }) {
   const bgC       = isProject ? 'var(--accent-light)' : 'var(--success-light)'
   return (
     <div style={{ borderRadius:10, overflow:'hidden', border:`1px solid ${accentC}22` }}>
-      <div style={{ height:36, background: tileColor(item.id) }} />
+      <div style={{ height:36, background: tileColor(item.id, item.kind) }} />
       <div style={{ padding:'12px 14px', background:bgC }}>
         <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:5 }}>
           <span style={{ color:accentC }}>{isProject ? <Ico.Proj /> : <Ico.Event />}</span>
           <span style={{ fontSize:14, fontWeight:700, color:accentC }}>{item.title}</span>
         </div>
         <div style={{ fontSize:13, color:'var(--text-secondary)', lineHeight:1.6 }}>{item.description}</div>
-        <div style={{ fontSize:12, color:'var(--text-muted)', marginTop:5 }}>{item.location}{item.event_time ? ` · ${item.event_time}` : ''}</div>
+        <div style={{ fontSize:12, color:'var(--text-muted)', marginTop:5 }}>
+          {item.location && <span>{item.location}</span>}
+          {isProject && item.start_date && (
+            <span>{item.location ? ' · ' : ''}{item.start_date === item.end_date ? item.start_date : `${item.start_date} – ${item.end_date}`}</span>
+          )}
+          {!isProject && item.event_time && (
+            <span style={{ marginLeft: item.location ? 6 : 0, padding:'1px 7px', borderRadius:20, background:'var(--success)', color:'#fff', fontSize:11, fontWeight:700 }}>
+              {fmt12(item.event_time)}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -596,7 +738,7 @@ function DayCard({ item, org }) {
 function AnnRow({ a, onClick }) {
   return (
     <div onClick={onClick}
-      style={{ display:'flex', alignItems:'flex-start', gap:9, padding:'10px 14px', cursor:'pointer', borderBottom:'1px solid var(--border)', background: a.is_pinned ? 'rgba(75,94,170,.025)' : 'transparent', transition:'background .12s' }}
+      style={{ display:'flex', alignItems:'flex-start', gap:9, padding:'10px 14px', cursor:'pointer', borderBottom:'1px solid var(--border-inner)', background: a.is_pinned ? 'rgba(75,94,170,.025)' : 'transparent', transition:'background .12s' }}
       onMouseEnter={e => e.currentTarget.style.background = a.is_pinned ? 'rgba(75,94,170,.05)' : 'var(--neutral-light)'}
       onMouseLeave={e => e.currentTarget.style.background = a.is_pinned ? 'rgba(75,94,170,.025)' : 'transparent'}>
       {a.is_pinned && <span style={{ color:'var(--accent)', display:'flex', flexShrink:0, marginTop:3 }}><Ico.Pin /></span>}
@@ -614,7 +756,7 @@ function ScheduleItem({ a }) {
   const dd = isNaN(d) ? '??' : d.getDate()
   const mm = isNaN(d) ? '???' : MONTH_NAMES[d.getMonth()].slice(0,3)
   return (
-    <div style={{ display:'flex', gap:10, alignItems:'flex-start', padding:'9px 16px', borderBottom:'1px solid var(--border)' }}>
+    <div style={{ display:'flex', gap:10, alignItems:'flex-start', padding:'9px 16px', borderBottom:'1px solid var(--border-inner)' }}>
       <div style={{ width:36, height:36, borderRadius:8, background: a.kind==='event' ? 'var(--success-light)' : 'var(--accent-light)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
         <div style={{ fontSize:12.5, fontWeight:700, color: a.kind==='event' ? 'var(--success)' : 'var(--accent)', lineHeight:1 }}>{dd}</div>
         <div style={{ fontSize:9, color: a.kind==='event' ? 'var(--success)' : 'var(--accent)', lineHeight:1, marginTop:1 }}>{mm}</div>
@@ -638,10 +780,10 @@ function LegendDot({ color, label }) {
 function PageBtn({ children, active, disabled, onClick }) {
   return (
     <button onClick={onClick} disabled={disabled}
-      style={{ display:'flex', alignItems:'center', justifyContent:'center', width:28, height:28, borderRadius:6, border:'1px solid var(--border)', background: active ? 'var(--accent)' : disabled ? 'var(--neutral-light)' : '#fff', color: active ? '#fff' : disabled ? 'var(--text-muted)' : 'var(--text-primary)', cursor: disabled ? 'not-allowed' : 'pointer', fontSize:12, fontWeight: active ? 700 : 400 }}>
+      style={{ display:'flex', alignItems:'center', justifyContent:'center', width:28, height:28, borderRadius:6, border:'1.5px solid var(--border-card)', background: active ? 'var(--accent)' : disabled ? 'var(--neutral-light)' : '#fff', color: active ? '#fff' : disabled ? 'var(--text-muted)' : 'var(--text-primary)', cursor: disabled ? 'not-allowed' : 'pointer', fontSize:12, fontWeight: active ? 700 : 400 }}>
       {children}
     </button>
   )
 }
 
-const calNavBtn = { display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, borderRadius:7, border:'1px solid var(--border)', background:'#fff', cursor:'pointer', color:'var(--text-secondary)' }
+const calNavBtn = { display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, borderRadius:7, border:'1.5px solid var(--border-card)', background:'#fff', cursor:'pointer', color:'var(--text-secondary)' }

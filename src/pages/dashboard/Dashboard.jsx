@@ -1,5 +1,5 @@
 // Dashboard.jsx — Overview with KPIs, top contributors, recent transactions, and chart section
-// Monthly Income vs Expense chart removed; replaced with richer multi-chart section below table
+// Fully responsive: 4-col → 2-col on tablet → 1-col on mobile via useBreakpoint
 import { Card, CardHeader, Badge, StatusBadge, KpiCard, Avatar } from '../../components/ui'
 import {
   MOCK_USERS, MOCK_TRANSACTIONS, MOCK_PROJECTS, MOCK_EVENTS,
@@ -7,6 +7,7 @@ import {
   formatCurrency, formatDate,
 } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
+import useBreakpoint from '../../hooks/useBreakpoint'
 
 /* ── SVG icon helpers (no emoji) ──────────────────────────────────────────────── */
 const Ico = {
@@ -196,6 +197,12 @@ function AttendanceChart({ data }) {
    ════════════════════════════════════════════════════════════════════ */
 export default function Dashboard() {
   const org = useOrg()
+  const { isMobile, isTablet } = useBreakpoint()
+
+  // Responsive column counts — 4-col desktop, 2-col tablet/mobile
+  const kpiCols  = isMobile || isTablet ? 'repeat(2,1fr)' : 'repeat(4,1fr)'
+  const chartCols = isMobile ? '1fr' : isTablet ? 'repeat(2,1fr)' : 'repeat(3,1fr)'
+  const topRowCols = isMobile || isTablet ? '1fr' : '1fr 320px'
 
   /* ── Computed KPIs ─────────────────────────────────────────────── */
   const totalBalance     = MOCK_FUNDS.reduce((s, f) => s + f.balance, 0)
@@ -224,22 +231,22 @@ export default function Dashboard() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-      {/* ── Row 1: KPI cards (8 across in 2 rows of 4) ──────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-        <KpiCard label={`Total ${org.people_label}s`}      value={activeMembers}                                 color="var(--accent)"  icon={Ico.members('var(--accent)')} />
-        <KpiCard label="Total Fund Balance"                 value={formatCurrency(totalBalance, org.currency_symbol)} color="var(--success)" icon={Ico.fund('var(--success)')} />
-        <KpiCard label={`Active ${org.project_label}s`}    value={ongoingProjects}                               color="var(--warning)" icon={Ico.project('var(--warning)')} />
-        <KpiCard label={`Upcoming ${org.event_label}s`}    value={upcomingEvents}                                color="var(--info)"    icon={Ico.event('var(--info)')} />
+      {/* ── Row 1: KPI cards (4-col desktop → 2-col mobile) ─────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: kpiCols, gap: 12 }}>
+        <KpiCard label={`Total ${org.people_label}s`}      value={activeMembers}                                 color="var(--accent)"  icon={Ico.members('var(--accent)')}  onClick={() => { window.location.hash = '/employees' }} />
+        <KpiCard label="Total Fund Balance"                 value={formatCurrency(totalBalance, org.currency_symbol)} color="var(--success)" icon={Ico.fund('var(--success)')}    onClick={() => { window.location.hash = '/funds' }} />
+        <KpiCard label={`Active ${org.project_label}s`}    value={ongoingProjects}                               color="var(--warning)" icon={Ico.project('var(--warning)')} onClick={() => { window.location.hash = '/projects' }} />
+        <KpiCard label={`Upcoming ${org.event_label}s`}    value={upcomingEvents}                                color="var(--info)"    icon={Ico.event('var(--info)')}      onClick={() => { window.location.hash = '/events' }} />
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-        <KpiCard label="Total Income"                       value={formatCurrency(totalIncome, org.currency_symbol)}   color="var(--success)" icon={Ico.income('var(--success)')} />
-        <KpiCard label="Total Expenses"                     value={formatCurrency(totalExpense, org.currency_symbol)}  color="var(--danger)"  icon={Ico.expense('var(--danger)')} />
-        <KpiCard label={`Completed ${org.project_label}s`} value={completedProjects}                               color="var(--success)" icon={Ico.complete('var(--success)')} />
-        <KpiCard label="Total Transactions"                 value={totalTransactions}                               color="var(--accent)"  icon={Ico.txn('var(--accent)')} />
+      <div style={{ display: 'grid', gridTemplateColumns: kpiCols, gap: 12 }}>
+        <KpiCard label="Total Income"                       value={formatCurrency(totalIncome, org.currency_symbol)}   color="var(--success)" icon={Ico.income('var(--success)')}   onClick={() => { window.location.hash = '/transactions' }} />
+        <KpiCard label="Total Expenses"                     value={formatCurrency(totalExpense, org.currency_symbol)}  color="var(--danger)"  icon={Ico.expense('var(--danger)')}  onClick={() => { window.location.hash = '/transactions' }} />
+        <KpiCard label={`Completed ${org.project_label}s`} value={completedProjects}                               color="var(--success)" icon={Ico.complete('var(--success)')} onClick={() => { window.location.hash = '/projects' }} />
+        <KpiCard label="Total Transactions"                 value={totalTransactions}                               color="var(--accent)"  icon={Ico.txn('var(--accent)')}       onClick={() => { window.location.hash = '/transactions' }} />
       </div>
 
       {/* ── Row 2: Top Contributors (left big) + Fund Breakdown (right) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: topRowCols, gap: 12 }}>
 
         {/* Top Contributors — main feature card */}
         <Card>
@@ -248,7 +255,7 @@ export default function Dashboard() {
             {topContributors.length === 0
               ? <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>No contribution data yet.</div>
               : topContributors.map((c, i) => (
-                  <div key={c.name} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px', borderBottom: '1px solid var(--border)' }}>
+                  <div key={c.name} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px', borderBottom: '1px solid var(--border-inner)' }}>
                     {/* Rank badge */}
                     <div style={{
                       width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
@@ -282,7 +289,7 @@ export default function Dashboard() {
           <CardHeader title="Fund Balances" subtitle="Current balance per fund" />
           <div style={{ padding: '16px 18px' }}>
             <FundBarChart data={FUND_DATA} currency={org.currency_symbol} />
-            <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+            <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border-inner)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
                 <span style={{ color: 'var(--text-muted)' }}>Total across all funds</span>
                 <span style={{ fontWeight: 700, color: 'var(--success)' }}>{formatCurrency(totalBalance, org.currency_symbol)}</span>
@@ -298,22 +305,27 @@ export default function Dashboard() {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
-              <tr style={{ background: 'var(--neutral-light)' }}>
+              <tr style={{ background: 'var(--table-head-bg)' }}>
                 {['Reference','Member','Amount','Type','Category','Date','Status'].map(h => (
-                  <th key={h} style={{ padding: '9px 14px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
+                  <th key={h} style={{ padding: '9px 14px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: 'var(--table-head-fg)', textTransform: 'uppercase', letterSpacing: '.06em', borderBottom: '2px solid var(--border-table)', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {recentTransactions.map(t => (
-                <tr key={t.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                <tr key={t.id} style={{ borderBottom: '1px solid var(--border-inner)' }}>
                   <td style={{ padding: '10px 14px' }}><code style={{ fontSize: 11 }}>{t.reference_number}</code></td>
                   <td style={{ padding: '10px 14px' }}>{t.user_name || '—'}</td>
                   <td style={{ padding: '10px 14px', fontWeight: 700, color: t.entry_type === 'expense' ? 'var(--danger)' : 'var(--success)' }}>
                     {t.entry_type === 'expense' ? '−' : '+'}{formatCurrency(t.amount, org.currency_symbol)}
                   </td>
-                  <td style={{ padding: '10px 14px' }}><Badge variant={t.entry_type === 'expense' ? 'danger' : 'success'}>{t.entry_type}</Badge></td>
-                  <td style={{ padding: '10px 14px', textTransform: 'capitalize' }}>{t.category}</td>
+                  <td style={{ padding: '10px 14px' }}>
+                    {/* Type badge: expense=red, contribution=blue(accent), income=green */}
+                    <Badge variant={t.entry_type === 'expense' ? 'danger' : t.entry_type === 'contribution' ? 'accent' : 'success'}>
+                      {t.entry_type.charAt(0).toUpperCase() + t.entry_type.slice(1)}
+                    </Badge>
+                  </td>
+                  <td style={{ padding: '10px 14px' }}>{t.category ? t.category.charAt(0).toUpperCase() + t.category.slice(1) : '—'}</td>
                   <td style={{ padding: '10px 14px', color: 'var(--text-muted)' }}>{formatDate(t.transaction_date)}</td>
                   <td style={{ padding: '10px 14px' }}><StatusBadge status={t.status} /></td>
                 </tr>
@@ -323,8 +335,8 @@ export default function Dashboard() {
         </div>
       </Card>
 
-      {/* ── Row 4: Analytics charts (3 equal columns) ─────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+      {/* ── Row 4: Analytics charts (3-col desktop → 2-col tablet → 1-col mobile) */}
+      <div style={{ display: 'grid', gridTemplateColumns: chartCols, gap: 12 }}>
 
         {/* Income vs Expense — bar chart */}
         <Card>
@@ -347,7 +359,7 @@ export default function Dashboard() {
           <CardHeader title="Attendance Overview" subtitle="All recorded attendance statuses" />
           <div style={{ padding: '16px 18px' }}>
             <AttendanceChart data={MOCK_ATTENDANCES} />
-            <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)', fontSize: 12.5, color: 'var(--text-muted)' }}>
+            <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border-inner)', fontSize: 12.5, color: 'var(--text-muted)' }}>
               Total records: <strong>{MOCK_ATTENDANCES.length}</strong>
             </div>
           </div>

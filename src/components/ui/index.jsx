@@ -6,12 +6,13 @@ import { useState, useEffect, useRef } from 'react'
 
 // ── Badge ─────────────────────────────────────────────────────────────────────
 const BADGE_STYLES = {
-  accent:  { bg: 'var(--accent-light)',   color: 'var(--accent)',   border: 'rgba(75,94,170,.2)' },
-  success: { bg: 'var(--success-light)',  color: 'var(--success)',  border: 'rgba(46,125,82,.2)' },
-  danger:  { bg: 'var(--danger-light)',   color: 'var(--danger)',   border: 'rgba(192,57,43,.2)' },
-  warning: { bg: 'var(--warning-light)',  color: 'var(--warning)',  border: 'rgba(212,134,10,.2)' },
-  info:    { bg: 'var(--info-light)',     color: 'var(--info)',     border: 'rgba(36,113,163,.2)' },
-  neutral: { bg: 'var(--neutral-light)',  color: 'var(--text-secondary)', border: 'var(--border)' },
+  // Solid-color badges — strong background, white text, always readable
+  accent:  { bg: '#4B5EAA',  color: '#fff', border: '#3D52A0' },
+  success: { bg: '#2E7D52',  color: '#fff', border: '#256642' },
+  danger:  { bg: '#C0392B',  color: '#fff', border: '#A93226' },
+  warning: { bg: '#D4860A',  color: '#fff', border: '#B7770D' },
+  info:    { bg: '#2471A3',  color: '#fff', border: '#1A5C87' },
+  neutral: { bg: '#5A6474',  color: '#fff', border: '#4A5264' },
 }
 
 export function Badge({ variant = 'neutral', children, style }) {
@@ -26,9 +27,10 @@ export function Badge({ variant = 'neutral', children, style }) {
 // StatusBadge maps common status strings to appropriate badge colors
 const STATUS_MAP = {
   active: 'success', inactive: 'danger', present: 'success', absent: 'danger',
-  late: 'warning', excused: 'info', upcoming: 'info', ongoing: 'accent',
+  late: 'warning', excused: 'info', upcoming: 'warning', ongoing: 'accent', /* upcoming = amber warning */
   completed: 'success', cancelled: 'danger', paid: 'success', unpaid: 'danger',
   partial: 'warning', success: 'success', failed: 'danger', pending: 'warning',
+  approved: 'success', rejected: 'danger',   /* transaction approval workflow statuses */
 }
 export function StatusBadge({ status }) {
   const variant = STATUS_MAP[String(status).toLowerCase()] || 'neutral'
@@ -48,9 +50,9 @@ export function Avatar({ name = '?', size = 36, src, style }) {
 }
 
 // ── Card ──────────────────────────────────────────────────────────────────────
-export function Card({ children, style, onClick }) {
+export function Card({ children, style, onClick, onMouseEnter, onMouseLeave }) {
   return (
-    <div onClick={onClick} style={{ background: 'var(--white)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)', ...style }}>
+    <div onClick={onClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} style={{ background: 'var(--white)', borderRadius: 'var(--radius-md)', border: '1.5px solid var(--border-card)', boxShadow: 'var(--shadow-sm)', ...style }}>
       {children}
     </div>
   )
@@ -59,7 +61,7 @@ export function Card({ children, style, onClick }) {
 // CardHeader — standardized top of a card with title, optional subtitle + actions
 export function CardHeader({ title, subtitle, actions }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--border)', gap: 12, flexWrap: 'wrap' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--border-inner)', gap: 12, flexWrap: 'wrap' }}>
       <div>
         <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{title}</div>
         {subtitle && <div style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 2 }}>{subtitle}</div>}
@@ -72,7 +74,7 @@ export function CardHeader({ title, subtitle, actions }) {
 // ── Button ────────────────────────────────────────────────────────────────────
 const BTN_VARIANTS = {
   primary:   { bg: 'var(--accent)',   color: '#fff',          border: 'var(--accent)',         hover: '#3a4d99' },
-  secondary: { bg: 'var(--white)',    color: 'var(--text-primary)', border: 'var(--border)',   hover: 'var(--neutral-light)' },
+  secondary: { bg: '#5A6474',         color: '#fff',                border: '#4A5264',         hover: '#4A5264' },
   danger:    { bg: 'var(--danger)',   color: '#fff',          border: 'var(--danger)',         hover: '#a93226' },
   success:   { bg: 'var(--success)',  color: '#fff',          border: 'var(--success)',        hover: '#256640' },
   ghost:     { bg: 'transparent',     color: 'var(--accent)', border: 'transparent',           hover: 'var(--accent-light)' },
@@ -97,8 +99,11 @@ export function Button({ children, variant = 'primary', size = 'md', icon, disab
         color: disabled ? 'var(--text-muted)' : v.color,
         fontSize: fs, fontWeight: 500, fontFamily: 'var(--font-body)',
         cursor: disabled ? 'not-allowed' : 'pointer',
-        transition: 'background .15s, color .15s', whiteSpace: 'nowrap',
-        lineHeight: 1.4, ...style,
+        transition: 'background .18s ease, transform .18s ease, box-shadow .18s ease',
+        transform: !disabled && hovered ? 'translateY(-2px)' : 'none',
+        /* box-shadow layers: ring (animates smoothly) + depth shadow */
+        boxShadow: !disabled && hovered ? '0 0 0 2px rgba(0,0,0,.80), 0 6px 16px rgba(0,0,0,.22)' : 'none',
+        whiteSpace: 'nowrap', lineHeight: 1.4, ...style,
       }}>
       {icon && icon}
       {children}
@@ -118,13 +123,13 @@ export function Input({ label, hint, error, required, style, ...props }) {
       <input
         {...props}
         style={{
-          padding: '8px 12px', borderRadius: 8, border: `1px solid ${error ? 'var(--danger)' : 'var(--border)'}`,
+          padding: '8px 12px', borderRadius: 8, border: `1px solid ${error ? 'var(--danger)' : 'var(--border-card)'}`,
           fontSize: 13.5, fontFamily: 'var(--font-body)', color: 'var(--text-primary)',
           background: props.disabled ? 'var(--neutral-light)' : 'var(--white)',
           outline: 'none', transition: 'border-color .15s', width: '100%', boxSizing: 'border-box',
         }}
         onFocus={e => { if (!error) e.target.style.borderColor = 'var(--accent)' }}
-        onBlur={e  => { if (!error) e.target.style.borderColor = 'var(--border)' }}
+        onBlur={e  => { if (!error) e.target.style.borderColor = 'var(--border-card)' }}
       />
       {hint  && !error && <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{hint}</div>}
       {error && <div style={{ fontSize: 11.5, color: 'var(--danger)' }}>{error}</div>}
@@ -143,7 +148,7 @@ export function Select({ label, hint, required, options = [], placeholder, style
       )}
       <select
         {...props}
-        style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13.5, fontFamily: 'var(--font-body)', color: props.value ? 'var(--text-primary)' : 'var(--text-muted)', background: props.disabled ? 'var(--neutral-light)' : 'var(--white)', outline: 'none', cursor: props.disabled ? 'not-allowed' : 'pointer', width: '100%', boxSizing: 'border-box' }}>
+        style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border-card)', fontSize: 13.5, fontFamily: 'var(--font-body)', color: props.value ? 'var(--text-primary)' : 'var(--text-muted)', background: props.disabled ? 'var(--neutral-light)' : 'var(--white)', outline: 'none', cursor: props.disabled ? 'not-allowed' : 'pointer', width: '100%', boxSizing: 'border-box' }}>
         {placeholder && <option value="">{placeholder}</option>}
         {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
@@ -158,9 +163,9 @@ export function Textarea({ label, hint, rows = 3, style, ...props }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, ...style }}>
       {label && <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>{label}</label>}
       <textarea {...props} rows={rows}
-        style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13.5, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: 'var(--white)', outline: 'none', resize: 'vertical', lineHeight: 1.5, width: '100%', boxSizing: 'border-box' }}
+        style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border-card)', fontSize: 13.5, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: 'var(--white)', outline: 'none', resize: 'vertical', lineHeight: 1.5, width: '100%', boxSizing: 'border-box' }}
         onFocus={e => e.target.style.borderColor = 'var(--accent)'}
-        onBlur={e  => e.target.style.borderColor = 'var(--border)'}
+        onBlur={e  => e.target.style.borderColor = 'var(--border-card)'}
       />
       {hint && <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{hint}</div>}
     </div>
@@ -196,7 +201,7 @@ export function DataTable({ columns = [], data = [], title, subtitle, emptyMsg =
   return (
     <Card>
       {/* Header row: title + search */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--border)', flexWrap: 'wrap', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--border-inner)', flexWrap: 'wrap', gap: 12 }}>
         <div>
           {title    && <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{title}</div>}
           {subtitle && <div style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 2 }}>{subtitle}</div>}
@@ -204,7 +209,7 @@ export function DataTable({ columns = [], data = [], title, subtitle, emptyMsg =
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {/* rows per page selector */}
           <select value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setPage(1) }}
-            style={{ padding: '6px 10px', borderRadius: 7, border: '1px solid var(--border)', fontSize: 13, fontFamily: 'var(--font-body)', background: 'var(--white)', color: 'var(--text-primary)', cursor: 'pointer' }}>
+            style={{ padding: '6px 10px', borderRadius: 7, border: '1px solid var(--border-card)', fontSize: 13, fontFamily: 'var(--font-body)', background: 'var(--white)', color: 'var(--text-primary)', cursor: 'pointer' }}>
             {PAGE_SIZES.map(n => <option key={n} value={n}>{n} / page</option>)}
           </select>
           {/* search */}
@@ -213,7 +218,7 @@ export function DataTable({ columns = [], data = [], title, subtitle, emptyMsg =
               <circle cx={11} cy={11} r={8} /><line x1={21} y1={21} x2={16.65} y2={16.65} />
             </svg>
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…"
-              style={{ padding: '6px 10px 6px 28px', borderRadius: 7, border: '1px solid var(--border)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: 'var(--white)', outline: 'none', width: 180 }} />
+              style={{ padding: '6px 10px 6px 28px', borderRadius: 7, border: '1px solid var(--border-card)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: 'var(--white)', outline: 'none', width: 180 }} />
           </div>
         </div>
       </div>
@@ -222,9 +227,9 @@ export function DataTable({ columns = [], data = [], title, subtitle, emptyMsg =
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5 }}>
           <thead>
-            <tr style={{ background: 'var(--neutral-light)' }}>
+            <tr style={{ background: 'var(--table-head-bg)' }}>
               {columns.map(col => (
-                <th key={col.label || col.key} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 11.5, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>
+                <th key={col.label || col.key} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 11.5, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--table-head-fg)', borderBottom: '2px solid var(--border-table)', whiteSpace: 'nowrap' }}>
                   {col.label}
                 </th>
               ))}
@@ -234,7 +239,7 @@ export function DataTable({ columns = [], data = [], title, subtitle, emptyMsg =
             {paginated.length === 0
               ? <tr><td colSpan={columns.length} style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13.5 }}>{emptyMsg}</td></tr>
               : paginated.map((row, i) => (
-                  <tr key={row.id || i} style={{ borderBottom: '1px solid var(--border)' }}
+                  <tr key={row.id || i} style={{ borderBottom: '1px solid var(--border-inner)' }}
                     onMouseEnter={e => e.currentTarget.style.background = 'var(--neutral-light)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                     {columns.map(col => (
@@ -250,7 +255,7 @@ export function DataTable({ columns = [], data = [], title, subtitle, emptyMsg =
       </div>
 
       {/* Pagination footer */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderTop: '1px solid var(--border)', flexWrap: 'wrap', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderTop: '1px solid var(--border-inner)', flexWrap: 'wrap', gap: 10 }}>
         <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
           Showing <strong>{filtered.length === 0 ? 0 : (page - 1) * pageSize + 1}–{Math.min(page * pageSize, filtered.length)}</strong> of <strong>{filtered.length}</strong> records
         </div>
@@ -272,7 +277,7 @@ export function DataTable({ columns = [], data = [], title, subtitle, emptyMsg =
 
 function PagBtn({ label, onClick, disabled, active }) {
   return (
-    <button onClick={onClick} disabled={disabled} style={{ minWidth: 32, height: 32, padding: '0 8px', borderRadius: 6, border: '1px solid var(--border)', background: active ? 'var(--accent)' : disabled ? 'var(--neutral-light)' : 'var(--white)', color: active ? '#fff' : disabled ? 'var(--text-muted)' : 'var(--text-primary)', fontSize: 13, fontFamily: 'var(--font-body)', cursor: disabled ? 'not-allowed' : 'pointer' }}>
+    <button onClick={onClick} disabled={disabled} style={{ minWidth: 32, height: 32, padding: '0 8px', borderRadius: 6, border: '1px solid var(--border-card)', background: active ? 'var(--accent)' : disabled ? 'var(--neutral-light)' : 'var(--white)', color: active ? '#fff' : disabled ? 'var(--text-muted)' : 'var(--text-primary)', fontSize: 13, fontFamily: 'var(--font-body)', cursor: disabled ? 'not-allowed' : 'pointer' }}>
       {label}
     </button>
   )
@@ -285,15 +290,27 @@ function PagBtn({ label, onClick, disabled, active }) {
 //   ResponseModal — compact (max 420px), success/error/confirm feedback
 
 // Shared overlay lock — prevents body scroll while any modal is open
+// Uses scrollbar-width compensation to prevent layout shift (the main cause of
+// the "modal resizes on close" bug: scrollbar appearing/disappearing shifts the
+// page width which re-positions fixed elements mid-animation)
 function useModalLock(open) {
   useEffect(() => {
-    if (open) document.body.style.overflow = 'hidden'
-    else      document.body.style.overflow = ''
-    return () => { document.body.style.overflow = '' }
+    if (open) {
+      const sbw = window.innerWidth - document.documentElement.clientWidth
+      document.body.style.overflow    = 'hidden'
+      document.body.style.paddingRight = sbw + 'px'   // compensate scrollbar width
+    } else {
+      document.body.style.overflow    = ''
+      document.body.style.paddingRight = ''
+    }
+    return () => {
+      document.body.style.overflow    = ''
+      document.body.style.paddingRight = ''
+    }
   }, [open])
 }
 
-// CloseButton — shared X button used in both modal types
+// CloseButton — solid dark button with white X icon so it stands out clearly
 function CloseButton({ onClose }) {
   const [hov, setHov] = useState(false)
   return (
@@ -303,10 +320,14 @@ function CloseButton({ onClose }) {
       onMouseLeave={() => setHov(false)}
       style={{
         width: 32, height: 32, borderRadius: 8, border: 'none',
-        background: hov ? 'var(--border)' : 'var(--neutral-light)',
+        /* Solid dark — stands out clearly against any modal background */
+        background: hov ? '#111827' : '#374151',
         cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: hov ? 'var(--text-primary)' : 'var(--text-secondary)',
-        transition: 'background .15s, color .15s', flexShrink: 0,
+        color: '#ffffff',    /* always white icon */
+        transition: 'background .18s ease, transform .18s ease, box-shadow .18s ease',
+        transform: hov ? 'translateY(-1px)' : 'none',
+        boxShadow: hov ? '0 0 0 2px rgba(0,0,0,.80), 0 4px 10px rgba(0,0,0,.25)' : 'none',
+        flexShrink: 0,
       }}>
       <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
         <line x1={18} y1={6} x2={6} y2={18}/><line x1={6} y1={6} x2={18} y2={18}/>
@@ -316,33 +337,71 @@ function CloseButton({ onClose }) {
 }
 
 // ── InfoModal — large detail/form modal (max 800px wide, up to 90vh tall) ─────
-// Use for: project/event details, full forms, reports, receipts, list overviews
-export function InfoModal({ open, onClose, title, subtitle, accentColor = 'var(--accent)', children, footer }) {
-  useModalLock(open)
-  if (!open) return null
+// editMode=true: border transitions smoothly to purple (#7C3AED) with "Editing" chip
+// — gives a clear visual distinction between view-mode and edit-mode states
+// Smooth open (scale+fade in) and close (fade out only) animation via CSS keyframes
+export function InfoModal({ open, onClose, title, subtitle, accentColor = 'var(--accent)', editMode = false, children, footer }) {
+  const [visible, setVisible] = useState(false)   // controls DOM mount/unmount
+  const [anim,    setAnim]    = useState('in')    // 'in' | 'out' animation direction
+
+  const EDIT_COLOR  = '#7C3AED'                   // purple — universal edit indicator
+  const borderColor = editMode ? EDIT_COLOR : accentColor
+
+  useEffect(() => {
+    if (open) {
+      setVisible(true)
+      requestAnimationFrame(() => setAnim('in'))
+    } else {
+      setAnim('out')
+      const t = setTimeout(() => setVisible(false), 220)
+      return () => clearTimeout(t)
+    }
+  }, [open])
+
+  useModalLock(visible)
+  if (!visible) return null
+
   return (
     <div
-      style={{ position: 'fixed', inset: 0, background: 'rgba(15,18,30,.55)', zIndex: 300,
+      style={{
+        position: 'fixed', inset: 0, zIndex: 300,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '20px 16px', backdropFilter: 'blur(3px)' }}
+        padding: '20px 16px', backdropFilter: 'blur(3px)',
+        background: anim === 'in' ? 'rgba(15,18,30,.55)' : 'rgba(15,18,30,0)',
+        transition: 'background .22s ease',
+      }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div style={{
         background: 'var(--white)', borderRadius: 16,
-        boxShadow: '0 8px 32px rgba(0,0,0,.14), 0 32px 80px rgba(0,0,0,.18)',
+        boxShadow: '0 12px 48px rgba(0,0,0,.22), 0 36px 96px rgba(0,0,0,.20)',
         width: '100%', maxWidth: 920, maxHeight: '92vh',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
-        border: '1px solid rgba(255,255,255,.08)',
+        /* Border color transitions smoothly between status color ↔ edit purple */
+        border: `3px solid ${borderColor}`,
+        transition: 'border-color .3s ease',
+        /* will-change:opacity tells browser to composite on GPU layer —
+           prevents any layout recalculation during the opacity animation
+           which was the secondary cause of the "size change" artifact */
+        willChange: 'opacity',
+        animation: anim === 'in'
+          ? 'modalSlideIn .20s ease forwards'
+          : 'modalSlideOut .18s ease forwards',
       }}>
-        {/* Top accent bar */}
-        <div style={{ height: 4, background: accentColor, flexShrink: 0 }} />
-
         {/* Header */}
         <div style={{
           display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
-          padding: '22px 32px 18px', borderBottom: '1px solid var(--border)', flexShrink: 0, gap: 16,
+          padding: '22px 32px 18px', borderBottom: '1.5px solid var(--border-inner)', flexShrink: 0, gap: 16,
         }}>
           <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.25 }}>{title}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.25 }}>{title}</div>
+              {/* "Editing" chip — appears when editMode is true */}
+              {editMode && (
+                <span style={{ padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: '#EDE9FE', color: EDIT_COLOR, border: `1px solid ${EDIT_COLOR}40`, whiteSpace: 'nowrap' }}>
+                  Editing
+                </span>
+              )}
+            </div>
             {subtitle && <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>{subtitle}</div>}
           </div>
           <CloseButton onClose={onClose} />
@@ -353,8 +412,8 @@ export function InfoModal({ open, onClose, title, subtitle, accentColor = 'var(-
 
         {/* Optional footer */}
         {footer && (
-          <div style={{ padding: '18px 32px', borderTop: '1px solid var(--border)', flexShrink: 0,
-            display: 'flex', justifyContent: 'flex-end', gap: 10, background: 'var(--neutral-light)' }}>
+          <div style={{ padding: '18px 32px', borderTop: '1.5px solid var(--border-inner)', flexShrink: 0,
+            display: 'flex', justifyContent: 'flex-end', gap: 10, background: 'var(--table-head-bg)' }}>
             {footer}
           </div>
         )}
@@ -393,65 +452,88 @@ const RESPONSE_VARIANTS = {
   },
 }
 
+// ResponseModal — compact feedback/confirmation modal (max 460px)
+// Smooth open (spring scale-in) and close (fade-out) animation
 export function ResponseModal({ open, onClose, variant = 'success', title, message, confirmLabel = 'OK', cancelLabel, onConfirm, loading = false }) {
-  useModalLock(open)
-  if (!open) return null
-  const v = RESPONSE_VARIANTS[variant] || RESPONSE_VARIANTS.info
+  const [visible,  setVisible]  = useState(false)     // controls DOM mount
+  const [anim,     setAnim]     = useState('in')      // 'in' | 'out' animation state
+  // Snapshot — keeps variant/title/message frozen during close animation
+  // so the modal doesn't flash to green ('success' default) while fading out
+  const [snapshot, setSnapshot] = useState({ variant, title, message, confirmLabel, cancelLabel })
+
+  useEffect(() => {
+    if (open) {
+      setSnapshot({ variant, title, message, confirmLabel, cancelLabel })
+      setVisible(true)
+      requestAnimationFrame(() => setAnim('in'))
+    } else {
+      setAnim('out')
+      const t = setTimeout(() => setVisible(false), 200)
+      return () => clearTimeout(t)
+    }
+  }, [open])
+
+  useModalLock(visible)
+  if (!visible) return null
+  // Use snapshot during close animation to prevent variant reversion to default
+  const frozenVariant = anim === 'out' ? snapshot.variant : variant
+  const frozenTitle   = anim === 'out' ? snapshot.title   : title
+  const frozenMessage = anim === 'out' ? snapshot.message : message
+  const v = RESPONSE_VARIANTS[frozenVariant] || RESPONSE_VARIANTS.info
   return (
     <div
-      style={{ position: 'fixed', inset: 0, background: 'rgba(15,18,30,.58)', zIndex: 400,
+      style={{ position: 'fixed', inset: 0, zIndex: 400,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '20px 16px', backdropFilter: 'blur(3px)' }}
+        padding: '20px 16px', backdropFilter: 'blur(3px)',
+        background: anim === 'in' ? 'rgba(15,18,30,.58)' : 'rgba(15,18,30,0)',
+        transition: 'background .22s ease',
+      }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div style={{
         background: 'var(--white)', borderRadius: 18,
-        boxShadow: '0 8px 32px rgba(0,0,0,.14), 0 24px 64px rgba(0,0,0,.18)',
+        boxShadow: '0 12px 48px rgba(0,0,0,.22), 0 36px 96px rgba(0,0,0,.20)',
         width: '100%', maxWidth: 460, overflow: 'hidden',
-        border: `1px solid ${v.border}`,
-        animation: 'modalPop .22s cubic-bezier(.34,1.56,.64,1)',
+        border: `3px solid ${v.color}`,
+        willChange: 'opacity',
+        animation: anim === 'in'
+          ? 'modalSlideIn .20s ease forwards'
+          : 'modalSlideOut .18s ease forwards',
       }}>
-        {/* Top coloured strip — solid, full width */}
-        <div style={{ height: 6, background: v.strip }} />
+        {/* No top strip — border color carries the visual identity */}
 
-        {/* Icon + content area */}
+        {/* Icon + content */}
         <div style={{ padding: '32px 32px 24px', textAlign: 'center' }}>
-          {/* Icon circle with solid background tint */}
           <div style={{
             width: 68, height: 68, borderRadius: '50%',
-            background: v.bg, border: `2px solid ${v.border}`,
+            background: v.bg, border: `2px solid ${v.color}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             margin: '0 auto 20px', color: v.color,
           }}>
             {v.icon}
           </div>
-
-          {/* Title */}
           <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10, lineHeight: 1.25 }}>
-            {title}
+            {frozenTitle}
           </div>
-
-          {/* Description — always present, user-friendly explanation */}
-          {message && (
+          {frozenMessage && (
             <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7, maxWidth: 340, margin: '0 auto' }}>
-              {message}
+              {frozenMessage}
             </div>
           )}
         </div>
 
         {/* Action buttons */}
-        <div style={{
-          padding: '0 32px 28px',
-          display: 'flex', gap: 12,
-          flexDirection: cancelLabel ? 'row' : 'column',
-        }}>
+        <div style={{ padding: '0 32px 28px', display: 'flex', gap: 12, flexDirection: cancelLabel ? 'row' : 'column' }}>
           {cancelLabel && (
             <button onClick={onClose} style={{
               flex: 1, padding: '11px 0', borderRadius: 10,
-              border: '1.5px solid var(--border)',
-              background: 'var(--white)', color: 'var(--text-secondary)',
+              border: '2px solid var(--border-card)',
+              background: 'var(--neutral-light)', color: 'var(--text-primary)',
               fontSize: 14, fontWeight: 600, cursor: 'pointer',
               fontFamily: 'var(--font-body)', transition: 'background .15s',
-            }}>{cancelLabel}</button>
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--border-inner)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'var(--neutral-light)'}
+            >{cancelLabel}</button>
           )}
           <button
             onClick={onConfirm || onClose}
@@ -510,9 +592,20 @@ export function StepWizard({ steps = [], current = 0 }) {
 }
 
 // ── KpiCard ───────────────────────────────────────────────────────────────────
-export function KpiCard({ label, value, icon, color = 'var(--accent)', delta, bg }) {
+export function KpiCard({ label, value, icon, color = 'var(--accent)', delta, bg, onClick }) {
+  const [hov, setHov] = useState(false)
   return (
-    <Card style={{ padding: '20px 22px', background: bg }}>
+    <Card
+      onClick={onClick}
+      style={{
+        padding: '20px 22px', background: bg, borderLeft: `3px solid ${color}`,
+        cursor: onClick ? 'pointer' : 'default',
+        transform: onClick && hov ? 'translateY(-3px)' : 'none',
+        boxShadow: onClick && hov ? '0 8px 20px rgba(75,94,170,.18)' : undefined,
+        transition: 'transform .18s ease, box-shadow .18s ease',
+      }}
+      onMouseEnter={() => { if (onClick) setHov(true) }}
+      onMouseLeave={() => setHov(false)}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
         <div style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-muted)' }}>{label}</div>
         {icon && (
@@ -561,7 +654,7 @@ export function SectionDivider({ label }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0 12px' }}>
       <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '.08em', whiteSpace: 'nowrap' }}>{label}</div>
-      <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+      <div style={{ flex: 1, height: 1, background: 'var(--border-inner)' }} />
     </div>
   )
 }

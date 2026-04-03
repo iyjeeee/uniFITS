@@ -1,8 +1,9 @@
 // EditEmployee.jsx — Edit an existing employee's profile information
 import { useState } from 'react'
-import { Card, Button, Input, Select, PageHeader, SectionDivider, Avatar } from '../../components/ui'
+import { Card, Button, Input, Select, SectionDivider, Avatar } from '../../components/ui'
 import { MOCK_USERS } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
+import useBreakpoint from '../../hooks/useBreakpoint'
 
 const GENDER_OPTIONS = [
   { value: 'Male', label: 'Male' },{ value: 'Female', label: 'Female' },
@@ -11,6 +12,7 @@ const GENDER_OPTIONS = [
 
 export default function EditEmployee({ userId = '1' }) {
   const org  = useOrg()
+  const { isMobile } = useBreakpoint()
   const user = MOCK_USERS.find(u => u.id === userId) || MOCK_USERS[0]
   const [form, setForm] = useState({
     first_name: user.first_name, last_name: user.last_name,
@@ -27,29 +29,27 @@ export default function EditEmployee({ userId = '1' }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <PageHeader title={`Edit ${org.people_label}`} subtitle={`Updating profile for ${user.full_name}`} actions={
-        <><Button variant="secondary" onClick={() => history.back()}>Cancel</Button><Button onClick={handleSave}>Save Changes</Button></>
       } />
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 260px', gap: 20, alignItems: 'flex-start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 260px', gap: 20, alignItems: 'flex-start' }}>
         <Card style={{ padding: 28 }}>
           <SectionDivider label="Personal Information" />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 16 }}>
             <Input label="First Name" value={form.first_name} onChange={set('first_name')} required />
             <Input label="Last Name"  value={form.last_name}  onChange={set('last_name')}  required />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 16 }}>
             <Select label="Gender" value={form.gender} onChange={set('gender')} options={GENDER_OPTIONS} />
             <Input label="Contact Number" value={form.contact_number} onChange={set('contact_number')} />
           </div>
           <Input label="Email Address" type="email" value={form.email} onChange={set('email')} style={{ marginBottom: 16 }} />
 
           <SectionDivider label="Location & Work" />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 16 }}>
             <Input label="City" value={form.address_city} onChange={set('address_city')} />
             <Input label="Province" value={form.address_province} onChange={set('address_province')} />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
             <Input label="Occupation" value={form.occupation} onChange={set('occupation')} />
             <Input label="Department" value={form.department} onChange={set('department')} />
           </div>

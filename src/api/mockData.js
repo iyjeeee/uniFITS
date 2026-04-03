@@ -28,6 +28,17 @@ export function relativeTime(dateStr) {
 }
 
 // ── MOCK_USERS ─────────────────────────────────────────────────────────────────
+
+// ── 12-hour time formatter ────────────────────────────────────────────────────
+// Converts "HH:MM" (24-hr) to "h:MM AM/PM" for all time displays in the app
+export function fmt12(t) {
+  if (!t) return '—'
+  const [h, m] = t.split(':').map(Number)
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  const h12  = h % 12 || 12
+  return `${h12}:${String(m).padStart(2,'0')} ${ampm}`
+}
+
 export const MOCK_USERS = [
   { id: '1', employee_number: 'EMP-0001', first_name: 'Juan', last_name: 'Dela Cruz', full_name: 'Juan Dela Cruz', gender: 'Male', email: 'juan@example.com', contact_number: '09171234567', role: 'President', department: 'Executive', occupation: 'Executive Officer', joined: '2022-01-15', status: 'active', address_city: 'Manila', address_province: 'Metro Manila', photo_url: null },
   { id: '2', employee_number: 'EMP-0002', first_name: 'Maria', last_name: 'Santos', full_name: 'Maria Santos', gender: 'Female', email: 'maria@example.com', contact_number: '09181234567', role: 'Secretary', department: 'Administration', occupation: 'Secretary General', joined: '2022-02-10', status: 'active', address_city: 'Quezon City', address_province: 'Metro Manila', photo_url: null },
@@ -56,18 +67,18 @@ export const MOCK_ANNOUNCEMENTS = [
 
 // ── MOCK_PROJECTS ─────────────────────────────────────────────────────────────
 export const MOCK_PROJECTS = [
-  { id: '1', title: 'Medical Mission 2025',      project_type: 'Medical Mission',   description: 'Free medical check-ups for underprivileged communities in Taal, Batangas.', start_date: '2025-04-05', end_date: '2025-04-06', location: 'Taal, Batangas',        status: 'upcoming',  target_funding: 50000, current_funding: 32500 },
-  { id: '2', title: 'School Feeding Program',    project_type: 'Community Service', description: 'Weekly feeding program for public school students in Laguna.', start_date: '2025-02-01', end_date: '2025-12-20', location: 'San Pablo, Laguna',      status: 'ongoing',   target_funding: 120000, current_funding: 78000 },
-  { id: '3', title: 'Tree Planting Initiative',  project_type: 'Environmental',     description: 'Planting 1,000 native trees in watershed areas.', start_date: '2025-06-05', end_date: '2025-06-05', location: 'Sierra Madre, Rizal',    status: 'upcoming',  target_funding: 25000, current_funding: 10000 },
+  { id: '1', title: 'Medical Mission 2026',      project_type: 'Medical Mission',   description: 'Free medical check-ups for underprivileged communities in Taal, Batangas.', start_date: '2026-03-15', end_date: '2026-03-16', location: 'Taal, Batangas',        status: 'upcoming',  target_funding: 50000, current_funding: 32500 },
+  { id: '2', title: 'School Feeding Program',    project_type: 'Community Service', description: 'Weekly feeding program for public school students in Laguna.', start_date: '2026-01-10', end_date: '2026-12-20', location: 'San Pablo, Laguna',      status: 'ongoing',   target_funding: 120000, current_funding: 78000 },
+  { id: '3', title: 'Tree Planting Initiative',  project_type: 'Environmental',     description: 'Planting 1,000 native trees in watershed areas.', start_date: '2026-03-22', end_date: '2026-03-22', location: 'Sierra Madre, Rizal',    status: 'upcoming',  target_funding: 25000, current_funding: 10000 },
   { id: '4', title: 'Scholarship Program 2024',  project_type: 'Education',         description: 'College scholarships for deserving students from our community.', start_date: '2024-06-01', end_date: '2024-12-15', location: 'Metro Manila',          status: 'completed', target_funding: 200000, current_funding: 200000 },
-  { id: '5', title: 'Livelihood Seminar',         project_type: 'Livelihood',        description: 'Practical skills training for out-of-school youth.', start_date: '2025-05-10', end_date: '2025-05-12', location: 'Cavite City, Cavite',    status: 'upcoming',  target_funding: 30000, current_funding: 12000 },
+  { id: '5', title: 'Livelihood Seminar',         project_type: 'Livelihood',        description: 'Practical skills training for out-of-school youth.', start_date: '2026-04-05', end_date: '2026-04-07', location: 'Cavite City, Cavite',    status: 'upcoming',  target_funding: 30000, current_funding: 12000 },
 ]
 
 // ── MOCK_EVENTS ───────────────────────────────────────────────────────────────
 export const MOCK_EVENTS = [
-  { id: '1', title: 'Annual Gala Night 2025',     description: 'Annual fundraising gala for organizational programs.', event_date: '2025-12-06', event_time: '18:00', location: 'Manila Hotel Ballroom',   status: 'upcoming',  target_funding: 500000, current_funding: 125000 },
-  { id: '2', title: 'Summer Sportsfest',          description: 'Team building sports activities for all members.',    event_date: '2025-04-19', event_time: '08:00', location: 'San Juan Sports Complex', status: 'upcoming',  target_funding: 15000,  current_funding: 8000   },
-  { id: '3', title: 'Independence Day Parade',    description: 'Annual independence day participation.',               event_date: '2025-06-12', event_time: '07:00', location: 'Luneta Park, Manila',     status: 'upcoming',  target_funding: 5000,   current_funding: 3000   },
+  { id: '1', title: 'Annual Gala Night 2026',     description: 'Annual fundraising gala for organizational programs.', event_date: '2026-03-28', event_time: '18:00', location: 'Manila Hotel Ballroom',   status: 'upcoming',  target_funding: 500000, current_funding: 125000 },
+  { id: '2', title: 'Summer Sportsfest',          description: 'Team building sports activities for all members.',    event_date: '2026-04-18', event_time: '08:00', location: 'San Juan Sports Complex', status: 'upcoming',  target_funding: 15000,  current_funding: 8000   },
+  { id: '3', title: 'Independence Day Parade',    description: 'Annual independence day participation.',               event_date: '2026-03-08', event_time: '07:00', location: 'Luneta Park, Manila',     status: 'upcoming',  target_funding: 5000,   current_funding: 3000   },
   { id: '4', title: 'Christmas Party 2024',       description: 'Year-end celebration for all members and families.',  event_date: '2024-12-15', event_time: '17:00', location: 'Club Headquarters',       status: 'completed', target_funding: 40000,  current_funding: 40000  },
 ]
 

@@ -1,6 +1,6 @@
 // EventDetail.jsx — Full event view: info, attendance, contributions, financials
-import { Card, CardHeader, Button, StatusBadge, PageHeader } from '../../components/ui'
-import { MOCK_EVENTS, MOCK_ATTENDANCES, MOCK_TRANSACTIONS, formatCurrency, formatDate } from '../../api/mockData'
+import { Card, CardHeader, Button, StatusBadge } from '../../components/ui'
+import { fmt12, MOCK_EVENTS, MOCK_ATTENDANCES, MOCK_TRANSACTIONS, formatCurrency, formatDate } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 
 export default function EventDetail({ eventId = '1' }) {
@@ -13,15 +13,13 @@ export default function EventDetail({ eventId = '1' }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <PageHeader title={event.title} subtitle={`${org.event_label} Details`} actions={
-        <><Button variant="secondary">Edit</Button><Button variant="danger">Cancel Event</Button></>
       } />
 
       <Card style={{ padding: 24 }}>
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginBottom: 16 }}>
           <div><div style={ml}>Status</div><StatusBadge status={event.status} /></div>
           <div><div style={ml}>Date</div><div style={mv}>{formatDate(event.event_date)}</div></div>
-          <div><div style={ml}>Time</div><div style={mv}>{event.event_time || '—'}</div></div>
+          <div><div style={ml}>Time</div><div style={mv}>{event.event_time ? fmt12(event.event_time) : '—'}</div></div>
           <div><div style={ml}>Location</div><div style={mv}>{event.location || '—'}</div></div>
           <div><div style={ml}>Target Funding</div><div style={mv}>{formatCurrency(event.target_funding)}</div></div>
           <div><div style={ml}>Current Funding</div><div style={{ ...mv, color: 'var(--success)', fontWeight: 700 }}>{formatCurrency(event.current_funding)}</div></div>

@@ -1,6 +1,6 @@
 // EmployeeDetails.jsx — Full profile view: info, officer history, attendance
 import { useState } from 'react'
-import { Card, CardHeader, Button, StatusBadge, Avatar, Badge, PageHeader } from '../../components/ui'
+import { Card, CardHeader, Button, StatusBadge, Avatar, Badge } from '../../components/ui'
 import { MOCK_USERS, MOCK_ATTENDANCES, formatDate } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 
@@ -14,8 +14,6 @@ export default function EmployeeDetails({ userId = '1' }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <PageHeader title={user.full_name} subtitle={`${user.employee_number} · ${user.role}`} actions={
-        <><Button variant="secondary">Edit Profile</Button><Button variant="danger">Deactivate</Button></>
       } />
 
       {/* Profile header card */}
@@ -32,7 +30,7 @@ export default function EmployeeDetails({ userId = '1' }) {
               <span>📧 {user.email}</span>
               <span>📞 {user.contact_number}</span>
               <span>🏢 {user.department}</span>
-              <span>📅 Joined {formatDate(user.joined)}</span>
+              <span>Joined {formatDate(user.joined)}</span>
             </div>
           </div>
         </div>

@@ -1,7 +1,9 @@
 // Backup.jsx — Backup & Recovery System; create, restore, export, download backups
+// Responsive via useBreakpoint — action tile grid collapses on mobile
 import { useState } from 'react'
 import { Card, CardHeader, Button, Badge } from '../../components/ui'
 import { MOCK_BACKUP_JOBS, formatDate } from '../../api/mockData'
+import useBreakpoint from '../../hooks/useBreakpoint'
 
 // SVG icons for action tiles — no emoji
 function IconSave()    { return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> }
@@ -16,9 +18,11 @@ function formatFileSize(bytes) {
 }
 
 export default function Backup() {
-  const [jobs, setJobs]       = useState(MOCK_BACKUP_JOBS)
+  const { isMobile, isTablet } = useBreakpoint()
+  const actionCols = isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)' // action tiles responsive
+  const backupLayout = isMobile || isTablet ? '1fr' : '1fr 240px' // history + status panel
+  const [jobs, setJobs]         = useState(MOCK_BACKUP_JOBS)
   const [creating, setCreating] = useState(false)
-
   // Simulate creating a new backup job
   function handleCreateBackup() {
     setCreating(true)
@@ -45,7 +49,7 @@ export default function Backup() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
       {/* Quick action tiles */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: actionCols, gap: 12 }}>
         {actions.map(b => (
           <button key={b.label} onClick={b.onClick} style={{ padding: '18px 14px', borderRadius: 'var(--radius-md)', border: `1px solid ${b.color}25`, background: b.bg, cursor: 'pointer', textAlign: 'center', fontFamily: 'var(--font-body)', transition: 'box-shadow .15s' }}>
             <div style={{ color: b.color, display: 'flex', justifyContent: 'center', marginBottom: 8 }}>{b.icon}</div>
@@ -56,7 +60,7 @@ export default function Backup() {
       </div>
 
       {/* Backup table + guide sidebar */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 240px', gap: 14, alignItems: 'flex-start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: backupLayout, gap: 14, alignItems: 'flex-start' }}>
 
         <Card>
           <CardHeader title="Backup & Recovery System" subtitle="Manage and restore your system backups" />
@@ -76,15 +80,15 @@ export default function Backup() {
           <div style={{ overflowX: 'auto', marginTop: 14 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
-                <tr style={{ background: 'var(--neutral-light)' }}>
+                <tr style={{ background: 'var(--table-header-bg)' }}>
                   {['#','Filename','Type','Format','Date','Size','Actions'].map(h => (
-                    <th key={h} style={{ padding: '9px 14px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
+                    <th key={h} style={{ padding: '9px 14px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: 'var(--table-head-fg)', textTransform: 'uppercase', letterSpacing: '.06em', borderBottom: '2px solid var(--border-table)', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {jobs.map((job, i) => (
-                  <tr key={job.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <tr key={job.id} style={{ borderBottom: '1px solid var(--border-inner)' }}>
                     <td style={{ padding: '10px 14px', color: 'var(--text-muted)', fontSize: 12 }}>{jobs.length - i}</td>
                     <td style={{ padding: '10px 14px' }}><code style={{ fontSize: 11 }}>{job.filename}</code></td>
                     <td style={{ padding: '10px 14px' }}><Badge variant={job.trigger === 'scheduled' ? 'info' : 'accent'}>{job.trigger}</Badge></td>

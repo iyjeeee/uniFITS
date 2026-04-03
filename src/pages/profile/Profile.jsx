@@ -1,4 +1,5 @@
 // Profile.jsx — Rich personal profile page; Edit Profile via InfoModal
+// Responsive via useBreakpoint — stat grids collapse on mobile
 import { useState } from 'react'
 import {
   Card, CardHeader, Button, StatusBadge, Avatar, Badge,
@@ -6,6 +7,7 @@ import {
 } from '../../components/ui'
 import { MOCK_USERS, MOCK_ATTENDANCES, MOCK_TRANSACTIONS, MOCK_PROJECTS, MOCK_EVENTS, formatDate, formatCurrency, relativeTime } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
+import useBreakpoint from '../../hooks/useBreakpoint'
 
 const GENDER_OPTIONS = [
   { value: 'Male',              label: 'Male' },
@@ -30,13 +32,15 @@ const IcoUser   = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="no
 
 export default function Profile({ userId = '1' }) {
   const org  = useOrg()
+  const { isMobile, isTablet } = useBreakpoint()
+  const statCols = isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)' // responsive stat grid
   const user = MOCK_USERS.find(u => u.id === userId) || MOCK_USERS[0]
 
   // Attendance records for this user
   const userAttendance = (MOCK_ATTENDANCES || []).filter(a => a.user_name === user.full_name)
 
   // Personal transactions
-  const userTransactions = MOCK_TRANSACTIONS.filter(t => t.user_id === user.id).slice(0, 5)
+  const userTransactions = MOCK_TRANSACTIONS.filter(t => t.user_id === user.id).slice(0, 3)
 
   // Contribution total
   const totalContributed = MOCK_TRANSACTIONS
@@ -53,8 +57,10 @@ export default function Profile({ userId = '1' }) {
   const attTotal = userAttendance.length
 
   /* Edit modal state */
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [saveResponse,  setSaveResponse]  = useState(null)
+  const [showEditModal,    setShowEditModal]    = useState(false)
+  const [saveResponse,     setSaveResponse]     = useState(null)
+  const [showAllAttend,    setShowAllAttend]    = useState(false)
+  const [showAllTxn,       setShowAllTxn]       = useState(false)
   const [form, setForm] = useState({
     first_name:       user.first_name,
     last_name:        user.last_name,
@@ -105,8 +111,8 @@ export default function Profile({ userId = '1' }) {
         </div>
       </Card>
 
-      {/* ── Quick Stats row ───────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+      {/* ── Quick Stats row — 4-col desktop, 2-col mobile ────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: statCols, gap: 12 }}>
         {[
           { label: 'Total Contributions', value: formatCurrency(totalContributed, org.currency_symbol), color: 'var(--success)', icon: <IcoMoney /> },
           { label: 'Transactions',        value: userTransactions.length,                               color: 'var(--accent)',  icon: <IcoMoney /> },
@@ -116,7 +122,7 @@ export default function Profile({ userId = '1' }) {
           <Card key={k.label} style={{ padding: '14px 18px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>{k.label}</div>
-              <div style={{ width: 28, height: 28, borderRadius: 7, background: 'var(--neutral-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: k.color }}>
+              <div style={{ width: 28, height: 28, borderRadius: 7, background: 'var(--table-head-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: k.color }}>
                 {k.icon}
               </div>
             </div>
@@ -125,8 +131,8 @@ export default function Profile({ userId = '1' }) {
         ))}
       </div>
 
-      {/* ── Main info grid ────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+      {/* ── Main info grid — 4-col desktop, 2-col tablet, 1-col mobile ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2,1fr)' : 'repeat(4, 1fr)', gap: 14 }}>
 
         {/* Personal Information */}
         <Card>
@@ -144,7 +150,7 @@ export default function Profile({ userId = '1' }) {
               ['Department',   user.department       || '—'],
               ['Date Joined',  formatDate(user.joined)],
             ].map(([k, v]) => (
-              <div key={k} style={{ display: 'flex', gap: 12, paddingBottom: 8, borderBottom: '1px solid var(--border)' }}>
+              <div key={k} style={{ display: 'flex', gap: 12, paddingBottom: 8, borderBottom: '1px solid var(--border-inner)' }}>
                 <div style={{ width: 120, fontSize: 12, color: 'var(--text-muted)', flexShrink: 0, paddingTop: 1, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.04em' }}>{k}</div>
                 <div style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--text-primary)' }}>{v}</div>
               </div>
@@ -185,39 +191,36 @@ export default function Profile({ userId = '1' }) {
               ))}
             </div>
 
-            <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)', fontSize: 12.5, color: 'var(--text-muted)' }}>
+            <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border-inner)', fontSize: 12.5, color: 'var(--text-muted)' }}>
               No previous roles on record.
             </div>
           </div>
         </Card>
-      </div>
 
-      {/* ── Attendance + Transactions row ─────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
 
         {/* Attendance Summary */}
-        <Card>
+        <Card style={{ display:'flex', flexDirection:'column' }}>
           <CardHeader title={`${org.attendance_label} Summary`} subtitle={`${attTotal} total records`} />
           {/* Stat pills */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0, borderBottom: '1px solid var(--border)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4, 1fr)', gap: 0, borderBottom: '1px solid var(--border-inner)' }}>
             {[
               { label: 'Present', value: attStats.present, color: '#2E7D52', bg: '#f0faf4' },
               { label: 'Late',    value: attStats.late,    color: '#D4860A', bg: '#fffbf0' },
               { label: 'Absent',  value: attStats.absent,  color: '#C0392B', bg: '#fdf3f2' },
               { label: 'Excused', value: attStats.excused, color: '#2471A3', bg: '#f0f7fd' },
             ].map(s => (
-              <div key={s.label} style={{ padding: '12px 0', textAlign: 'center', background: s.bg, borderRight: '1px solid var(--border)' }}>
+              <div key={s.label} style={{ padding: '12px 0', textAlign: 'center', background: s.bg, borderRight: '1px solid var(--border-inner)' }}>
                 <div style={{ fontSize: 20, fontWeight: 800, color: s.color }}>{s.value}</div>
                 <div style={{ fontSize: 11, color: s.color, fontWeight: 600, marginTop: 2 }}>{s.label}</div>
               </div>
             ))}
           </div>
 
-          <div style={{ padding: '6px 0' }}>
+          <div style={{ padding: '6px 0', flex: 1 }}>
             {userAttendance.length === 0
               ? <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>No attendance records found.</div>
-              : userAttendance.slice(0, 5).map(a => (
-                  <div key={a.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 18px', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
+              : userAttendance.slice(0, 3).map(a => (
+                  <div key={a.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 18px', borderBottom: '1px solid var(--border-inner)', fontSize: 13 }}>
                     <div>
                       <div style={{ fontWeight: 500 }}>{a.activity}</div>
                       <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{formatDate(a.attendance_date)}</div>
@@ -227,16 +230,25 @@ export default function Profile({ userId = '1' }) {
                 ))
             }
           </div>
+          {userAttendance.length > 0 && (
+            <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border-inner)', textAlign: 'center' }}>
+              <button
+                onClick={() => setShowAllAttend(true)}
+                style={{ padding: '7px 22px', borderRadius: 8, border: '1.5px solid var(--info)', background: 'var(--info)', color: '#fff', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                View All Attended ({userAttendance.length})
+              </button>
+            </div>
+          )}
         </Card>
 
         {/* Recent Personal Transactions */}
-        <Card>
+        <Card style={{ display:'flex', flexDirection:'column' }}>
           <CardHeader title="Personal Transactions" subtitle="Recent financial activity" />
-          <div style={{ padding: '6px 0' }}>
+          <div style={{ padding: '6px 0', flex: 1 }}>
             {userTransactions.length === 0
               ? <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>No transactions found.</div>
               : userTransactions.map(t => (
-                  <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px', borderBottom: '1px solid var(--border)' }}>
+                  <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px', borderBottom: '1px solid var(--border-inner)' }}>
                     {/* Type icon */}
                     <div style={{ width: 32, height: 32, borderRadius: 8, background: t.entry_type === 'expense' ? 'var(--danger-light)' : 'var(--success-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: t.entry_type === 'expense' ? 'var(--danger)' : 'var(--success)' }}>
                       <IcoMoney />
@@ -254,16 +266,113 @@ export default function Profile({ userId = '1' }) {
                   </div>
                 ))
             }
-            {userTransactions.length > 0 && (
-              <div style={{ padding: '10px 18px', textAlign: 'center' }}>
-                <a href="#/profile/transactions" style={{ fontSize: 12.5, color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>
-                  View all transactions →
-                </a>
-              </div>
-            )}
           </div>
+          {MOCK_TRANSACTIONS.filter(t => t.user_id === user.id).length > 0 && (
+            <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border-inner)', textAlign: 'center' }}>
+              <button
+                onClick={() => setShowAllTxn(true)}
+                style={{ padding: '7px 22px', borderRadius: 8, border: '1.5px solid var(--success)', background: 'var(--success)', color: '#fff', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                View All Transactions ({MOCK_TRANSACTIONS.filter(t => t.user_id === user.id).length})
+              </button>
+            </div>
+          )}
         </Card>
       </div>
+
+      {/* ── View All Attended InfoModal ──────────────────────────── */}
+      <InfoModal
+        open={showAllAttend}
+        onClose={() => setShowAllAttend(false)}
+        title="All Attendance Records"
+        subtitle={`${userAttendance.length} total records for ${user.full_name}`}
+        accentColor="var(--info)"
+        footer={
+          <button onClick={() => setShowAllAttend(false)} style={{ padding: '10px 28px', borderRadius: 9, border: '1.5px solid var(--border-card)', background: 'var(--neutral-light)', color: 'var(--text-primary)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{marginRight:4}}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Close
+          </button>
+        }>
+        <div>
+          {/* Stats summary row */}
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4, 1fr)', gap: 10, marginBottom: 18 }}>
+            {[
+              { label: 'Present', value: attStats.present, color: '#2E7D52', bg: '#f0faf4' },
+              { label: 'Late',    value: attStats.late,    color: '#D4860A', bg: '#fffbf0' },
+              { label: 'Absent',  value: attStats.absent,  color: '#C0392B', bg: '#fdf3f2' },
+              { label: 'Excused', value: attStats.excused, color: '#2471A3', bg: '#f0f7fd' },
+            ].map(s => (
+              <div key={s.label} style={{ padding: '12px', textAlign: 'center', background: s.bg, borderRadius: 10, border: '1px solid ' + s.color + '30' }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: s.color }}>{s.value}</div>
+                <div style={{ fontSize: 12, color: s.color, fontWeight: 600, marginTop: 2 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+          {/* Full records list */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {userAttendance.length === 0
+              ? <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)', fontSize: 13 }}>No attendance records found.</div>
+              : userAttendance.map(a => (
+                  <div key={a.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: 10, background: 'var(--neutral-light)', border: '1px solid var(--border-card)', marginBottom: 4 }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 13.5 }}>{a.activity}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                        {formatDate(a.attendance_date)} · Recorded by {a.recorded_by}
+                      </div>
+                      {a.remarks && <div style={{ fontSize: 11.5, color: 'var(--warning)', marginTop: 2, fontStyle: 'italic' }}>{a.remarks}</div>}
+                    </div>
+                    <StatusBadge status={a.status} />
+                  </div>
+                ))
+            }
+          </div>
+        </div>
+      </InfoModal>
+
+      {/* ── View All Transactions InfoModal ─────────────────────── */}
+      <InfoModal
+        open={showAllTxn}
+        onClose={() => setShowAllTxn(false)}
+        title="All Personal Transactions"
+        subtitle={`${MOCK_TRANSACTIONS.filter(t => t.user_id === user.id).length} total transactions for ${user.full_name}`}
+        accentColor="var(--success)"
+        footer={
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between', width: '100%' }}>
+            <a href="#/profile/transactions"
+              style={{ padding: '10px 20px', borderRadius: 9, border: '1.5px solid var(--accent)', background: 'var(--accent)', color: '#fff', fontSize: 13.5, fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', fontFamily: 'var(--font-body)' }}>
+              View Full Transaction Page
+            </a>
+            <button onClick={() => setShowAllTxn(false)} style={{ padding: '10px 28px', borderRadius: 9, border: '1.5px solid var(--border-card)', background: 'var(--neutral-light)', color: 'var(--text-primary)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{marginRight:4}}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Close
+            </button>
+          </div>
+        }>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {MOCK_TRANSACTIONS.filter(t => t.user_id === user.id).length === 0
+            ? <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)', fontSize: 13 }}>No transactions found.</div>
+            : MOCK_TRANSACTIONS.filter(t => t.user_id === user.id).map(t => (
+                <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', borderRadius: 10, background: 'var(--neutral-light)', border: '1px solid var(--border-card)' }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 9, background: t.entry_type === 'expense' ? 'var(--danger-light)' : 'var(--success-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: t.entry_type === 'expense' ? 'var(--danger)' : 'var(--success)' }}>
+                    <IcoMoney />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 600 }}>{t.description || t.category}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1 }}>
+                      {formatDate(t.transaction_date)} · {t.fund} · {t.payment_method}
+                    </div>
+                    <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 1 }}>
+                      Ref: {t.reference_number}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: t.entry_type === 'expense' ? 'var(--danger)' : 'var(--success)' }}>
+                      {t.entry_type === 'expense' ? '−' : '+'}{formatCurrency(t.amount, org.currency_symbol)}
+                    </div>
+                    <div style={{ marginTop: 3 }}><StatusBadge status={t.status} /></div>
+                  </div>
+                </div>
+              ))
+          }
+        </div>
+      </InfoModal>
 
       {/* ── Edit Profile InfoModal ────────────────────────────────── */}
       <InfoModal
@@ -273,7 +382,7 @@ export default function Profile({ userId = '1' }) {
         subtitle="Update your personal information and account credentials"
         footer={
           <>
-            <Button variant="secondary" onClick={() => setShowEditModal(false)}>Cancel</Button>
+            <Button variant="secondary" onClick={() => setShowEditModal(false)}>Close</Button>
             <Button onClick={handleSave}>Save Changes</Button>
           </>
         }>
@@ -323,7 +432,7 @@ export default function Profile({ userId = '1' }) {
               <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 14 }}>{user.employee_number}</div>
 
               {/* Profile Photo section */}
-              <div style={{ textAlign: 'left', paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+              <div style={{ textAlign: 'left', paddingTop: 12, borderTop: '1px solid var(--border-inner)' }}>
                 <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>Profile Photo</div>
                 <input type="file" accept="image/*" style={{ fontSize: 12.5, width: '100%', marginBottom: 6 }} />
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>Leave blank to keep current photo</div>
