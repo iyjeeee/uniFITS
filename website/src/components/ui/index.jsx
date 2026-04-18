@@ -138,7 +138,8 @@ export function Input({ label, hint, error, required, style, ...props }) {
 }
 
 // ── Select ────────────────────────────────────────────────────────────────────
-export function Select({ label, hint, required, options = [], placeholder, style, ...props }) {
+// Select — dropdown field; supports error prop for inline validation feedback (consistent with Input)
+export function Select({ label, hint, error, required, options = [], placeholder, style, ...props }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, ...style }}>
       {label && (
@@ -148,11 +149,20 @@ export function Select({ label, hint, required, options = [], placeholder, style
       )}
       <select
         {...props}
-        style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border-card)', fontSize: 13.5, fontFamily: 'var(--font-body)', color: props.value ? 'var(--text-primary)' : 'var(--text-muted)', background: props.disabled ? 'var(--neutral-light)' : 'var(--white)', outline: 'none', cursor: props.disabled ? 'not-allowed' : 'pointer', width: '100%', boxSizing: 'border-box' }}>
+        style={{
+          padding: '8px 12px', borderRadius: 8,
+          border: `1px solid ${error ? 'var(--danger)' : 'var(--border-card)'}`,
+          fontSize: 13.5, fontFamily: 'var(--font-body)',
+          color: props.value ? 'var(--text-primary)' : 'var(--text-muted)',
+          background: error ? '#fff8f8' : props.disabled ? 'var(--neutral-light)' : 'var(--white)',
+          outline: 'none', cursor: props.disabled ? 'not-allowed' : 'pointer',
+          width: '100%', boxSizing: 'border-box',
+        }}>
         {placeholder && <option value="">{placeholder}</option>}
         {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
-      {hint && <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{hint}</div>}
+      {hint  && !error && <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{hint}</div>}
+      {error && <div style={{ fontSize: 11.5, color: 'var(--danger)' }}>{error}</div>}
     </div>
   )
 }

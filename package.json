@@ -1,19 +1,26 @@
 {
   "name": "unifits",
-  "private": true,
   "version": "1.0.0",
-  "type": "module",
+  "description": "uniFITS - Monorepo for backend, website, and mobile",
+  "main": "index.js",
   "scripts": {
-    "dev":   "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev": "concurrently \"npm run dev --prefix website\" \"npm run dev --prefix backend\"",
+    "web": "npm run dev --prefix website",
+    "backend": "npm run dev --prefix backend",
+    "mobile": "cd mobile && flutter run"
   },
-  "dependencies": {
-    "react":     "^18.3.1",
-    "react-dom": "^18.3.1"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iyjeeee/uniFITS-Web.git"
   },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/iyjeeee/uniFITS-Web/issues"
+  },
+  "homepage": "https://github.com/iyjeeee/uniFITS-Web#readme",
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.3.1",
-    "vite": "^5.4.2"
+    "concurrently": "^9.2.1"
   }
 }
