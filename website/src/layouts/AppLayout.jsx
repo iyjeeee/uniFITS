@@ -5,7 +5,7 @@ import Sidebar from '../components/Sidebar'
 import Header  from '../components/Header'
 import useBreakpoint from '../hooks/useBreakpoint'
 
-export default function AppLayout({ children, page, sub, navigate }) {
+export default function AppLayout({ children, page, sub, navigate, onLogout, currentUser }) {
   const { isMobile, isTablet } = useBreakpoint()
   const [collapsed,   setCollapsed]   = useState(false)  // desktop icon-only mode
   const [drawerOpen,  setDrawerOpen]  = useState(false)  // mobile slide-in drawer
@@ -63,6 +63,8 @@ export default function AppLayout({ children, page, sub, navigate }) {
             else setCollapsed(c => !c)
           }}
           navigate={navigate}
+          onLogout={onLogout}
+          currentUser={currentUser}
         />
 
         {/* Page content — tighter padding to maximise content width */}

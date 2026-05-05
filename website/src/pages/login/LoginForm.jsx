@@ -1,8 +1,9 @@
 // LoginForm.jsx — Right form panel; sits inside a raised card on styled background
-// Added: per-field inline validation with real-time feedback on blur
+// DEV MODE: No backend — any registered email works with any non-empty password
+// Replace handleSubmit logic with real API call when backend is connected
 import { useState } from 'react'
 import { Button }   from '../../components/ui'
-import { isEmail, passwordStrength } from '../../utils/validation'  // shared validators
+import { isEmail }  from '../../utils/validation'  // shared validators
 
 export default function LoginForm({ onLogin, authError, loading }) {
   const [email,    setEmail]    = useState('')
@@ -14,25 +15,25 @@ export default function LoginForm({ onLogin, authError, loading }) {
 
   // validateEmail — runs on blur; checks format
   const validateEmail = () => {
-    if (!email.trim())          return setFieldErrors(p => ({ ...p, email: 'Email address is required.' }))
+    if (!email.trim()) return setFieldErrors(p => ({ ...p, email: 'Email address is required.' }))
     const err = isEmail(email)
     setFieldErrors(p => ({ ...p, email: err }))
   }
 
-  // validatePassword — runs on blur; checks minimum length
+  // validatePassword — just checks non-empty in dev mode
   const validatePassword = () => {
-    const err = passwordStrength(password)
+    const err = !password.trim() ? 'Password is required.' : ''
     setFieldErrors(p => ({ ...p, password: err }))
   }
 
   // clearError — clears the field error when the user starts typing again
   const clearError = (field) => setFieldErrors(p => ({ ...p, [field]: '' }))
 
-  // handleSubmit — validates all fields before calling parent handler
+  // handleSubmit — validates fields then calls parent handler
   function handleSubmit(e) {
     e.preventDefault()
     const emailErr = !email.trim() ? 'Email address is required.' : isEmail(email)
-    const pwErr    = passwordStrength(password)
+    const pwErr    = !password.trim() ? 'Password is required.' : ''
     if (emailErr || pwErr) { setFieldErrors({ email: emailErr, password: pwErr }); return }
     onLogin(email, password)
   }
@@ -157,6 +158,20 @@ export default function LoginForm({ onLogin, authError, loading }) {
         </form>
 
         <div className="form-divider"><span>or</span></div>
+
+        {/* ── DEV: demo credentials hint — remove when backend is live ── */}
+        <div style={{ background: 'rgba(75,94,170,.08)', border: '1px solid rgba(75,94,170,.20)', borderRadius: 8, padding: '12px 14px', marginBottom: 14 }}>
+          <p style={{ fontSize: 11.5, fontWeight: 700, color: '#4B5EAA', marginBottom: 6, letterSpacing: '.4px' }}>
+            🔑 DEMO — any registered email works
+          </p>
+          <p style={{ fontSize: 12, color: '#4B5563', lineHeight: 1.6, margin: 0 }}>
+            <strong>juan@example.com</strong> · President<br />
+            <strong>maria@example.com</strong> · Secretary<br />
+            <strong>pedro@example.com</strong> · Treasurer<br />
+            <em style={{ color: '#9CA3AF' }}>Password: anything non-empty</em>
+          </p>
+        </div>
+
         <p className="form-help">Having Trouble Logging in?<br />Please contact your <strong>IT Support</strong></p>
         <p className="form-version">uniFITS v2.0</p>
       </div>

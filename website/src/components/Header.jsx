@@ -1,7 +1,7 @@
 // Header.jsx — Sticky top bar: page title (LEFT), notifications + profile (RIGHT)
 // Search bar removed per spec — each manage page has its own search
 import { useState, useRef, useEffect } from 'react'
-import { InfoModal } from './ui'
+import { InfoModal, ResponseModal } from './ui'
 import { useOrg } from '../context/OrgContext'
 
 const MOCK_NOTIFICATIONS = [
@@ -33,7 +33,7 @@ function PBtn({ children, active, disabled, onClick }) {
   )
 }
 
-export default function Header({ page, sub, onMenuClick, navigate }) {
+export default function Header({ page, sub, onMenuClick, navigate, onLogout, currentUser }) {
   const org = useOrg()
 
   const [notifOpen,        setNotifOpen]        = useState(false)
@@ -41,6 +41,7 @@ export default function Header({ page, sub, onMenuClick, navigate }) {
   const [notifPage,        setNotifPage]         = useState(1)
   const [profileOpen,      setProfileOpen]       = useState(false)
   const [notifications,    setNotifications]     = useState(MOCK_NOTIFICATIONS)
+  const [showLogoutModal,  setShowLogoutModal]   = useState(false)
   const containerRef = useRef(null)
 
   const NOTIF_PER_PAGE = 8
@@ -77,8 +78,25 @@ export default function Header({ page, sub, onMenuClick, navigate }) {
       padding: '0 20px', position: 'sticky', top: 0, zIndex: 50, gap: 12, flexShrink: 0,
     }}>
 
-      {/* Hamburger */}
-      <button onClick={onMenuClick} style={iconBtn} aria-label="Toggle sidebar">
+      {/* Hamburger — smooth lift + border glow on hover */}
+      <button
+        onClick={onMenuClick}
+        aria-label="Toggle sidebar"
+        style={iconBtn}
+        onMouseEnter={e => {
+          e.currentTarget.style.transform    = 'translateY(-2px)'
+          e.currentTarget.style.boxShadow   = '0 0 0 2px rgba(0,0,0,.80), 0 5px 14px rgba(0,0,0,.22)'
+          e.currentTarget.style.background  = 'var(--neutral-light)'
+          e.currentTarget.style.borderColor = 'var(--accent)'
+          e.currentTarget.style.color       = 'var(--accent)'
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.transform    = ''
+          e.currentTarget.style.boxShadow   = ''
+          e.currentTarget.style.background  = ''
+          e.currentTarget.style.borderColor = ''
+          e.currentTarget.style.color       = ''
+        }}>
         <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
           <line x1={3} y1={6}  x2={21} y2={6}  />
           <line x1={3} y1={12} x2={21} y2={12} />
@@ -102,10 +120,26 @@ export default function Header({ page, sub, onMenuClick, navigate }) {
       {/* Right controls */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }} ref={containerRef}>
 
-        {/* Notifications bell */}
+        {/* Notifications bell — smooth lift + border glow on hover */}
         <div style={{ position: 'relative' }}>
-          <button style={iconBtn} onClick={() => { setNotifOpen(o => !o); setProfileOpen(false) }}
-            aria-label={`${unreadCount} unread notifications`}>
+          <button
+            style={iconBtn}
+            onClick={() => { setNotifOpen(o => !o); setProfileOpen(false) }}
+            aria-label={`${unreadCount} unread notifications`}
+            onMouseEnter={e => {
+              e.currentTarget.style.transform    = 'translateY(-2px)'
+              e.currentTarget.style.boxShadow   = '0 0 0 2px rgba(0,0,0,.80), 0 5px 14px rgba(0,0,0,.22)'
+              e.currentTarget.style.background  = 'var(--neutral-light)'
+              e.currentTarget.style.borderColor = 'var(--accent)'
+              e.currentTarget.style.color       = 'var(--accent)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.transform    = ''
+              e.currentTarget.style.boxShadow   = ''
+              e.currentTarget.style.background  = ''
+              e.currentTarget.style.borderColor = ''
+              e.currentTarget.style.color       = ''
+            }}>
             <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
             </svg>
@@ -187,23 +221,47 @@ export default function Header({ page, sub, onMenuClick, navigate }) {
           </button>
 
           {profileOpen && (
-            <div style={dropdown(200)}>
+            <div style={dropdown(210)}>
               <div style={dropHeader}>My Account</div>
               {[
-                { label: 'My Profile',            href: '#/profile'              },
-                { label: 'Personal Transactions',  href: '#/profile/transactions' },
-                { label: 'Settings',               href: '#/settings'             },
+                { label: 'My Profile',            href: '#/profile',              icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> },
+                { label: 'Personal Transactions',  href: '#/profile/transactions', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg> },
+                { label: 'Settings',               href: '#/settings',             icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> },
               ].map(item => (
                 <a key={item.href} href={item.href}
-                  style={{ ...dropItem, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8 }}
+                  style={{ ...dropItem, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 9, margin: '3px 8px', borderRadius: 7, transition: 'transform .18s ease, box-shadow .18s ease, background .12s ease' }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.transform = 'translateY(-2px)'
+                    e.currentTarget.style.boxShadow = '0 0 0 2px rgba(0,0,0,.80), 0 5px 14px rgba(0,0,0,.28)'
+                    e.currentTarget.style.background = 'var(--neutral-light)'
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.transform = ''
+                    e.currentTarget.style.boxShadow = ''
+                    e.currentTarget.style.background = ''
+                  }}
                   onClick={() => setProfileOpen(false)}>
+                  <span style={{ opacity: 0.6, display: 'flex', alignItems: 'center', flexShrink: 0 }}>{item.icon}</span>
                   {item.label}
                 </a>
               ))}
-              <div style={{ padding: '8px', borderTop: '1px solid var(--border-inner)' }}>
+              <div style={{ padding: '6px 8px 8px', borderTop: '1px solid var(--border-inner)' }}>
                 <button
-                  style={{ width: '100%', padding: '8px', background: 'var(--danger-light)', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--danger)', fontFamily: 'var(--font-body)', textAlign: 'left' }}
-                  onClick={() => { window.location.hash = '/login'; setProfileOpen(false) }}>
+                  style={{ width: '100%', padding: '9px 12px', background: 'var(--danger-light)', border: '1px solid transparent', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--danger)', fontFamily: 'var(--font-body)', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 9, transition: 'transform .18s ease, box-shadow .18s ease, background .12s ease, color .12s ease' }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.transform = 'translateY(-2px)'
+                    e.currentTarget.style.boxShadow = '0 0 0 2px rgba(0,0,0,.80), 0 5px 14px rgba(0,0,0,.28)'
+                    e.currentTarget.style.background = 'var(--danger)'
+                    e.currentTarget.style.color = '#fff'
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.transform = ''
+                    e.currentTarget.style.boxShadow = ''
+                    e.currentTarget.style.background = 'var(--danger-light)'
+                    e.currentTarget.style.color = 'var(--danger)'
+                  }}
+                  onClick={() => { setProfileOpen(false); setShowLogoutModal(true) }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                   Sign Out
                 </button>
               </div>
@@ -285,11 +343,32 @@ export default function Header({ page, sub, onMenuClick, navigate }) {
           )}
         </div>
       </InfoModal>
+
+      {/* ── Logout Confirmation Modal ─────────────────────────── */}
+      <ResponseModal
+        open={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        variant="warning"
+        title="Sign Out?"
+        message="Are you sure you want to sign out? Any unsaved changes will be lost."
+        confirmLabel="Yes, Sign Out"
+        cancelLabel="Cancel"
+        onConfirm={() => {
+          setShowLogoutModal(false)
+          if (typeof onLogout === 'function') {
+            onLogout()
+          } else {
+            // fallback if prop not passed — clear sessionStorage and navigate
+            try { sessionStorage.removeItem('unifits_authed'); sessionStorage.removeItem('unifits_user') } catch {}
+            window.location.hash = '/login'
+          }
+        }}
+      />
     </header>
   )
 }
 
-const iconBtn    = { width: 36, height: 36, borderRadius: 8, border: '1px solid var(--border-card)', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', position: 'relative', transition: 'background .15s' }
+const iconBtn    = { width: 36, height: 36, borderRadius: 8, border: '1px solid var(--border-card)', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', position: 'relative', transition: 'transform .18s ease, box-shadow .18s ease, background .15s ease, border-color .15s ease, color .15s ease' }
 const dropdown   = (w) => ({ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: w, background: 'var(--white)', border: '1.5px solid var(--border-card)', borderRadius: 10, boxShadow: '0 8px 24px rgba(75,94,170,.14)', zIndex: 200, overflow: 'hidden' })
 const dropHeader = { padding: '12px 16px 8px', fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', borderBottom: '1px solid var(--border-inner)' }
 const dropItem   = { display: 'flex', gap: 8, padding: '10px 16px', fontSize: 13.5, color: 'var(--text-primary)', cursor: 'pointer', transition: 'background .1s', lineHeight: 1.4 }

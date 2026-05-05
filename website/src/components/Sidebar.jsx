@@ -74,8 +74,9 @@ export default function Sidebar({ open, collapsed, isMobile, onToggle, onClose }
   const NAV = buildNav(org)
 
   const currentHash = window.location.hash.replace('#', '') || '/dashboard'
-  const [openSub, setOpenSub] = useState(null)
-  const [hovered, setHovered] = useState(null)
+  const [openSub,     setOpenSub]     = useState(null)
+  const [hovered,     setHovered]     = useState(null)
+  const [collHovered, setCollHovered] = useState(false)
   const showLabel = isMobile ? true : !collapsed
 
   function handleItem(item) {
@@ -123,20 +124,31 @@ export default function Sidebar({ open, collapsed, isMobile, onToggle, onClose }
             {items.map((item) => {
               const active = isActive(item)
               const isOpen = openSub === item.label
+              const isHov  = hovered === item.label
 
               return (
                 <div key={item.label}>
                   <div
-                    style={navItemStyle(active, hovered === item.label)}
+                    style={navItemStyle(active, isHov)}
                     title={!showLabel ? item.label : undefined}
                     onClick={() => handleItem(item)}
                     onMouseEnter={() => setHovered(item.label)}
                     onMouseLeave={() => setHovered(null)}>
 
+                    {/* Active pip — slides in from left */}
                     {active && <span style={activePip} />}
 
-                    <span style={{ display: 'flex', alignItems: 'center', width: 20, height: 20, flexShrink: 0 }}>
-                      <NavIcon item={item} active={active} />
+                    {/* Hover pip — lighter, also slides in */}
+                    {!active && isHov && <span style={hoverPip} />}
+
+                    {/* Icon wrapper — scales up on hover */}
+                    <span style={{
+                      display: 'flex', alignItems: 'center',
+                      width: 20, height: 20, flexShrink: 0,
+                      transition: 'transform .2s cubic-bezier(.34,1.56,.64,1)',
+                      transform: isHov && !active ? 'scale(1.18)' : 'scale(1)',
+                    }}>
+                      <NavIcon item={item} active={active || isHov} />
                     </span>
 
                     {showLabel && <span style={{ flex: 1 }}>{item.label}</span>}
@@ -145,10 +157,10 @@ export default function Sidebar({ open, collapsed, isMobile, onToggle, onClose }
                       <span style={active ? badgeActive : badgeStyle}>{item.badge}</span>
                     )}
 
-                    {/* Chevron only shown for items with sub-menus */}
+                    {/* Chevron — only for sub-menu items */}
                     {showLabel && item.sub && (
                       <svg width={14} height={14} viewBox="0 0 24 24" fill="none"
-                        stroke={active ? 'rgba(255,255,255,.6)' : 'rgba(249,250,251,.35)'}
+                        stroke={active ? 'rgba(255,255,255,.6)' : isHov ? 'rgba(249,250,251,.7)' : 'rgba(249,250,251,.35)'}
                         strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
                         style={{ flexShrink: 0, transition: 'transform .2s', transform: isOpen ? 'rotate(90deg)' : 'none' }}>
                         <polyline points="9 18 15 12 9 6" />
@@ -156,17 +168,25 @@ export default function Sidebar({ open, collapsed, isMobile, onToggle, onClose }
                     )}
                   </div>
 
-                  {/* Sub-items dropdown */}
+                  {/* Sub-items */}
                   {item.sub && isOpen && showLabel && (
                     <div>
                       {item.sub.map(s => {
                         const subActive = currentHash === s.href.replace('#', '')
+                        const subHov    = hovered === s.href
                         return (
                           <div key={s.href}
-                            style={subItemStyle(subActive, hovered === s.href)}
+                            style={subItemStyle(subActive, subHov)}
                             onClick={() => handleSubItem(s.href)}
                             onMouseEnter={() => setHovered(s.href)}
                             onMouseLeave={() => setHovered(null)}>
+                            {/* Sub-item dot */}
+                            <span style={{
+                              width: 5, height: 5, borderRadius: '50%', flexShrink: 0,
+                              background: subActive ? '#fff' : subHov ? 'rgba(255,255,255,.7)' : 'rgba(255,255,255,.25)',
+                              transition: 'background .15s, transform .2s',
+                              transform: subHov ? 'scale(1.4)' : 'scale(1)',
+                            }} />
                             {s.label}
                           </div>
                         )
@@ -183,13 +203,36 @@ export default function Sidebar({ open, collapsed, isMobile, onToggle, onClose }
       {/* Collapse button */}
       {!isMobile && (
         <div style={footerBar}>
-          <button style={collapseBtn} onClick={handleToggle} title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+          <button
+            style={{
+              ...collapseBtn,
+              background: collHovered ? 'rgba(255,255,255,.10)' : 'transparent',
+              transform:   collHovered ? 'translateX(3px)' : 'none',
+              boxShadow:   collHovered ? 'inset 0 0 0 1px rgba(255,255,255,.12), 0 2px 8px rgba(0,0,0,.25)' : 'none',
+            }}
+            onClick={handleToggle}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            onMouseEnter={() => setCollHovered(true)}
+            onMouseLeave={() => setCollHovered(false)}>
             <svg width={18} height={18} viewBox="0 0 24 24" fill="none"
-              stroke="rgba(249,250,251,.45)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
-              style={{ flexShrink: 0, transition: 'transform .25s', transform: collapsed ? 'rotate(180deg)' : 'none' }}>
+              stroke={collHovered ? 'rgba(249,250,251,.90)' : 'rgba(249,250,251,.40)'}
+              strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+              style={{
+                flexShrink: 0,
+                transition: 'transform .25s ease, stroke .15s ease',
+                transform: collapsed ? 'rotate(180deg)' : 'none',
+              }}>
               <polyline points="15 18 9 12 15 6" />
             </svg>
-            {showLabel && <span style={{ fontSize: 13, color: 'rgba(249,250,251,.45)' }}>Collapse</span>}
+            {showLabel && (
+              <span style={{
+                fontSize: 13,
+                color: collHovered ? 'rgba(249,250,251,.90)' : 'rgba(249,250,251,.40)',
+                transition: 'color .15s ease',
+              }}>
+                Collapse
+              </span>
+            )}
           </button>
         </div>
       )}
@@ -216,25 +259,56 @@ const sectionLabel = { fontSize: 10, fontWeight: 600, letterSpacing: '.08em', te
 const navItemStyle = (active, hovered) => ({
   display: 'flex', alignItems: 'center', gap: 10,
   padding: '9px 10px 9px 13px', borderRadius: 8, cursor: 'pointer',
-  color: active ? '#fff' : 'rgba(249,250,251,.65)',
-  fontSize: 13.5, fontWeight: active ? 600 : 400,
-  background: active ? 'var(--accent)' : hovered ? 'rgba(255,255,255,.07)' : 'transparent',
-  whiteSpace: 'nowrap', transition: 'background .15s, color .15s',
+  color: active ? '#fff' : hovered ? 'rgba(249,250,251,.92)' : 'rgba(249,250,251,.65)',
+  fontSize: 13.5, fontWeight: active ? 600 : hovered ? 500 : 400,
+  // Active: solid accent fill. Hover: accent tint with left-border shimmer
+  background: active
+    ? 'var(--accent)'
+    : hovered
+      ? 'linear-gradient(90deg, rgba(75,94,170,.28) 0%, rgba(75,94,170,.10) 100%)'
+      : 'transparent',
+  whiteSpace: 'nowrap',
+  // Smooth all animated properties
+  transition: 'background .18s ease, color .15s ease, transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .18s ease',
+  // Subtle lift on hover (not active — active stays grounded)
+  transform: hovered && !active ? 'translateX(3px)' : 'none',
+  // Soft glow on hover
+  boxShadow: hovered && !active ? 'inset 0 0 0 1px rgba(75,94,170,.35), 0 2px 8px rgba(75,94,170,.15)' : 'none',
   position: 'relative', userSelect: 'none', marginBottom: 2, overflow: 'hidden',
 })
 
-const activePip   = { position: 'absolute', left: 0, top: '18%', bottom: '18%', width: 3, borderRadius: '0 3px 3px 0', background: 'rgba(255,255,255,.75)', flexShrink: 0 }
+// Active state — solid white pip on the left edge
+const activePip = {
+  position: 'absolute', left: 0, top: '18%', bottom: '18%',
+  width: 3, borderRadius: '0 3px 3px 0',
+  background: 'rgba(255,255,255,.85)', flexShrink: 0,
+}
+
+// Hover state — dimmer accent pip, same position
+const hoverPip = {
+  position: 'absolute', left: 0, top: '22%', bottom: '22%',
+  width: 3, borderRadius: '0 3px 3px 0',
+  background: 'rgba(75,94,170,.7)', flexShrink: 0,
+  transition: 'opacity .15s',
+}
+
 const badgeStyle  = { background: 'var(--accent)', color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 20, lineHeight: 1.5 }
 const badgeActive = { background: 'rgba(255,255,255,.25)', color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 20, lineHeight: 1.5 }
 
 const subItemStyle = (active, hovered) => ({
   display: 'flex', alignItems: 'center', gap: 10,
-  padding: '8px 10px 8px 40px', borderRadius: 8, cursor: 'pointer',
-  color: active ? '#fff' : 'rgba(249,250,251,.5)',
+  padding: '7px 10px 7px 38px', borderRadius: 8, cursor: 'pointer',
+  color: active ? '#fff' : hovered ? 'rgba(249,250,251,.85)' : 'rgba(249,250,251,.5)',
   fontSize: 13, marginBottom: 1, userSelect: 'none',
-  background: active ? 'rgba(75,94,170,.4)' : hovered ? 'rgba(255,255,255,.06)' : 'transparent',
-  transition: 'background .15s, color .15s', fontWeight: active ? 500 : 400,
+  background: active
+    ? 'rgba(75,94,170,.45)'
+    : hovered
+      ? 'rgba(255,255,255,.09)'
+      : 'transparent',
+  transition: 'background .15s ease, color .15s ease, transform .15s ease',
+  transform: hovered && !active ? 'translateX(3px)' : 'none',
+  fontWeight: active ? 500 : 400,
 })
 
 const footerBar   = { padding: '10px 8px', borderTop: '1px solid rgba(255,255,255,.08)', flexShrink: 0 }
-const collapseBtn = { width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', borderRadius: 8, cursor: 'pointer', background: 'none', border: 'none', fontFamily: 'var(--font-body)', transition: 'background .15s' }
+const collapseBtn = { width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', borderRadius: 8, cursor: 'pointer', background: 'transparent', border: 'none', fontFamily: 'var(--font-body)', transition: 'background .15s ease, transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .18s ease' }

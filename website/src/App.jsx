@@ -92,8 +92,17 @@ const DEFAULT_ORG = {
 
 export default function App() {
   // Simple hash-based routing state
-  const [hash, setHash] = useState(window.location.hash.replace('#', '') || '/login')
-  const [authed, setAuthed] = useState(false) // replace with real JWT check
+  const [hash,    setHash]    = useState(window.location.hash.replace('#', '') || '/login')
+  const [authed,  setAuthed]  = useState(() => {
+    // ── DEV: persist login across page refresh via sessionStorage ──────────────
+    try { return sessionStorage.getItem('unifits_authed') === 'true' } catch { return false }
+  })
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const raw = sessionStorage.getItem('unifits_user')
+      return raw ? JSON.parse(raw) : null
+    } catch { return null }
+  })
 
   // Listen to hash changes for navigation
   useEffect(() => {
@@ -109,19 +118,41 @@ export default function App() {
     window.location.hash = path
   }
 
+  // handleLogin — receives matched user object from Login.jsx mock auth
+  function handleLogin(user) {
+    try {
+      sessionStorage.setItem('unifits_authed', 'true')
+      sessionStorage.setItem('unifits_user',   JSON.stringify(user))
+    } catch { /* ignore storage errors */ }
+    setCurrentUser(user)
+    setAuthed(true)
+    navigate('/dashboard')
+  }
+
+  // handleLogout — clears session and returns to login
+  function handleLogout() {
+    try {
+      sessionStorage.removeItem('unifits_authed')
+      sessionStorage.removeItem('unifits_user')
+    } catch { /* ignore */ }
+    setCurrentUser(null)
+    setAuthed(false)
+    navigate('/login')
+  }
+
   const route = ROUTES[hash] || ROUTES['/dashboard']
   const { Component, page, sub, auth = true } = route
 
-  // Unauthenticated — show login/forgot screens
+  // Unauthenticated guard — show login/forgot screens
   if (!authed || !auth) {
     if (hash === '/forgot-password') return <OrgProvider orgData={DEFAULT_ORG}><ForgotPassword /></OrgProvider>
-    return <OrgProvider orgData={DEFAULT_ORG}><Login onLogin={() => { setAuthed(true); navigate('/dashboard') }} /></OrgProvider>
+    return <OrgProvider orgData={DEFAULT_ORG}><Login onLogin={handleLogin} /></OrgProvider>
   }
 
   return (
     <OrgProvider orgData={DEFAULT_ORG}>
-      <AppLayout page={page} sub={sub} navigate={navigate}>
-        <Component />
+      <AppLayout page={page} sub={sub} navigate={navigate} currentUser={currentUser} onLogout={handleLogout}>
+        <Component currentUser={currentUser} />
       </AppLayout>
     </OrgProvider>
   )
