@@ -251,8 +251,10 @@ export default function FundReport() {
           { label: 'Inactive',                 value: inactive,               bg: 'var(--danger-light)',   color: 'var(--danger)',       border: 'rgba(192,57,43,.25)' },
           { label: 'Overall Balance',          value: formatCurrency(totalBalance, org.currency_symbol), bg: 'var(--warning-light)', color: 'var(--warning)', border: 'rgba(212,134,10,.25)' },
         ].map(k => (
-          <Card key={k.label} style={{ padding: '14px 18px', background: k.bg, border: '1.5px solid ' + k.border }}>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>{k.label}</div>
+          <Card key={k.label} style={{ padding: '14px 18px', background: '#FFFFFF', borderLeft: '4px solid ' + k.color, border: '1px solid ' + k.color + '25', transition: 'transform .18s ease, box-shadow .18s ease' }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(75,94,170,.18)' }}
+            onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500, marginBottom: 6 }}>{k.label}</div>
             <div style={{ fontSize: 22, fontWeight: 800, color: k.color }}>{k.value}</div>
           </Card>
         ))}
@@ -302,7 +304,7 @@ export default function FundReport() {
         subtitle={viewFund?.description || 'Fund details and financial summary'}
         accentColor={viewFund?.is_required ? 'var(--accent)' : 'var(--info)'}
         footer={
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between', width: '100%' }}>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <button
               onClick={() => { setViewFund(null); setShowExport(true) }}
               style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 22px', borderRadius: 9, border: '1.5px solid var(--accent)', background: 'var(--accent)', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>

@@ -1,6 +1,6 @@
 // EditProfile.jsx — User self-service profile edit page
 import { useState } from 'react'
-import { Card, Button, Input, Select, SectionDivider, Avatar } from '../../components/ui'
+import { Card, PageHeader, Button, Input, Select, SectionDivider, Avatar } from '../../components/ui'
 import { MOCK_USERS } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 import useBreakpoint from '../../hooks/useBreakpoint'
@@ -22,6 +22,8 @@ export default function EditProfile({ userId = '1' }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <PageHeader title="Edit Profile" subtitle="Update your personal information" actions={
+        <><Button variant="secondary">Cancel</Button><Button onClick={() => alert('Saved!')}>Save Changes</Button></>
       } />
 
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 260px', gap: 20, alignItems: 'flex-start' }}>

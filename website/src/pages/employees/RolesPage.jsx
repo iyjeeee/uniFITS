@@ -399,7 +399,7 @@ export default function RolesPage() {
         subtitle={viewRole ? `${viewRole.is_system ? 'System' : 'Custom'} Role · ${editPerms.length} permission${editPerms.length !== 1 ? 's' : ''}` : ''}
         accentColor="var(--accent)"
         footer={
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between', width: '100%' }}>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <button onClick={handleSavePerms}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 22px', borderRadius: 9, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
               <BtnIco.Shield /> Save Permissions
@@ -422,7 +422,7 @@ export default function RolesPage() {
         accentColor="var(--accent)"
         editMode={true}
         footer={
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between', width: '100%' }}>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <button onClick={handleCreate} disabled={!addForm.name.trim()}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 22px', borderRadius: 9, border: 'none', background: addForm.name.trim() ? 'var(--accent)' : 'var(--border)', color: '#fff', fontSize: 14, fontWeight: 600, cursor: addForm.name.trim() ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-body)' }}>
               <BtnIco.Plus /> Create Role
@@ -444,7 +444,7 @@ export default function RolesPage() {
         subtitle="This action is permanent and cannot be undone"
         accentColor="var(--danger)"
         footer={
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between', width: '100%' }}>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <button onClick={handleDelete}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 24px', borderRadius: 9, border: 'none', background: 'var(--danger)', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
               <BtnIco.Delete /> Yes, Delete

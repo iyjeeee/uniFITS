@@ -100,10 +100,40 @@ export default function Sidebar({ open, collapsed, isMobile, onToggle, onClose }
     onToggle()
   }, [isMobile, collapsed, onToggle])
 
+  // isActive — returns true only if this nav item is the BEST match for currentHash.
+  // "Best match" = the item whose sub-item or href is the longest prefix of currentHash.
+  // This prevents '/transactions' highlighting when we're on '/transactions/utilities'
+  // because the Utilities item's sub-path '/transactions/utilities' is a longer/better match.
   function isActive(item) {
-    if (item.href && currentHash.startsWith(item.href.replace('#', ''))) return true
-    if (item.sub) return item.sub.some(s => currentHash === s.href.replace('#', ''))
-    return false
+    // Collect all sub-item paths (or direct href) for this item
+    const candidates = item.sub
+      ? item.sub.map(s => s.href.replace('#', ''))
+      : [item.href?.replace('#', '') || '']
+
+    // Check if this item has any match at all (exact or prefix+/)
+    const itemMatches = candidates.some(p =>
+      p !== '' && (currentHash === p || currentHash.startsWith(p + '/'))
+    )
+    if (!itemMatches) return false
+
+    // Find the best-matching path length for this item
+    const itemBestLen = Math.max(...candidates.map(p =>
+      (p !== '' && (currentHash === p || currentHash.startsWith(p + '/'))) ? p.length : 0
+    ))
+
+    // Check all other nav items' candidates — if any has a longer match, this item loses
+    const allCandidates = NAV.flatMap(section =>
+      section.items.flatMap(navItem =>
+        navItem.sub
+          ? navItem.sub.map(s => s.href.replace('#', ''))
+          : [navItem.href?.replace('#', '') || '']
+      )
+    )
+    const globalBestLen = Math.max(...allCandidates.map(p =>
+      (p !== '' && (currentHash === p || currentHash.startsWith(p + '/'))) ? p.length : 0
+    ))
+
+    return itemBestLen >= globalBestLen && itemBestLen > 0
   }
 
   return (

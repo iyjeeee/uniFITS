@@ -135,8 +135,10 @@ export default function Employees() {
       {/* KPI row — 4-col desktop, 2-col on mobile/tablet */}
       <div style={{ display: 'grid', gridTemplateColumns: kpiCols, gap: 12 }}>
         {kpis.map(k => (
-          <Card key={k.label} style={{ padding: '14px 18px', background: k.bg, border: '1.5px solid ' + k.color + '30' }}>
-            <div style={{ fontSize: 12, color: k.color, fontWeight: 600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.04em' }}>{k.label}</div>
+          <Card key={k.label} style={{ padding: '14px 18px', background: '#FFFFFF', borderLeft: '4px solid ' + k.color, border: '1px solid ' + k.color + '25', transition: 'transform .18s ease, box-shadow .18s ease' }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(75,94,170,.18)' }}
+            onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500, marginBottom: 6 }}>{k.label}</div>
             <div style={{ fontSize: 28, fontWeight: 800, color: k.color, lineHeight: 1 }}>{k.value}</div>
           </Card>
         ))}
@@ -241,7 +243,7 @@ export default function Employees() {
           subtitle={`${viewItem.role} · ${viewItem.employee_number}`}
           accentColor={modalAccentColor(viewItem.status)}
           footer={
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between', width: '100%' }}>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               {/* Edit opens EditEmployeeModal — no page redirect */}
               <button onClick={() => { setEditItem(viewItem); setViewItem(null) }}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 20px', borderRadius: 9, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: 13.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
@@ -307,7 +309,7 @@ export default function Employees() {
           subtitle="Upload a CSV or Excel file to batch-import employee records"
           accentColor="var(--accent)"
           footer={
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between', width: '100%' }}>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 22px', borderRadius: 9, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: 13.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
                 <IcoUpload /> Import File
@@ -358,7 +360,7 @@ export default function Employees() {
           subtitle="This action is permanent and cannot be undone"
           accentColor="var(--danger)"
           footer={
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between', width: '100%' }}>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button onClick={handleDelete}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 24px', borderRadius: 9, border: 'none', background: 'var(--danger)', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
                 <IcoDelete /> Yes, Remove

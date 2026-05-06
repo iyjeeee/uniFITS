@@ -119,10 +119,12 @@ export default function Profile({ userId = '1' }) {
           { label: 'Attendance Records',  value: attTotal,                                              color: 'var(--info)',    icon: <IcoCal /> },
           { label: 'Attendance Rate',     value: attTotal ? `${Math.round((attStats.present / attTotal) * 100)}%` : '—', color: 'var(--warning)', icon: <IcoUser /> },
         ].map(k => (
-          <Card key={k.label} style={{ padding: '14px 18px' }}>
+          <Card key={k.label} style={{ padding: '14px 18px', background: '#FFFFFF', borderLeft: '4px solid ' + k.color, border: '1px solid ' + k.color + '25', transition: 'transform .18s ease, box-shadow .18s ease' }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(75,94,170,.18)' }}
+            onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>{k.label}</div>
-              <div style={{ width: 28, height: 28, borderRadius: 7, background: 'var(--table-head-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: k.color }}>
+              <div style={{ width: 36, height: 36, borderRadius: 9, background: 'var(--neutral-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: k.color }}>
                 {k.icon}
               </div>
             </div>
@@ -335,7 +337,7 @@ export default function Profile({ userId = '1' }) {
         subtitle={`${MOCK_TRANSACTIONS.filter(t => t.user_id === user.id).length} total transactions for ${user.full_name}`}
         accentColor="var(--success)"
         footer={
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between', width: '100%' }}>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <a href="#/profile/transactions"
               style={{ padding: '10px 20px', borderRadius: 9, border: '1.5px solid var(--accent)', background: 'var(--accent)', color: '#fff', fontSize: 13.5, fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', fontFamily: 'var(--font-body)' }}>
               View Full Transaction Page

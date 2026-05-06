@@ -1,0 +1,14 @@
+/* ============================================================
+   index.css — CSS import entry point for uniFITS
+   Import order matters: variables → base → components
+   ============================================================ */
+
+/* 1. Custom properties / tokens */
+@import './variables.css';
+
+/* 2. Base resets + layout utilities */
+@import './global.css';
+
+/* 3. Component styles */
+@import './buttons.css';
+@import './modal.css';

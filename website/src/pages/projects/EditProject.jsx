@@ -1,6 +1,6 @@
 // EditProject.jsx — Edit an existing project's details
 import { useState } from 'react'
-import { Card, Button, Input, Select, Textarea, SectionDivider } from '../../components/ui'
+import { Card, PageHeader, Button, Input, Select, Textarea, SectionDivider } from '../../components/ui'
 import { MOCK_PROJECTS } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 
@@ -21,6 +21,8 @@ export default function EditProject({ projectId = '1' }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <PageHeader title="Edit Project" subtitle={proj.title} actions={
+        <><Button variant="secondary">Cancel</Button><Button onClick={() => alert('Saved!')}>Save Changes</Button></>
       } />
       <Card style={{ padding: 28 }}>
         <SectionDivider label="Project Information" />

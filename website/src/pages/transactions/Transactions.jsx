@@ -233,9 +233,11 @@ export default function Transactions() {
       {/* ── KPI strip ───────────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: kpiCols, gap: 12 }}>
         {kpis.map(k => (
-          <Card key={k.label} style={{ padding: '14px 18px', background: k.bg, border: '1.5px solid ' + k.color + '30' }}>
-            <div style={{ fontSize: 12, color: k.color, fontWeight: 600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.04em' }}>{k.label}</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: k.color, lineHeight: 1 }}>{k.value}</div>
+          <Card key={k.label} style={{ padding: '14px 18px', background: '#FFFFFF', borderLeft: '4px solid ' + k.color, border: '1px solid ' + k.color + '25', transition: 'transform .18s ease, box-shadow .18s ease' }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(75,94,170,.18)' }}
+            onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500, marginBottom: 6 }}>{k.label}</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: k.color, lineHeight: 1 }}>{k.value}</div>
           </Card>
         ))}
       </div>
@@ -291,7 +293,7 @@ export default function Transactions() {
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <td style={{ padding: '10px 14px', color: 'var(--text-muted)', fontSize: 12 }}>{(page - 1) * PAGE_SIZE + i + 1}</td>
                   <td style={{ padding: '10px 14px' }}>
-                    <code style={{ fontSize: 11, background: 'var(--table-head-bg)', padding: '2px 6px', borderRadius: 4 }}>{t.reference_number}</code>
+                    <code style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace' }}>{t.reference_number}</code>
                   </td>
                   <td style={{ padding: '10px 14px', fontWeight: 500 }}>{t.user_name || <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>External</span>}</td>
                   <td style={{ padding: '10px 14px', fontWeight: 700, color: t.entry_type === 'expense' ? 'var(--danger)' : 'var(--success)' }}>
@@ -326,7 +328,7 @@ export default function Transactions() {
         subtitle={viewItem ? `${org.transaction_label} · ${formatDate(viewItem.transaction_date)}` : ''}
         accentColor={viewItem ? modalAccentColor(viewItem.status) : 'var(--accent)'}
         footer={
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between', width: '100%' }}>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <button onClick={() => window.print()}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 20px', borderRadius: 9, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
               <IcoPrint /> Print
@@ -348,7 +350,7 @@ export default function Transactions() {
         subtitle="This action is permanent and cannot be undone"
         accentColor="var(--danger)"
         footer={
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between', width: '100%' }}>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <button onClick={handleDelete}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 24px', borderRadius: 9, border: 'none', background: 'var(--danger)', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
               <BtnIco.Delete /> Yes, Delete

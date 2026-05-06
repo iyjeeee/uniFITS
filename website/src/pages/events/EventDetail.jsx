@@ -1,5 +1,5 @@
 // EventDetail.jsx — Full event view: info, attendance, contributions, financials
-import { Card, CardHeader, Button, StatusBadge } from '../../components/ui'
+import { Card, PageHeader, CardHeader, Button, StatusBadge } from '../../components/ui'
 import { fmt12, MOCK_EVENTS, MOCK_ATTENDANCES, MOCK_TRANSACTIONS, formatCurrency, formatDate } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 
@@ -13,6 +13,8 @@ export default function EventDetail({ eventId = '1' }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <PageHeader title={event.title} subtitle="Event Details" actions={
+        <><Button variant="secondary">Back</Button><Button>Edit Event</Button></>
       } />
 
       <Card style={{ padding: 24 }}>

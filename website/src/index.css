@@ -47,11 +47,11 @@
 
   /*
    * ── Table surface tokens ────────────────────────────────────────────────
-   * --table-head-bg : thead background — soft indigo wash
-   * --table-head-fg : thead text color — deeper brand blue, clearly readable
+   * --table-head-bg : thead background — strong accent to stand out from page bg
+   * --table-head-fg : thead text color — white for clear contrast on dark bg
    */
-  --table-head-bg:  #E8EDF8;
-  --table-head-fg:  #3D52A0;
+  --table-head-bg:  #3D52A0;
+  --table-head-fg:  #FFFFFF;
 
   /* Text */
   --text-primary:   #1E2128;

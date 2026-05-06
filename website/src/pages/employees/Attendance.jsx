@@ -427,7 +427,7 @@ export default function Attendance() {
         subtitle={viewItem ? `${viewItem.kind === 'project' ? org.project_label : org.event_label} · Mark Attendance` : ''}
         accentColor={viewItem?.kind === 'project' ? 'var(--accent)' : 'var(--success)'}
         footer={
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between', width: '100%' }}>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <button onClick={handleSave}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 22px', borderRadius: 9, border: 'none', background: 'var(--success)', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
               <IcoSave /> Save Attendance

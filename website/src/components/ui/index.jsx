@@ -387,8 +387,8 @@ export function InfoModal({ open, onClose, title, subtitle, accentColor = 'var(-
         width: '100%', maxWidth: 920, maxHeight: '92vh',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
         /* Border color transitions smoothly between status color ↔ edit purple */
-        border: `3px solid ${borderColor}`,
-        transition: 'border-color .3s ease',
+        border: 'none',
+        transition: 'none',
         /* will-change:opacity tells browser to composite on GPU layer —
            prevents any layout recalculation during the opacity animation
            which was the secondary cause of the "size change" artifact */
@@ -423,7 +423,7 @@ export function InfoModal({ open, onClose, title, subtitle, accentColor = 'var(-
         {/* Optional footer */}
         {footer && (
           <div style={{ padding: '18px 32px', borderTop: '1.5px solid var(--border-inner)', flexShrink: 0,
-            display: 'flex', justifyContent: 'flex-end', gap: 10, background: 'var(--table-head-bg)' }}>
+            display: 'flex', justifyContent: 'flex-end', gap: 10, background: 'var(--white)' }}>
             {footer}
           </div>
         )}
@@ -503,7 +503,7 @@ export function ResponseModal({ open, onClose, variant = 'success', title, messa
         background: 'var(--white)', borderRadius: 18,
         boxShadow: '0 12px 48px rgba(0,0,0,.22), 0 36px 96px rgba(0,0,0,.20)',
         width: '100%', maxWidth: 460, overflow: 'hidden',
-        border: `3px solid ${v.color}`,
+        border: 'none',
         willChange: 'opacity',
         animation: anim === 'in'
           ? 'modalSlideIn .20s ease forwards'
@@ -608,13 +608,17 @@ export function KpiCard({ label, value, icon, color = 'var(--accent)', delta, bg
     <Card
       onClick={onClick}
       style={{
-        padding: '20px 22px', background: bg, borderLeft: `3px solid ${color}`,
+        padding: '20px 22px',
+        // Always white background — avoids blending into the page content bg (#EEF2F8)
+        background: '#FFFFFF',
+        borderLeft: `3px solid ${color}`,
         cursor: onClick ? 'pointer' : 'default',
-        transform: onClick && hov ? 'translateY(-3px)' : 'none',
-        boxShadow: onClick && hov ? '0 8px 20px rgba(75,94,170,.18)' : undefined,
+        // Hover lift animation on ALL kpi cards (not just clickable ones)
+        transform: hov ? 'translateY(-3px)' : 'none',
+        boxShadow: hov ? `0 8px 20px rgba(75,94,170,.18)` : undefined,
         transition: 'transform .18s ease, box-shadow .18s ease',
       }}
-      onMouseEnter={() => { if (onClick) setHov(true) }}
+      onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
         <div style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-muted)' }}>{label}</div>

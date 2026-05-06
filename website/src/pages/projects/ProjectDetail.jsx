@@ -1,6 +1,6 @@
 // ProjectDetail.jsx — Full project view: funding, attendance, contributions, financials
 import { useState } from 'react'
-import { Card, CardHeader, Button, StatusBadge, Badge } from '../../components/ui'
+import { Card, PageHeader, CardHeader, Button, StatusBadge, Badge } from '../../components/ui'
 import { MOCK_PROJECTS, MOCK_ATTENDANCES, MOCK_TRANSACTIONS, formatCurrency, formatDate } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 
@@ -14,6 +14,8 @@ export default function ProjectDetail({ projectId = '1' }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <PageHeader title={proj.title} subtitle={proj.project_type} actions={
+        <><Button variant="secondary">Back</Button><Button>Edit Project</Button></>
       } />
 
       {/* Project header info */}

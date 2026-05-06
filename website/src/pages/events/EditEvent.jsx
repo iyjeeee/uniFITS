@@ -1,6 +1,6 @@
 // EditEvent.jsx — Edit an existing event
 import { useState } from 'react'
-import { Card, Button, Input, Select, Textarea, SectionDivider } from '../../components/ui'
+import { Card, PageHeader, Button, Input, Select, Textarea, SectionDivider } from '../../components/ui'
 import { MOCK_EVENTS } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 
@@ -14,6 +14,8 @@ export default function EditEvent({ eventId = '1' }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <PageHeader title="Edit Event" subtitle={event.title} actions={
+        <><Button variant="secondary">Cancel</Button><Button onClick={() => alert('Saved!')}>Save Changes</Button></>
       } />
       <Card style={{ padding: 28 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

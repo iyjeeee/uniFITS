@@ -78,7 +78,7 @@ export default function PersonalTransactions({ userId = '1' }) {
     { label: 'Category',    accessor: 'category', render: r => <Badge variant="neutral">{r.category.charAt(0).toUpperCase() + r.category.slice(1)}</Badge> },
     { label: 'Description', accessor: 'description', render: r => <span style={{ fontSize: 13 }}>{r.description || '—'}</span> },
     { label: 'Method',      accessor: 'payment_method', render: r => <span style={{ fontSize: 13 }}>{r.payment_method}</span> },
-    { label: 'Reference',   key: 'ref',  render: r => <code style={{ fontSize: 11, background: 'var(--neutral-light)', padding: '1px 5px', borderRadius: 3 }}>{r.reference_number}</code> },
+    { label: 'Reference',   key: 'ref',  render: r => <code style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace' }}>{r.reference_number}</code> },
     { label: 'Status',      key: 'st',   render: r => <StatusBadge status={r.status} /> },
   ]
 
@@ -99,8 +99,10 @@ export default function PersonalTransactions({ userId = '1' }) {
               { label: 'Funds',               value: totals.fund,    color: 'var(--warning)', bg: 'var(--warning-light)', border: 'rgba(212,134,10,.2)' },
               { label: 'Other',               value: totals.other,   color: 'var(--text-secondary)', bg: 'var(--neutral-light)', border: 'var(--border-card)' },
             ].map(k => (
-              <div key={k.label} style={{ padding: '12px 14px', background: k.bg, borderRadius: 10, border: '1px solid ' + k.border }}>
-                <div style={{ fontSize: 11.5, color: k.color, fontWeight: 600, marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.04em' }}>{k.label}</div>
+              <div key={k.label} style={{ padding: '12px 14px', background: '#FFFFFF', borderRadius: 10, border: '1px solid ' + k.color + '25', borderLeft: '4px solid ' + k.color, transition: 'transform .18s ease, box-shadow .18s ease' }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(75,94,170,.18)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
+                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 500, marginBottom: 6 }}>{k.label}</div>
                 <div style={{ fontSize: 20, fontWeight: 800, color: k.color }}>{formatCurrency(k.value, org.currency_symbol)}</div>
               </div>
             ))}

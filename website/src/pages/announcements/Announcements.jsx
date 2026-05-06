@@ -433,7 +433,7 @@ export default function Announcements() {
           subtitle={`By ${viewAnn.created_by} · ${relativeTime(viewAnn.created_at)}`}
           accentColor={viewAnn.is_pinned ? 'var(--accent)' : 'var(--text-muted)'}
           footer={
-            <div style={{ display:'flex', gap:8, width:'100%', justifyContent:'space-between' }}>
+            <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
               <div style={{ display:'flex', gap:8 }}>
                 <Button variant="secondary" size="sm" onClick={() => togglePin(viewAnn.id)}>{viewAnn.is_pinned ? 'Unpin' : 'Pin'}</Button>
                 <Button variant="danger" size="sm" onClick={() => confirmDelete(viewAnn.id)}>Delete</Button>
@@ -552,7 +552,7 @@ export default function Announcements() {
           subtitle={detailItem.kind==='project' ? `${org.project_label} · ${detailItem.project_type||''}` : org.event_label}
           accentColor={detailItem.kind==='project' ? 'var(--accent)' : 'var(--success)'}
           footer={
-            <div style={{ display:'flex', gap:10, justifyContent:'space-between', width:'100%' }}>
+            <div style={{ display:'flex', gap:10, justifyContent:'flex-end' }}>
               {/* "View Full Details" — redirects to the manage page for this item */}
               <button
                 onClick={() => {
