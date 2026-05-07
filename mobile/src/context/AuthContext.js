@@ -14,8 +14,10 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState(null)
 
-  // login — DEV: matches mock user by email (case-insensitive), any password
-  // PROD: replace with → fetch(`${API_BASE}/auth/login`, { method:'POST', body: JSON.stringify({email,password}) })
+  // login — DEV: accepts ANY email + any password (no DB yet).
+  // Matches mock user by email if found; otherwise falls back to first mock
+  // user with the entered email assigned — so app always has data to display.
+  // PROD: replace body with → fetch(`${API_BASE}/auth/login`, { method:'POST', body: JSON.stringify({email,password}) })
   const login = useCallback(async (email, password) => {
     setError(null)
     if (!email.trim() || !password.trim()) {
@@ -24,14 +26,13 @@ export function AuthProvider({ children }) {
     }
     setLoading(true)
     await new Promise(r => setTimeout(r, 700)) // simulate network latency
-    const found = MOCK_USERS.find(u => u.email.toLowerCase() === email.trim().toLowerCase())
+
+    // Find mock user by email — any email is accepted, fallback to MOCK_USERS[0]
+    const found     = MOCK_USERS.find(u => u.email.toLowerCase() === email.trim().toLowerCase())
+    const userToSet = found || { ...MOCK_USERS[0], email: email.trim() }
     setLoading(false)
-    if (found) {
-      setUser(found)
-      return true
-    }
-    setError('No account found with that email.\nTry: ana@example.com')
-    return false
+    setUser(userToSet)
+    return true
   }, [])
 
   const logout = useCallback(() => {

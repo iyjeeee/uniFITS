@@ -1,12 +1,31 @@
 // src/screens/ProjectDetailScreen.jsx
+// ─────────────────────────────────────────────────────────────────────────────
+// Project detail view.
+// Layout: plain-color detail header + scrollable content with unified
+//         Section card format for all data sections.
+// ─────────────────────────────────────────────────────────────────────────────
 import React from 'react'
-import { View, Text, ScrollView, StyleSheet, StatusBar } from 'react-native'
+import { View, Text, ScrollView, StyleSheet, StatusBar, TouchableOpacity } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { LinearGradient } from 'expo-linear-gradient'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import { formatDate, formatCurrency } from '../api/mockData'
 import { Colors, Typography, Spacing, Radius, Shadow } from '../constants/theme'
-import { PageHeader, StatusBadge, ProgressBar, InfoRow, Card } from '../components/ui'
+import { StatusBadge, ProgressBar } from '../components/ui'
+
+// ── InfoRow — label + value row inside section card ───────────────────────────
+function InfoRow({ label, value, last }) {
+  return (
+    <View style={[styles.infoRow, last && styles.infoRowLast]}>
+      <Text style={styles.infoLabel}>{label}</Text>
+      <View style={styles.infoValue}>
+        {typeof value === 'string' || typeof value === 'number'
+          ? <Text style={styles.infoText}>{value || '—'}</Text>
+          : value
+        }
+      </View>
+    </View>
+  )
+}
 
 export default function ProjectDetailScreen() {
   const navigation = useNavigation()
@@ -19,82 +38,179 @@ export default function ProjectDetailScreen() {
     ? Math.min(100, Math.round((proj.current_funding / proj.target_funding) * 100))
     : 0
 
+  const stripeColor =
+    proj.status === 'ongoing'   ? Colors.accent :
+    proj.status === 'completed' ? Colors.success : Colors.warning
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.primary }} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
-      <PageHeader title="Project Details" onBack={() => navigation.goBack()} />
 
-      <ScrollView style={{ backgroundColor: Colors.bgApp }} showsVerticalScrollIndicator={false}>
-        {/* Hero */}
-        <LinearGradient colors={['#2D3563', '#1A2040']} style={styles.hero}>
-          <StatusBadge status={proj.status} style={{ marginBottom: 10 }} />
-          <Text style={styles.heroTitle}>{proj.title}</Text>
-          <Text style={styles.heroSub}>{proj.project_type} · {proj.location}</Text>
-          <ProgressBar current={proj.current_funding} target={proj.target_funding} style={{ marginTop: 16 }} />
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
-            <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', fontFamily: Typography.body }}>
-              {formatCurrency(proj.current_funding)} raised
-            </Text>
-            <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', fontFamily: Typography.body }}>
-              {pct}% of {formatCurrency(proj.target_funding)}
-            </Text>
-          </View>
-        </LinearGradient>
+      {/* Plain-color detail header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
+          <Text style={styles.backArrow}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle} numberOfLines={1}>Project Details</Text>
+      </View>
 
-        {/* Info card */}
-        <View style={{ padding: Spacing.lg, gap: 12 }}>
-          <Card>
-            <Text style={styles.cardSectionLabel}>Project Information</Text>
-            <InfoRow label="Start Date"    value={formatDate(proj.start_date)} />
-            <InfoRow label="End Date"      value={formatDate(proj.end_date)} />
-            <InfoRow label="Location"      value={proj.location} />
-            <InfoRow label="Project Type"  value={proj.project_type} />
-            <InfoRow label="Status"        value={<StatusBadge status={proj.status} />} last />
-          </Card>
+      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
 
-          <Card style={{ padding: Spacing.lg }}>
-            <Text style={styles.cardSectionLabel2}>Description</Text>
-            <Text style={{ fontSize: 13.5, color: Colors.textSecondary, lineHeight: 21, fontFamily: Typography.body }}>
-              {proj.description}
-            </Text>
-          </Card>
-
-          {/* Funding summary */}
-          <View style={[styles.fundingCard, Shadow.sm]}>
-            <LinearGradient colors={[Colors.success + '18', Colors.success + '08']}
-              style={{ padding: Spacing.lg, borderRadius: Radius.md, borderWidth: 1, borderColor: Colors.success + '30' }}>
-              <Text style={{ fontSize: 12, fontFamily: Typography.bodyBold, color: Colors.success, marginBottom: 4 }}>Funding Status</Text>
-              <Text style={{ fontSize: 26, fontFamily: Typography.bodyExtraBold, color: Colors.textPrimary }}>
-                {formatCurrency(proj.current_funding)}
-                <Text style={{ fontSize: 14, fontFamily: Typography.body, color: Colors.textMuted }}> of {formatCurrency(proj.target_funding)}</Text>
-              </Text>
-              <ProgressBar current={proj.current_funding} target={proj.target_funding} style={{ marginTop: 10 }} />
-              <Text style={{ fontSize: 12, color: Colors.textMuted, marginTop: 6, fontFamily: Typography.body }}>
-                {pct >= 100 ? '✓ Fully funded' : `${100 - pct}% remaining`}
-              </Text>
-            </LinearGradient>
+        {/* ── Title banner — plain primary color, left stripe accent ── */}
+        <View style={styles.banner}>
+          <View style={[styles.bannerStripe, { backgroundColor: stripeColor }]} />
+          <View style={styles.bannerBody}>
+            <StatusBadge status={proj.status} style={{ marginBottom: 10 }} />
+            <Text style={styles.bannerTitle}>{proj.title}</Text>
+            <Text style={styles.bannerSub}>{proj.project_type} · {proj.location}</Text>
+            {/* Funding progress */}
+            <ProgressBar current={proj.current_funding} target={proj.target_funding} style={{ marginTop: 16 }} />
+            <View style={styles.bannerFundRow}>
+              <Text style={styles.bannerFundText}>{formatCurrency(proj.current_funding)} raised</Text>
+              <Text style={styles.bannerFundText}>{pct}% of {formatCurrency(proj.target_funding)}</Text>
+            </View>
           </View>
         </View>
+
+        {/* ── Project Information — unified Section card ────────────── */}
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleRow}>
+              <View style={styles.sectionAccent} />
+              <Text style={styles.sectionTitle}>Project Information</Text>
+            </View>
+          </View>
+          <InfoRow label="Start Date"   value={formatDate(proj.start_date)} />
+          <InfoRow label="End Date"     value={formatDate(proj.end_date)} />
+          <InfoRow label="Location"     value={proj.location} />
+          <InfoRow label="Project Type" value={proj.project_type} />
+          <InfoRow label="Status"       value={<StatusBadge status={proj.status} />} last />
+        </View>
+
+        {/* ── Funding Status — unified Section card ────────────────── */}
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleRow}>
+              <View style={[styles.sectionAccent, { backgroundColor: Colors.success }]} />
+              <Text style={styles.sectionTitle}>Funding Status</Text>
+            </View>
+            <View style={[styles.sectionBadge, { backgroundColor: Colors.successLight }]}>
+              <Text style={[styles.sectionBadgeText, { color: Colors.success }]}>{pct}%</Text>
+            </View>
+          </View>
+          {/* Amount display row */}
+          <View style={styles.fundingRow}>
+            <View>
+              <Text style={styles.fundingLabel}>Raised</Text>
+              <Text style={styles.fundingAmount}>{formatCurrency(proj.current_funding)}</Text>
+            </View>
+            <View style={styles.fundingSep} />
+            <View>
+              <Text style={styles.fundingLabel}>Target</Text>
+              <Text style={styles.fundingAmount}>{formatCurrency(proj.target_funding)}</Text>
+            </View>
+            <View style={styles.fundingSep} />
+            <View>
+              <Text style={styles.fundingLabel}>Status</Text>
+              <Text style={[styles.fundingStatus, { color: pct >= 100 ? Colors.success : Colors.warning }]}>
+                {pct >= 100 ? 'Fully funded' : `${100 - pct}% left`}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.fundingBarWrap}>
+            <ProgressBar current={proj.current_funding} target={proj.target_funding} />
+          </View>
+        </View>
+
+        {/* ── Description — unified Section card ───────────────────── */}
+        <View style={[styles.sectionCard, { marginBottom: 36 }]}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleRow}>
+              <View style={styles.sectionAccent} />
+              <Text style={styles.sectionTitle}>Description</Text>
+            </View>
+          </View>
+          <View style={styles.descBody}>
+            <Text style={styles.descText}>{proj.description}</Text>
+          </View>
+        </View>
+
       </ScrollView>
     </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
-  hero: {
-    padding: Spacing.xl,
-    paddingBottom: Spacing.xxl,
+  safe:   { flex: 1, backgroundColor: Colors.primary },
+  scroll: { backgroundColor: Colors.bgApp },
+
+  // Plain-color detail header
+  header: {
+    backgroundColor: Colors.primary,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: Spacing.lg, paddingVertical: 14,
   },
-  heroTitle: { fontSize: 22, fontFamily: Typography.display, color: '#fff', lineHeight: 28, marginBottom: 4 },
-  heroSub:   { fontSize: 12, color: 'rgba(255,255,255,0.5)', fontFamily: Typography.body },
-  cardSectionLabel: {
-    fontSize: 11.5, fontFamily: Typography.bodyBold, color: Colors.textMuted,
-    textTransform: 'uppercase', letterSpacing: 0.6,
-    paddingHorizontal: Spacing.lg, paddingTop: 14, paddingBottom: 2,
+  backBtn:     { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  backArrow:   { fontSize: 22, color: '#fff', lineHeight: 26, marginLeft: -1 },
+  headerTitle: { flex: 1, fontSize: 17, fontFamily: Typography.bodyBold, color: '#fff' },
+
+  // Title banner — white card with left color stripe
+  banner: {
+    flexDirection: 'row',
+    marginHorizontal: Spacing.lg, marginTop: Spacing.xl,
+    backgroundColor: Colors.white, borderRadius: Radius.lg,
+    borderWidth: 1, borderColor: Colors.borderCard,
+    overflow: 'hidden', ...Shadow.sm,
   },
-  cardSectionLabel2: {
-    fontSize: 11.5, fontFamily: Typography.bodyBold, color: Colors.textMuted,
-    textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 8,
+  bannerStripe: { width: 5 },
+  bannerBody:   { flex: 1, padding: Spacing.lg },
+  bannerTitle:  { fontSize: 20, fontFamily: Typography.display, color: Colors.textPrimary, lineHeight: 26, marginBottom: 5 },
+  bannerSub:    { fontSize: 12, color: Colors.textMuted, fontFamily: Typography.body },
+  bannerFundRow:{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
+  bannerFundText:{ fontSize: 11.5, color: Colors.textMuted, fontFamily: Typography.body },
+
+  // Unified section card
+  sectionCard: {
+    marginHorizontal: Spacing.lg, marginTop: Spacing.lg,
+    backgroundColor: Colors.white, borderRadius: Radius.lg,
+    borderWidth: 1, borderColor: Colors.borderCard,
+    overflow: 'hidden', ...Shadow.sm,
   },
-  fundingCard: {},
+  sectionHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg, paddingVertical: 14,
+    borderBottomWidth: 1, borderBottomColor: Colors.borderInner,
+  },
+  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  sectionAccent:   { width: 4, height: 18, backgroundColor: Colors.accent, borderRadius: 2 },
+  sectionTitle:    { fontSize: 15, fontFamily: Typography.bodyBold, color: Colors.textPrimary },
+  sectionBadge:    { backgroundColor: Colors.accentLight, paddingHorizontal: 8, paddingVertical: 2, borderRadius: Radius.full },
+  sectionBadgeText:{ fontSize: 11, fontFamily: Typography.bodyBold, color: Colors.accent },
+
+  // InfoRow inside section card
+  infoRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg, paddingVertical: 13,
+    borderBottomWidth: 1, borderBottomColor: Colors.borderInner,
+  },
+  infoRowLast: { borderBottomWidth: 0 },
+  infoLabel:   { fontSize: 13, fontFamily: Typography.bodyMedium, color: Colors.textMuted, flex: 1 },
+  infoValue:   { flex: 1.5, alignItems: 'flex-end' },
+  infoText:    { fontSize: 13.5, fontFamily: Typography.bodySemiBold, color: Colors.textPrimary, textAlign: 'right' },
+
+  // Funding status rows
+  fundingRow: {
+    flexDirection: 'row', alignItems: 'flex-start',
+    paddingHorizontal: Spacing.lg, paddingVertical: 16,
+    borderBottomWidth: 1, borderBottomColor: Colors.borderInner,
+  },
+  fundingSep:    { width: 1, backgroundColor: Colors.borderInner, marginHorizontal: 16, alignSelf: 'stretch' },
+  fundingLabel:  { fontSize: 10.5, fontFamily: Typography.bodyMedium, color: Colors.textMuted, marginBottom: 4 },
+  fundingAmount: { fontSize: 15, fontFamily: Typography.bodyExtraBold, color: Colors.textPrimary },
+  fundingStatus: { fontSize: 13, fontFamily: Typography.bodyBold },
+  fundingBarWrap:{ paddingHorizontal: Spacing.lg, paddingVertical: 14 },
+
+  // Description body
+  descBody: { paddingHorizontal: Spacing.lg, paddingVertical: 16 },
+  descText:  { fontSize: 13.5, color: Colors.textSecondary, lineHeight: 22, fontFamily: Typography.body },
 })

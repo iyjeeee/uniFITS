@@ -1,16 +1,14 @@
 // src/screens/ProfileScreen.jsx
 // ─────────────────────────────────────────────────────────────────────────────
-// Member profile hub: hero, quick stats, personal info, navigation to
-// sub-screens (My Transactions, My Report, My Attendance, Edit Profile).
-// Only shows THIS member's own data — not other members'.
+// Profile hub — plain primary-color hero (no glow circles), stats strip,
+// then three section cards using the unified AppLayout.Section format.
 // ─────────────────────────────────────────────────────────────────────────────
-import React from 'react'
+import React, { useMemo } from 'react'
 import {
   View, Text, ScrollView, StyleSheet,
   TouchableOpacity, Alert, StatusBar,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { LinearGradient } from 'expo-linear-gradient'
 import { useNavigation } from '@react-navigation/native'
 import { useAuth } from '../context/AuthContext'
 import {
@@ -19,96 +17,101 @@ import {
 } from '../api/mockData'
 import { Colors, Typography, Spacing, Radius, Shadow } from '../constants/theme'
 import {
-  Avatar, StatusBadge, Card, InfoRow, RowItem,
-  EditIcon, MoneyIcon, AttendanceIcon, ReportIcon,
-  LogoutIcon,
+  Avatar, StatusBadge, InfoRow,
+  EditIcon, MoneyIcon, AttendanceIcon, ReportIcon, LogoutIcon,
 } from '../components/ui'
+import AppLayout from '../components/AppLayout'
+
+// ── StatItem — one cell in the horizontal stats strip ────────────────────────
+function StatItem({ label, value, color }) {
+  return (
+    <View style={styles.statItem}>
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+      <View style={[styles.statBar, { backgroundColor: color }]} />
+    </View>
+  )
+}
 
 export default function ProfileScreen() {
   const navigation = useNavigation()
   const { user, logout } = useAuth()
 
-  // ── Member-specific computed stats ──────────────────────────────────────
-  const myTx = MOCK_TRANSACTIONS.filter(t => t.user_id === user.id)
-  const totalContributed = myTx
-    .filter(t => t.entry_type !== 'expense')
-    .reduce((s, t) => s + t.amount, 0)
-  const pendingCount = myTx.filter(t => t.status === 'pending').length
-
-  const myAttend   = MOCK_ATTENDANCES.filter(a => a.user_id === user.id)
-  const attPresent = myAttend.filter(a => a.status === 'present').length
-  const attLate    = myAttend.filter(a => a.status === 'late').length
-  const attTotal   = myAttend.length
-  const attRate    = attTotal
-    ? `${Math.round(((attPresent + attLate) / attTotal) * 100)}%`
-    : '—'
+  const stats = useMemo(() => {
+    const myTx = MOCK_TRANSACTIONS.filter(t => t.user_id === user.id)
+    const totalContributed = myTx
+      .filter(t => t.entry_type !== 'expense')
+      .reduce((s, t) => s + t.amount, 0)
+    const pendingCount = myTx.filter(t => t.status === 'pending').length
+    const myAttend   = MOCK_ATTENDANCES.filter(a => a.user_id === user.id)
+    const attPresent = myAttend.filter(a => a.status === 'present').length
+    const attLate    = myAttend.filter(a => a.status === 'late').length
+    const attTotal   = myAttend.length
+    const attRate    = attTotal
+      ? `${Math.round(((attPresent + attLate) / attTotal) * 100)}%`
+      : '—'
+    return { myTx, totalContributed, pendingCount, attPresent, attLate, attTotal, attRate }
+  }, [user.id])
 
   function handleLogout() {
-    Alert.alert(
-      'Log Out',
-      'Are you sure you want to log out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Log Out', style: 'destructive', onPress: logout },
-      ]
-    )
+    Alert.alert('Log Out', 'Are you sure you want to log out?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Log Out', style: 'destructive', onPress: logout },
+    ])
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.primary }} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
-      <ScrollView style={{ backgroundColor: Colors.bgApp }} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
 
-        {/* ── Profile hero ─────────────────────────────────────────── */}
-        <LinearGradient colors={[Colors.primary, '#2D3563']} style={styles.hero}>
-          {/* Glow */}
-          <View style={styles.heroGlow} />
-
-          {/* Edit button */}
+        {/* ── Plain-color hero — no glow circles ──────────────────── */}
+        <View style={styles.hero}>
+          {/* Edit button — top right */}
           <TouchableOpacity
             onPress={() => navigation.navigate('EditProfile')}
             style={styles.editBtn}
             activeOpacity={0.75}
           >
-            <EditIcon color="#fff" size={15} />
-            <Text style={{ fontSize: 12, fontFamily: Typography.bodySemiBold, color: '#fff' }}>Edit</Text>
+            <EditIcon color="#fff" size={14} />
+            <Text style={styles.editBtnText}>Edit</Text>
           </TouchableOpacity>
 
-          {/* Avatar + name */}
-          <View style={{ alignItems: 'center' }}>
-            <Avatar
-              name={user.full_name}
-              size={76}
-              style={{ borderWidth: 3, borderColor: 'rgba(255,255,255,0.2)', marginBottom: 12 }}
-            />
+          {/* Centered avatar block */}
+          <View style={styles.heroCenter}>
+            <View style={styles.avatarWrap}>
+              <Avatar name={user.full_name} size={82} style={styles.avatar} />
+              {user.status === 'active' && <View style={styles.activeDot} />}
+            </View>
             <Text style={styles.heroName}>{user.full_name}</Text>
             <Text style={styles.heroRole}>{user.role} · {user.department}</Text>
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: 10, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <View style={styles.heroMetaRow}>
               <StatusBadge status={user.status} />
-              <Text style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.4)', fontFamily: Typography.body }}>
-                {user.employee_number}
-              </Text>
-              <Text style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.4)', fontFamily: Typography.body }}>
-                Joined {formatDate(user.joined)}
-              </Text>
+              <Text style={styles.heroMetaDot}>·</Text>
+              <Text style={styles.heroMetaText}>{user.employee_number}</Text>
+              <Text style={styles.heroMetaDot}>·</Text>
+              <Text style={styles.heroMetaText}>Since {formatDate(user.joined)}</Text>
             </View>
           </View>
-        </LinearGradient>
-
-        {/* ── Quick stats row ───────────────────────────────────────── */}
-        <View style={styles.statsRow}>
-          <StatPill label="Contributed"   value={formatCurrency(totalContributed)} color={Colors.success} />
-          <View style={styles.statDivider} />
-          <StatPill label="Transactions"  value={String(myTx.length)} color={Colors.accent} />
-          <View style={styles.statDivider} />
-          <StatPill label="Attendance"    value={attTotal ? `${attPresent + attLate}/${attTotal}` : '—'} color={Colors.info} />
-          <View style={styles.statDivider} />
-          <StatPill label="Attend. Rate"  value={attRate} color={Colors.warning} />
         </View>
 
-        {/* ── Personal info card ────────────────────────────────────── */}
-        <Text style={styles.sectionLabel}>Personal Information</Text>
-        <Card style={{ marginHorizontal: Spacing.lg }}>
+        {/* ── Stats strip ──────────────────────────────────────────── */}
+        <View style={styles.statsStrip}>
+          <StatItem label="Contributed" value={formatCurrency(stats.totalContributed)} color={Colors.success} />
+          <View style={styles.statsDivider} />
+          <StatItem label="Transactions" value={String(stats.myTx.length)} color={Colors.accent} />
+          <View style={styles.statsDivider} />
+          <StatItem
+            label="Attendance"
+            value={stats.attTotal ? `${stats.attPresent + stats.attLate}/${stats.attTotal}` : '—'}
+            color={Colors.info}
+          />
+          <View style={styles.statsDivider} />
+          <StatItem label="Rate" value={stats.attRate} color={Colors.warning} />
+        </View>
+
+        {/* ── Personal Information — unified Section ────────────────── */}
+        <AppLayout.Section title="Personal Information" style={{ marginTop: Spacing.xl }}>
           <InfoRow label="Full Name"  value={user.full_name} />
           <InfoRow label="Email"      value={user.email} />
           <InfoRow label="Contact"    value={user.contact_number} />
@@ -116,126 +119,105 @@ export default function ProfileScreen() {
           <InfoRow label="City"       value={user.address_city} />
           <InfoRow label="Province"   value={user.address_province} />
           <InfoRow label="Occupation" value={user.occupation} last />
-        </Card>
+        </AppLayout.Section>
 
-        {/* ── My records ───────────────────────────────────────────── */}
-        <Text style={styles.sectionLabel}>My Records</Text>
-        <Card style={{ marginHorizontal: Spacing.lg }}>
-          <RowItem
+        {/* ── My Records — unified Section ─────────────────────────── */}
+        <AppLayout.Section title="My Records">
+          <AppLayout.Row
             icon={<MoneyIcon size={17} />}
-            iconBg={Colors.successLight}
-            iconColor={Colors.success}
+            iconBg={Colors.successLight} iconColor={Colors.success}
             title="My Transactions"
-            subtitle={`${myTx.length} record${myTx.length !== 1 ? 's' : ''}${pendingCount > 0 ? ` · ${pendingCount} pending` : ''}`}
+            subtitle={`${stats.myTx.length} record${stats.myTx.length !== 1 ? 's' : ''}${stats.pendingCount > 0 ? ` · ${stats.pendingCount} pending` : ''}`}
             onPress={() => navigation.navigate('MyTransactions')}
+            right={<Text style={styles.rowChevron}>›</Text>}
           />
-          <RowItem
+          <AppLayout.Row
             icon={<AttendanceIcon size={17} />}
-            iconBg={Colors.infoLight}
-            iconColor={Colors.info}
+            iconBg={Colors.infoLight} iconColor={Colors.info}
             title="My Attendance"
-            subtitle={`${attTotal} record${attTotal !== 1 ? 's' : ''} · ${attRate} rate`}
+            subtitle={`${stats.attTotal} record${stats.attTotal !== 1 ? 's' : ''} · ${stats.attRate} rate`}
             onPress={() => navigation.navigate('MyAttendance')}
+            right={<Text style={styles.rowChevron}>›</Text>}
           />
-          <RowItem
+          <AppLayout.Row
             icon={<ReportIcon size={17} />}
-            iconBg={Colors.accentLight}
-            iconColor={Colors.accent}
+            iconBg={Colors.accentLight} iconColor={Colors.accent}
             title="My Report"
             subtitle="Personal summary & contribution history"
             onPress={() => navigation.navigate('MyReport')}
-            bordered={false}
+            right={<Text style={styles.rowChevron}>›</Text>}
+            last
           />
-        </Card>
+        </AppLayout.Section>
 
-        {/* ── Account ──────────────────────────────────────────────── */}
-        <Text style={styles.sectionLabel}>Account</Text>
-        <Card style={{ marginHorizontal: Spacing.lg, marginBottom: Spacing.xxxl }}>
-          <RowItem
+        {/* ── Account — unified Section ─────────────────────────────── */}
+        <AppLayout.Section title="Account" style={{ marginBottom: Spacing.xxxl }}>
+          <AppLayout.Row
             icon={<EditIcon size={17} />}
-            iconBg={Colors.accentLight}
-            iconColor={Colors.accent}
+            iconBg={Colors.accentLight} iconColor={Colors.accent}
             title="Edit Profile"
             subtitle="Update your personal information"
             onPress={() => navigation.navigate('EditProfile')}
+            right={<Text style={styles.rowChevron}>›</Text>}
           />
-          <RowItem
+          <AppLayout.Row
             icon={<LogoutIcon size={17} />}
-            iconBg={Colors.dangerLight}
-            iconColor={Colors.danger}
+            iconBg={Colors.dangerLight} iconColor={Colors.danger}
             title="Log Out"
             subtitle="Sign out of your account"
             onPress={handleLogout}
-            bordered={false}
-            danger
+            right={<Text style={[styles.rowChevron, { color: Colors.danger }]}>›</Text>}
+            last
           />
-        </Card>
+        </AppLayout.Section>
       </ScrollView>
     </SafeAreaView>
   )
 }
 
-// ── Mini stat pill ─────────────────────────────────────────────────────────────
-function StatPill({ label, value, color }) {
-  return (
-    <View style={{ flex: 1, alignItems: 'center', paddingVertical: 12 }}>
-      <Text style={{ fontSize: 16, fontFamily: Typography.bodyExtraBold, color: Colors.textPrimary, lineHeight: 20 }}>
-        {value}
-      </Text>
-      <Text style={{ fontSize: 10.5, fontFamily: Typography.bodyMedium, color: Colors.textMuted, marginTop: 3, textAlign: 'center' }}>
-        {label}
-      </Text>
-      <View style={{ width: 20, height: 2, backgroundColor: color, borderRadius: 1, marginTop: 5 }} />
-    </View>
-  )
-}
-
 const styles = StyleSheet.create({
+  safe:   { flex: 1, backgroundColor: Colors.primary },
+  scroll: { backgroundColor: Colors.bgApp },
+
+  // Hero — plain primary color, no gradient, no glow circles
   hero: {
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.xl,
-    paddingBottom: 32,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  heroGlow: {
-    position: 'absolute', top: -60, right: -60,
-    width: 200, height: 200, borderRadius: 100,
-    backgroundColor: 'rgba(75,94,170,0.22)',
+    backgroundColor: Colors.primary, // solid flat color
+    paddingHorizontal: Spacing.xl, paddingTop: Spacing.xl,
+    paddingBottom: 36,
   },
   editBtn: {
     position: 'absolute', top: Spacing.xl, right: Spacing.xl,
     flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: Radius.full,
-    paddingHorizontal: 12, paddingVertical: 6,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.14)', borderRadius: Radius.full,
+    paddingHorizontal: 12, paddingVertical: 7,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', zIndex: 2,
   },
-  heroName: {
-    fontSize: 22, fontFamily: Typography.display,
-    color: '#fff', textAlign: 'center',
+  editBtnText: { fontSize: 12.5, fontFamily: Typography.bodySemiBold, color: '#fff' },
+  heroCenter:  { alignItems: 'center', paddingTop: 8 },
+  avatarWrap:  { position: 'relative', marginBottom: 14 },
+  avatar:      { borderWidth: 3, borderColor: 'rgba(255,255,255,0.22)' },
+  activeDot: {
+    position: 'absolute', bottom: 4, right: 4,
+    width: 14, height: 14, borderRadius: 7,
+    backgroundColor: Colors.success, borderWidth: 2.5, borderColor: '#fff',
   },
-  heroRole: {
-    fontSize: 13, fontFamily: Typography.bodyMedium,
-    color: 'rgba(255,255,255,0.55)',
-    textAlign: 'center', marginTop: 4,
+  heroName: { fontSize: 24, fontFamily: Typography.display, color: '#fff', textAlign: 'center', marginBottom: 4 },
+  heroRole: { fontSize: 13.5, fontFamily: Typography.bodyMedium, color: 'rgba(255,255,255,0.55)', textAlign: 'center', marginBottom: 12 },
+  heroMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', justifyContent: 'center' },
+  heroMetaDot: { color: 'rgba(255,255,255,0.3)', fontSize: 12 },
+  heroMetaText:{ fontSize: 12, fontFamily: Typography.body, color: 'rgba(255,255,255,0.45)' },
+
+  // Stats strip
+  statsStrip: {
+    flexDirection: 'row', backgroundColor: Colors.white,
+    borderBottomWidth: 1, borderBottomColor: Colors.borderInner, ...Shadow.sm,
   },
-  statsRow: {
-    flexDirection: 'row',
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderInner,
-    marginBottom: 4,
-  },
-  statDivider: {
-    width: 1,
-    backgroundColor: Colors.borderInner,
-    marginVertical: 12,
-  },
-  sectionLabel: {
-    fontSize: 11, fontFamily: Typography.bodyBold,
-    color: Colors.textMuted,
-    textTransform: 'uppercase', letterSpacing: 0.6,
-    paddingHorizontal: Spacing.lg, paddingTop: 20, paddingBottom: 8,
-  },
+  statItem:  { flex: 1, alignItems: 'center', paddingVertical: 14, paddingHorizontal: 4 },
+  statValue: { fontSize: 15, fontFamily: Typography.bodyExtraBold, color: Colors.textPrimary, lineHeight: 20, textAlign: 'center' },
+  statLabel: { fontSize: 10.5, fontFamily: Typography.bodyMedium, color: Colors.textMuted, marginTop: 3, textAlign: 'center' },
+  statBar:   { width: 18, height: 2.5, borderRadius: 2, marginTop: 5 },
+  statsDivider: { width: 1, backgroundColor: Colors.borderInner, marginVertical: 10 },
+
+  // Row chevron indicator
+  rowChevron: { fontSize: 20, color: Colors.textMuted, lineHeight: 24 },
 })

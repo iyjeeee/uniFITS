@@ -102,23 +102,35 @@ function TransactionDetail({ tx, org, isMobile }) {
           </div>
         ))}
       </div>
-      {/* Flow */}
-      <div style={{ background: 'var(--table-head-bg)', borderRadius: 8, padding: '12px 16px', marginBottom: 16 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '.06em' }}>Transaction Flow</div>
-        <div style={{ fontSize: 13.5 }}>
-          <div><strong>From:</strong> {tx.user_name || 'External'}</div>
-          <div style={{ marginTop: 4 }}><strong>To Fund:</strong> {tx.fund}</div>
-          <div style={{ marginTop: 8 }}><TypeBadge type={tx.entry_type} /></div>
+      {/* Transaction Flow — card-based visual flow: From → Type → To */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 10 }}>Transaction Flow</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          {/* FROM node */}
+          <div style={{ flex: 1, minWidth: 100, padding: '12px 14px', borderRadius: 10, background: 'var(--neutral-light)', border: '1px solid var(--border-card)', textAlign: 'center' }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 5 }}>From</div>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)' }}>{tx.user_name || 'External'}</div>
+          </div>
+          {/* Arrow + type badge */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+            <TypeBadge type={tx.entry_type} />
+            <svg width="20" height="14" viewBox="0 0 24 14" fill="none"><path d="M0 7h20M15 2l7 5-7 5" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </div>
+          {/* TO node */}
+          <div style={{ flex: 1, minWidth: 100, padding: '12px 14px', borderRadius: 10, background: tx.entry_type === 'expense' ? 'var(--danger-light)' : 'var(--success-light)', border: `1px solid ${tx.entry_type === 'expense' ? 'rgba(192,57,43,.20)' : 'rgba(46,125,82,.20)'}`, textAlign: 'center' }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 5 }}>To Fund</div>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)' }}>{tx.fund}</div>
+          </div>
         </div>
       </div>
       {/* Amount + category */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
-        <div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 3 }}>Category</div>
-          <div style={{ fontSize: 14, textTransform: 'capitalize' }}>{tx.category}</div>
+        <div style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--neutral-light)', border: '1px solid var(--border-card)' }}>
+          <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 5 }}>Category</div>
+          <div style={{ fontSize: 14, fontWeight: 600, textTransform: 'capitalize', color: 'var(--text-primary)' }}>{tx.category}</div>
         </div>
-        <div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 3 }}>Amount</div>
+        <div style={{ padding: '12px 14px', borderRadius: 10, background: tx.entry_type === 'expense' ? 'var(--danger-light)' : 'var(--success-light)', border: `1px solid ${tx.entry_type === 'expense' ? 'rgba(192,57,43,.20)' : 'rgba(46,125,82,.20)'}` }}>
+          <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 5 }}>Amount</div>
           <div style={{ fontSize: 24, fontWeight: 800, color: tx.entry_type === 'expense' ? 'var(--danger)' : 'var(--success)' }}>
             {tx.entry_type === 'expense' ? '−' : '+'}{formatCurrency(tx.amount, org.currency_symbol)}
           </div>
@@ -293,7 +305,7 @@ export default function Transactions() {
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <td style={{ padding: '10px 14px', color: 'var(--text-muted)', fontSize: 12 }}>{(page - 1) * PAGE_SIZE + i + 1}</td>
                   <td style={{ padding: '10px 14px' }}>
-                    <code style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace' }}>{t.reference_number}</code>
+                    <code style={{ fontSize: 11, color: 'var(--text-primary)', fontFamily: 'monospace' }}>{t.reference_number}</code>
                   </td>
                   <td style={{ padding: '10px 14px', fontWeight: 500 }}>{t.user_name || <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>External</span>}</td>
                   <td style={{ padding: '10px 14px', fontWeight: 700, color: t.entry_type === 'expense' ? 'var(--danger)' : 'var(--success)' }}>

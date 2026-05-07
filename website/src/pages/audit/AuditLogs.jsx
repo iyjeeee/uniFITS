@@ -142,9 +142,11 @@ export default function AuditLogs() {
                 </div>
               ))}
             </div>
-            <div style={{ padding: '12px 16px', borderRadius: 10, background: 'var(--table-head-bg)', border: '1px solid var(--border-card)', fontSize: 13, color: 'var(--text-secondary)' }}>
-              <span style={{ fontWeight: 600 }}>Full Timestamp: </span>
-              {new Date(viewLog.created_at).toLocaleString('en-PH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            <div style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--neutral-light)', border: '1px solid var(--border-card)' }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 4 }}>Full Timestamp</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
+                {new Date(viewLog.created_at).toLocaleString('en-PH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </div>
             </div>
           </div>
         </InfoModal>

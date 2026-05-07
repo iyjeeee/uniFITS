@@ -1,12 +1,15 @@
 // src/screens/AnnouncementDetailScreen.jsx
+// ─────────────────────────────────────────────────────────────────────────────
+// Announcement / update detail view.
+// Layout: plain-color detail header + scrollable unified Section cards.
+// ─────────────────────────────────────────────────────────────────────────────
 import React from 'react'
-import { View, Text, ScrollView, StyleSheet, StatusBar } from 'react-native'
+import { View, Text, ScrollView, StyleSheet, StatusBar, TouchableOpacity } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { LinearGradient } from 'expo-linear-gradient'
 import { useNavigation, useRoute } from '@react-navigation/native'
-import { formatDate } from '../api/mockData'
-import { Colors, Typography, Spacing, Radius } from '../constants/theme'
-import { PageHeader, StarIcon } from '../components/ui'
+import { relativeTime, formatDate } from '../api/mockData'
+import { Colors, Typography, Spacing, Radius, Shadow } from '../constants/theme'
+import { StarIcon } from '../components/ui'
 
 export default function AnnouncementDetailScreen() {
   const navigation = useNavigation()
@@ -15,83 +18,186 @@ export default function AnnouncementDetailScreen() {
 
   if (!ann) return null
 
+  const stripeColor = ann.is_pinned ? Colors.warning : Colors.accent
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.primary }} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
-      <PageHeader title="Announcement" onBack={() => navigation.goBack()} />
 
-      <ScrollView style={{ backgroundColor: Colors.bgApp }} showsVerticalScrollIndicator={false}>
-        {/* Header card */}
-        <LinearGradient
-          colors={ann.is_pinned ? ['#2C2010', '#1A1508'] : [Colors.primary, '#252C3D']}
-          style={styles.hero}
-        >
-          {ann.is_pinned && (
-            <View style={styles.pinnedPill}>
-              <StarIcon size={11} color={Colors.warning} />
-              <Text style={styles.pinnedText}>Pinned Announcement</Text>
-            </View>
-          )}
-          <Text style={styles.heroTitle}>{ann.title}</Text>
-          <View style={{ flexDirection: 'row', gap: 12, marginTop: 10, flexWrap: 'wrap' }}>
-            <Text style={styles.heroPill}>By {ann.created_by}</Text>
-            <Text style={styles.heroPill}>
-              {new Date(ann.created_at).toLocaleDateString('en-PH', {
-                year: 'numeric', month: 'long', day: 'numeric',
-              })}
-            </Text>
+      {/* Plain-color detail header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
+          <Text style={styles.backArrow}>‹</Text>
+        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            {ann.is_pinned ? 'Pinned Update' : 'Update'}
+          </Text>
+          <Text style={styles.headerSub}>{relativeTime(ann.created_at)}</Text>
+        </View>
+        {ann.is_pinned && (
+          <View style={styles.pinnedChip}>
+            <StarIcon size={12} color={Colors.warning} />
+            <Text style={styles.pinnedChipText}>Pinned</Text>
           </View>
-        </LinearGradient>
+        )}
+      </View>
 
-        {/* Content */}
-        <View style={{ padding: Spacing.lg }}>
-          <View style={styles.contentCard}>
-            <Text style={styles.content}>{ann.content}</Text>
+      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+
+        {/* ── Title banner card ──────────────────────────────────────── */}
+        <View style={styles.banner}>
+          <View style={[styles.bannerStripe, { backgroundColor: stripeColor }]} />
+          <View style={styles.bannerBody}>
+            {ann.is_pinned && (
+              <View style={styles.pinnedRow}>
+                <StarIcon size={11} color={Colors.warning} />
+                <Text style={styles.pinnedLabel}>PINNED ANNOUNCEMENT</Text>
+              </View>
+            )}
+            <Text style={styles.bannerTitle}>{ann.title}</Text>
+            {/* Meta row: author + date */}
+            <View style={styles.metaRow}>
+              <View style={[styles.metaDot, { backgroundColor: stripeColor }]} />
+              <Text style={styles.metaText}>{ann.created_by}</Text>
+              <Text style={styles.metaSep}>·</Text>
+              <Text style={styles.metaText}>{formatDate(ann.created_at)}</Text>
+              <Text style={styles.metaSep}>·</Text>
+              <Text style={styles.metaRelative}>{relativeTime(ann.created_at)}</Text>
+            </View>
           </View>
         </View>
+
+        {/* ── Content — unified Section card ────────────────────────── */}
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleRow}>
+              <View style={[styles.sectionAccent, { backgroundColor: stripeColor }]} />
+              <Text style={styles.sectionTitle}>Content</Text>
+            </View>
+          </View>
+          <View style={styles.contentBody}>
+            <Text style={styles.contentText}>{ann.content}</Text>
+          </View>
+        </View>
+
+        {/* ── Post Details — unified Section card ───────────────────── */}
+        <View style={[styles.sectionCard, { marginBottom: 36 }]}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleRow}>
+              <View style={styles.sectionAccent} />
+              <Text style={styles.sectionTitle}>Post Details</Text>
+            </View>
+          </View>
+          {/* Author */}
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Posted by</Text>
+            <Text style={styles.infoValue}>{ann.created_by}</Text>
+          </View>
+          {/* Date */}
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Date</Text>
+            <Text style={styles.infoValue}>{formatDate(ann.created_at)}</Text>
+          </View>
+          {/* Time ago */}
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Posted</Text>
+            <Text style={styles.infoValue}>{relativeTime(ann.created_at)}</Text>
+          </View>
+          {/* Pinned status */}
+          <View style={[styles.infoRow, styles.infoRowLast]}>
+            <Text style={styles.infoLabel}>Pinned</Text>
+            <View style={[
+              styles.statusChip,
+              { backgroundColor: ann.is_pinned ? Colors.warningLight : Colors.neutralLight }
+            ]}>
+              <Text style={[
+                styles.statusChipText,
+                { color: ann.is_pinned ? Colors.warning : Colors.textMuted }
+              ]}>
+                {ann.is_pinned ? 'Yes — Pinned' : 'No'}
+              </Text>
+            </View>
+          </View>
+        </View>
+
       </ScrollView>
     </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
-  hero: {
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.xl,
-    paddingBottom: Spacing.xxl,
+  safe:   { flex: 1, backgroundColor: Colors.primary },
+  scroll: { backgroundColor: Colors.bgApp },
+
+  // Plain-color detail header
+  header: {
+    backgroundColor: Colors.primary,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: Spacing.lg, paddingVertical: 14,
   },
-  pinnedPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: 'rgba(212,134,10,0.18)',
-    borderWidth: 1, borderColor: 'rgba(212,134,10,0.35)',
-    borderRadius: Radius.full,
+  backBtn:      { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  backArrow:    { fontSize: 22, color: '#fff', lineHeight: 26, marginLeft: -1 },
+  headerTitle:  { fontSize: 17, fontFamily: Typography.bodyBold, color: '#fff' },
+  headerSub:    { fontSize: 12, fontFamily: Typography.body, color: 'rgba(255,255,255,0.5)', marginTop: 1 },
+  pinnedChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: 'rgba(212,134,10,0.18)', borderRadius: Radius.full,
     paddingHorizontal: 10, paddingVertical: 5,
-    alignSelf: 'flex-start',
-    marginBottom: 12,
+    borderWidth: 1, borderColor: 'rgba(212,134,10,0.3)',
   },
-  pinnedText: {
-    fontSize: 11, fontFamily: Typography.bodyBold,
-    color: Colors.warning, textTransform: 'uppercase', letterSpacing: 0.4,
+  pinnedChipText: { fontSize: 11.5, fontFamily: Typography.bodySemiBold, color: Colors.warning },
+
+  // Title banner card
+  banner: {
+    flexDirection: 'row',
+    marginHorizontal: Spacing.lg, marginTop: Spacing.xl,
+    backgroundColor: Colors.white, borderRadius: Radius.lg,
+    borderWidth: 1, borderColor: Colors.borderCard,
+    overflow: 'hidden', ...Shadow.sm,
   },
-  heroTitle: {
-    fontSize: 24, fontFamily: Typography.display,
-    color: '#fff', lineHeight: 30,
+  bannerStripe: { width: 5 },
+  bannerBody:   { flex: 1, padding: Spacing.lg },
+  pinnedRow:    { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 8 },
+  pinnedLabel:  { fontSize: 10, fontFamily: Typography.bodyBold, color: Colors.warning, letterSpacing: 0.8 },
+  bannerTitle:  { fontSize: 20, fontFamily: Typography.display, color: Colors.textPrimary, lineHeight: 26, marginBottom: 12 },
+  metaRow:      { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
+  metaDot:      { width: 6, height: 6, borderRadius: 3 },
+  metaText:     { fontSize: 12, fontFamily: Typography.bodyMedium, color: Colors.textSecondary },
+  metaSep:      { fontSize: 12, color: Colors.textMuted },
+  metaRelative: { fontSize: 12, fontFamily: Typography.body, color: Colors.textMuted },
+
+  // Unified section card
+  sectionCard: {
+    marginHorizontal: Spacing.lg, marginTop: Spacing.lg,
+    backgroundColor: Colors.white, borderRadius: Radius.lg,
+    borderWidth: 1, borderColor: Colors.borderCard,
+    overflow: 'hidden', ...Shadow.sm,
   },
-  heroPill: {
-    fontSize: 12, fontFamily: Typography.bodyMedium,
-    color: 'rgba(255,255,255,0.5)',
+  sectionHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg, paddingVertical: 14,
+    borderBottomWidth: 1, borderBottomColor: Colors.borderInner,
   },
-  contentCard: {
-    backgroundColor: Colors.white,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    borderColor: Colors.borderCard,
-    padding: Spacing.xl,
+  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  sectionAccent:   { width: 4, height: 18, backgroundColor: Colors.accent, borderRadius: 2 },
+  sectionTitle:    { fontSize: 15, fontFamily: Typography.bodyBold, color: Colors.textPrimary },
+
+  // Content body
+  contentBody: { paddingHorizontal: Spacing.lg, paddingVertical: 18 },
+  contentText: { fontSize: 14.5, color: Colors.textSecondary, lineHeight: 24, fontFamily: Typography.body },
+
+  // InfoRow inside Post Details card
+  infoRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg, paddingVertical: 13,
+    borderBottomWidth: 1, borderBottomColor: Colors.borderInner,
   },
-  content: {
-    fontSize: 14.5,
-    fontFamily: Typography.body,
-    color: Colors.textSecondary,
-    lineHeight: 23,
-  },
+  infoRowLast: { borderBottomWidth: 0 },
+  infoLabel:   { fontSize: 13, fontFamily: Typography.bodyMedium, color: Colors.textMuted },
+  infoValue:   { fontSize: 13.5, fontFamily: Typography.bodySemiBold, color: Colors.textPrimary, textAlign: 'right', flex: 1, marginLeft: 12 },
+
+  // Status chip (pinned yes/no)
+  statusChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: Radius.full },
+  statusChipText: { fontSize: 12, fontFamily: Typography.bodySemiBold },
 })

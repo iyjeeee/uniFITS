@@ -1,8 +1,9 @@
 // src/screens/HomeScreen.jsx
 // ─────────────────────────────────────────────────────────────────────────────
-// Member dashboard: personalized greeting, contribution hero card,
-// KPI grid, pinned announcements, active projects preview, recent txns.
-// Only shows data related to the logged-in member.
+// Home dashboard.
+// Top section: plain primary color, no decorative glow circles.
+// Greeting row + My Total Contributions card.
+// 2×2 KPI tile grid + Recent Transactions section.
 // ─────────────────────────────────────────────────────────────────────────────
 import React, { useState, useCallback, useMemo } from 'react'
 import {
@@ -10,22 +11,21 @@ import {
   TouchableOpacity, StatusBar, RefreshControl,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { LinearGradient } from 'expo-linear-gradient'
 import { useNavigation } from '@react-navigation/native'
 import { useAuth } from '../context/AuthContext'
 import {
-  MOCK_TRANSACTIONS, MOCK_ANNOUNCEMENTS, MOCK_PROJECTS,
+  MOCK_TRANSACTIONS, MOCK_PROJECTS,
   MOCK_EVENTS, MOCK_ATTENDANCES,
-  formatCurrency, formatDate, relativeTime,
+  formatCurrency, formatDate,
 } from '../api/mockData'
 import { Colors, Typography, Spacing, Radius, Shadow } from '../constants/theme'
 import {
-  Avatar, StatusBadge, ProgressBar, Card, SectionHeader,
-  KpiTile, AnnouncementsIcon, MoneyIcon,
-  AttendanceIcon, ProjectsIcon, EventsIcon, StarIcon,
+  Avatar, StatusBadge,
+  MoneyIcon, AttendanceIcon, ProjectsIcon, EventsIcon,
 } from '../components/ui'
+import AppLayout from '../components/AppLayout'
 
-// ── Greeting helper ────────────────────────────────────────────────────────────
+// Greeting — time-based salutation
 function greeting() {
   const h = new Date().getHours()
   if (h < 12) return 'Good morning'
@@ -33,10 +33,23 @@ function greeting() {
   return 'Good evening'
 }
 
+// ── KPI tile — one of four 2×2 grid cells ────────────────────────────────────
+function KpiCard({ label, value, sub, color, icon }) {
+  return (
+    <View style={[styles.kpiCard, { borderTopColor: color }]}>
+      <View style={[styles.kpiIconWrap, { backgroundColor: color + '18' }]}>
+        {React.cloneElement(icon, { color, size: 18 })}
+      </View>
+      <Text style={styles.kpiValue}>{value}</Text>
+      <Text style={styles.kpiLabel}>{label}</Text>
+      <Text style={styles.kpiSub}>{sub}</Text>
+    </View>
+  )
+}
+
 export default function HomeScreen() {
   const navigation = useNavigation()
   const { user }   = useAuth()
-
   const [refreshing, setRefreshing] = useState(false)
 
   const onRefresh = useCallback(() => {
@@ -44,10 +57,9 @@ export default function HomeScreen() {
     setTimeout(() => setRefreshing(false), 900)
   }, [])
 
-  // ── Member-specific data — memoised so it only recomputes when user changes ──
+  // All derived data memoised
   const { myTx, totalContributed, pendingTx, recentTx,
-          myAttend, attPresent, attTotal,
-          pinnedAnn, activeProj, upcomingEv } = useMemo(() => {
+          attPresent, attTotal, upcomingEv } = useMemo(() => {
     const myTx = MOCK_TRANSACTIONS.filter(t => t.user_id === user.id)
     const totalContributed = myTx
       .filter(t => t.entry_type !== 'expense')
@@ -57,267 +69,217 @@ export default function HomeScreen() {
     const myAttend   = MOCK_ATTENDANCES.filter(a => a.user_id === user.id)
     const attPresent = myAttend.filter(a => a.status === 'present' || a.status === 'late').length
     const attTotal   = myAttend.length
-    const pinnedAnn  = MOCK_ANNOUNCEMENTS.filter(a => a.is_pinned).slice(0, 2)
-    const activeProj = MOCK_PROJECTS.filter(p => p.status === 'ongoing' || p.status === 'upcoming').slice(0, 2)
     const upcomingEv = MOCK_EVENTS.filter(e => e.status === 'upcoming').length
-    return { myTx, totalContributed, pendingTx, recentTx,
-             myAttend, attPresent, attTotal,
-             pinnedAnn, activeProj, upcomingEv }
+    return { myTx, totalContributed, pendingTx, recentTx, attPresent, attTotal, upcomingEv }
   }, [user.id])
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.primary }} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
       <ScrollView
-        style={{ backgroundColor: Colors.bgApp }}
+        style={styles.scroll}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />
+        }
       >
-        {/* ── Header ──────────────────────────────────────────────── */}
-        <LinearGradient colors={[Colors.primary, '#252C3D']} style={styles.header}>
-          {/* Glow */}
-          <View style={styles.headerGlow} />
-
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        {/* ── Plain-color header — no glow circles ───────────────────── */}
+        <View style={styles.header}>
+          {/* Top row: greeting left, avatar right */}
+          <View style={styles.headerTop}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.greeting}>{greeting()},</Text>
-              <Text style={styles.name}>{user.first_name} {user.last_name}</Text>
-              <View style={{ flexDirection: 'row', gap: 6, marginTop: 6, alignItems: 'center' }}>
+              <Text style={styles.greetText}>{greeting()}</Text>
+              <Text style={styles.nameText}>{user.first_name} {user.last_name}</Text>
+              <View style={styles.headerMeta}>
                 <StatusBadge status={user.status} />
-                <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontFamily: Typography.body }}>
-                  {user.employee_number} · {user.department}
-                </Text>
+                <Text style={styles.metaText}>{user.department}</Text>
               </View>
             </View>
-            <Avatar name={user.full_name} size={46} style={{ borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)' }} />
+            <TouchableOpacity
+              onPress={() => navigation.navigate('ProfileTab')}
+              activeOpacity={0.85}
+            >
+              <Avatar
+                name={user.full_name}
+                size={50}
+                style={{ borderWidth: 2.5, borderColor: 'rgba(255,255,255,0.22)' }}
+              />
+            </TouchableOpacity>
           </View>
-        </LinearGradient>
 
-        {/* ── Hero contribution card ──────────────────────────────── */}
-        <View style={{ paddingHorizontal: Spacing.lg, marginTop: -12 }}>
-          <LinearGradient
-            colors={['#2D3563', '#1A2040']}
-            style={styles.heroCard}
-          >
-            <View style={styles.heroGlow} />
-            <Text style={styles.heroLabel}>My Total Contributions</Text>
-            <Text style={styles.heroAmount}>{formatCurrency(totalContributed)}</Text>
-            <View style={styles.heroRow}>
-              <View style={styles.heroItem}>
-                <Text style={styles.heroItemLabel}>Member Since</Text>
-                <Text style={styles.heroItemValue}>{formatDate(user.joined)}</Text>
+          {/* ── My Total Contributions card — glassmorphism ─────────── */}
+          <View style={styles.contribCard}>
+            <View style={styles.contribTop}>
+              <View>
+                <Text style={styles.contribEyebrow}>My Total Contributions</Text>
+                <Text style={styles.contribAmount}>{formatCurrency(totalContributed)}</Text>
               </View>
-              <View style={styles.heroItem}>
-                <Text style={styles.heroItemLabel}>Member ID</Text>
-                <Text style={styles.heroItemValue}>{user.employee_number}</Text>
+              {pendingTx.length > 0 && (
+                <View style={styles.pendingBadge}>
+                  <View style={styles.pendingDot} />
+                  <Text style={styles.pendingText}>{pendingTx.length} pending</Text>
+                </View>
+              )}
+            </View>
+            <View style={styles.contribDivider} />
+            <View style={styles.contribMeta}>
+              <View style={styles.contribMetaItem}>
+                <Text style={styles.contribMetaLabel}>Since</Text>
+                <Text style={styles.contribMetaValue}>{formatDate(user.joined)}</Text>
               </View>
-              <View style={styles.heroItem}>
-                <Text style={styles.heroItemLabel}>Role</Text>
-                <Text style={styles.heroItemValue}>{user.role}</Text>
+              <View style={styles.contribMetaSep} />
+              <View style={styles.contribMetaItem}>
+                <Text style={styles.contribMetaLabel}>ID</Text>
+                <Text style={styles.contribMetaValue}>{user.employee_number}</Text>
+              </View>
+              <View style={styles.contribMetaSep} />
+              <View style={styles.contribMetaItem}>
+                <Text style={styles.contribMetaLabel}>Role</Text>
+                <Text style={styles.contribMetaValue}>{user.role}</Text>
               </View>
             </View>
-            {pendingTx.length > 0 && (
-              <View style={styles.pendingPill}>
-                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.warning }} />
-                <Text style={{ fontSize: 11.5, fontFamily: Typography.bodySemiBold, color: Colors.warning }}>
-                  {pendingTx.length} pending payment{pendingTx.length > 1 ? 's' : ''}
-                </Text>
-              </View>
-            )}
-          </LinearGradient>
+          </View>
         </View>
 
-        {/* ── KPI grid ────────────────────────────────────────────── */}
+        {/* ── KPI 2×2 grid ─────────────────────────────────────────── */}
         <View style={styles.kpiGrid}>
-          <KpiTile
+          <KpiCard
             label="Projects" value={MOCK_PROJECTS.length}
             sub={`${MOCK_PROJECTS.filter(p => p.status === 'ongoing').length} ongoing`}
-            color={Colors.accent} icon={<ProjectsIcon size={16} />}
-            style={{ flex: 1 }}
+            color={Colors.accent} icon={<ProjectsIcon />}
           />
-          <KpiTile
+          <KpiCard
             label="Events" value={MOCK_EVENTS.length}
             sub={`${upcomingEv} upcoming`}
-            color={Colors.info} icon={<EventsIcon size={16} />}
-            style={{ flex: 1 }}
+            color={Colors.info} icon={<EventsIcon />}
           />
-          <KpiTile
-            label="My Attendance"
+          <KpiCard
+            label="Attendance"
             value={attTotal ? `${attPresent}/${attTotal}` : '—'}
             sub={attTotal ? `${Math.round((attPresent / attTotal) * 100)}% rate` : 'No records'}
-            color={Colors.success} icon={<AttendanceIcon size={16} />}
-            style={{ flex: 1 }}
+            color={Colors.success} icon={<AttendanceIcon />}
           />
-          <KpiTile
-            label="My Transactions" value={myTx.length}
+          <KpiCard
+            label="Transactions" value={myTx.length}
             sub={`${pendingTx.length} pending`}
-            color={Colors.warning} icon={<MoneyIcon size={16} />}
-            style={{ flex: 1 }}
+            color={Colors.warning} icon={<MoneyIcon />}
           />
         </View>
 
-        {/* ── Pinned Announcements ─────────────────────────────────── */}
-        <SectionHeader
-          title="Pinned Updates"
+        {/* ── Recent Transactions — unified Section format ─────────── */}
+        <AppLayout.Section
+          title="Recent Transactions"
           action="See all"
-          onAction={() => navigation.navigate('UpdatesTab', {
-            screen: 'AnnouncementsList',
-          })}
-        />
-        {pinnedAnn.map(ann => (
-          <TouchableOpacity key={ann.id} activeOpacity={0.8}
-            onPress={() => navigation.navigate('UpdatesTab', {
-              screen: 'AnnouncementDetail',
-              params: { item: ann },
-            })}
-            style={[styles.annCard, Shadow.sm]}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-              <StarIcon size={12} />
-              <Text style={{ fontSize: 10.5, fontFamily: Typography.bodyBold, color: Colors.warning, textTransform: 'uppercase', letterSpacing: 0.3 }}>Pinned</Text>
+          onAction={() => navigation.navigate('ProfileTab', { screen: 'MyTransactions' })}
+          style={{ marginBottom: 32 }}
+        >
+          {recentTx.length === 0 ? (
+            <View style={styles.txEmpty}>
+              <Text style={styles.txEmptyText}>No transactions yet</Text>
             </View>
-            <Text style={styles.annTitle} numberOfLines={1}>{ann.title}</Text>
-            <Text style={styles.annBody} numberOfLines={2}>{ann.content}</Text>
-            <Text style={styles.annMeta}>{ann.created_by} · {relativeTime(ann.created_at)}</Text>
-          </TouchableOpacity>
-        ))}
-
-        {/* ── Active Projects ──────────────────────────────────────── */}
-        <SectionHeader
-          title="Active Projects"
-          action="See all"
-          onAction={() => navigation.navigate('ProjectsTab', {
-            screen: 'ProjectsList',
-          })}
-        />
-        <View style={{ paddingHorizontal: Spacing.lg, gap: 10, marginBottom: 4 }}>
-          {activeProj.map(proj => {
+          ) : recentTx.map((tx, i) => {
+            const isContrib = tx.entry_type !== 'expense'
             return (
-              <Card key={proj.id} onPress={() => navigation.navigate('ProjectsTab', {
-                screen: 'ProjectDetail',
-                params: { item: proj },
-              })}>
-                <View style={{ padding: Spacing.md }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                    <Text style={styles.projTitle} numberOfLines={1}>{proj.title}</Text>
-                    <StatusBadge status={proj.status} style={{ marginLeft: 8 }} />
-                  </View>
-                  <Text style={styles.projSub} numberOfLines={1}>{proj.project_type} · {proj.location}</Text>
-                  <ProgressBar current={proj.current_funding} target={proj.target_funding} showLabel style={{ marginTop: 10 }} />
+              <View key={tx.id} style={[styles.txRow, i < recentTx.length - 1 && styles.txBorder]}>
+                <View style={[styles.txIcon, { backgroundColor: isContrib ? Colors.successLight : Colors.dangerLight }]}>
+                  <MoneyIcon color={isContrib ? Colors.success : Colors.danger} size={15} />
                 </View>
-              </Card>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={styles.txTitle} numberOfLines={1}>{tx.description || tx.category}</Text>
+                  <Text style={styles.txMeta}>{formatDate(tx.transaction_date)} · {tx.payment_method}</Text>
+                </View>
+                <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                  <Text style={[styles.txAmount, { color: isContrib ? Colors.success : Colors.danger }]}>
+                    {isContrib ? '+' : '−'}{formatCurrency(tx.amount)}
+                  </Text>
+                  <StatusBadge status={tx.status} />
+                </View>
+              </View>
             )
           })}
-        </View>
-
-        {/* ── My Recent Transactions ───────────────────────────────── */}
-        <SectionHeader
-          title="My Recent Transactions"
-          action="See all"
-          onAction={() => navigation.navigate('ProfileTab', {
-            screen: 'MyTransactions',
-          })}
-        />
-        <Card style={{ marginHorizontal: Spacing.lg, marginBottom: Spacing.xl }}>
-          {recentTx.length === 0 ? (
-            <View style={{ padding: 24, alignItems: 'center' }}>
-              <Text style={{ fontSize: 13, color: Colors.textMuted }}>No transactions yet</Text>
-            </View>
-          ) : (
-            recentTx.map((tx, i) => {
-              const isContrib = tx.entry_type !== 'expense'
-              return (
-                <View key={tx.id} style={[styles.txRow, i === recentTx.length - 1 && { borderBottomWidth: 0 }]}>
-                  <View style={[styles.txDot, { backgroundColor: isContrib ? Colors.successLight : Colors.dangerLight }]}>
-                    <MoneyIcon color={isContrib ? Colors.success : Colors.danger} size={14} />
-                  </View>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={styles.txTitle} numberOfLines={1}>{tx.description || tx.category}</Text>
-                    <Text style={styles.txMeta}>{formatDate(tx.transaction_date)} · {tx.payment_method}</Text>
-                  </View>
-                  <View style={{ alignItems: 'flex-end', gap: 3 }}>
-                    <Text style={[styles.txAmount, { color: isContrib ? Colors.success : Colors.danger }]}>
-                      {isContrib ? '+' : '−'}{formatCurrency(tx.amount)}
-                    </Text>
-                    <StatusBadge status={tx.status} />
-                  </View>
-                </View>
-              )
-            })
-          )}
-        </Card>
+        </AppLayout.Section>
       </ScrollView>
     </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
+  safe:   { flex: 1, backgroundColor: Colors.primary },
+  scroll: { backgroundColor: Colors.bgApp },
+
+  // Header — plain primary color, no decorative circles
   header: {
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.lg,
-    paddingBottom: 36,
-    overflow: 'hidden',
+    backgroundColor: Colors.primary, // solid, no gradient, no glow
+    paddingHorizontal: Spacing.xl, paddingTop: Spacing.lg,
+    paddingBottom: Spacing.xl,
   },
-  headerGlow: {
-    position: 'absolute', top: -60, right: -60,
-    width: 180, height: 180, borderRadius: 90,
-    backgroundColor: 'rgba(75,94,170,0.25)',
+  headerTop: {
+    flexDirection: 'row', alignItems: 'flex-start',
+    justifyContent: 'space-between', marginBottom: Spacing.lg,
   },
-  greeting: { fontSize: 12, color: 'rgba(255,255,255,0.5)', fontFamily: Typography.body, marginBottom: 2 },
-  name:     { fontSize: 24, fontFamily: Typography.display, color: '#fff' },
-  heroCard: {
-    borderRadius: Radius.xl,
-    padding: Spacing.xl,
-    marginBottom: Spacing.lg,
-    overflow: 'hidden',
-    position: 'relative',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
+  greetText: { fontSize: 12.5, color: 'rgba(255,255,255,0.5)', fontFamily: Typography.body, marginBottom: 2 },
+  nameText:  { fontSize: 24, fontFamily: Typography.display, color: '#fff', marginBottom: 8 },
+  headerMeta:{ flexDirection: 'row', alignItems: 'center', gap: 8 },
+  metaText:  { fontSize: 12, color: 'rgba(255,255,255,0.4)', fontFamily: Typography.body },
+
+  // Contributions glassmorphism card inside header
+  contribCard: {
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderRadius: Radius.xl, padding: Spacing.lg,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
   },
-  heroGlow: {
-    position: 'absolute', top: -40, right: -40,
-    width: 140, height: 140, borderRadius: 70,
-    backgroundColor: 'rgba(75,94,170,0.3)',
-  },
-  heroLabel:  { fontSize: 11.5, color: 'rgba(255,255,255,0.5)', fontFamily: Typography.bodyMedium, marginBottom: 4 },
-  heroAmount: { fontSize: 32, fontFamily: Typography.display, color: '#fff', marginBottom: 16 },
-  heroRow:    { flexDirection: 'row', gap: 20, flexWrap: 'wrap' },
-  heroItem:   {},
-  heroItemLabel: { fontSize: 10, color: 'rgba(255,255,255,0.45)', fontFamily: Typography.body, marginBottom: 2 },
-  heroItemValue: { fontSize: 13, fontFamily: Typography.bodySemiBold, color: '#fff' },
-  pendingPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    marginTop: 14,
-    paddingHorizontal: 10, paddingVertical: 6,
-    backgroundColor: 'rgba(212,134,10,0.15)',
-    borderRadius: Radius.full,
+  contribTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 },
+  contribEyebrow: { fontSize: 11.5, color: 'rgba(255,255,255,0.5)', fontFamily: Typography.bodyMedium, marginBottom: 4 },
+  contribAmount:  { fontSize: 30, fontFamily: Typography.display, color: '#fff' },
+  pendingBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: 'rgba(212,134,10,0.18)', borderRadius: Radius.full,
+    paddingHorizontal: 10, paddingVertical: 5,
     borderWidth: 1, borderColor: 'rgba(212,134,10,0.3)',
-    alignSelf: 'flex-start',
   },
+  pendingDot:  { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.warning },
+  pendingText: { fontSize: 11.5, fontFamily: Typography.bodySemiBold, color: Colors.warning },
+  contribDivider:   { height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginBottom: 12 },
+  contribMeta:      { flexDirection: 'row' },
+  contribMetaItem:  { flex: 1 },
+  contribMetaSep:   { width: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginHorizontal: 10 },
+  contribMetaLabel: { fontSize: 10.5, color: 'rgba(255,255,255,0.4)', fontFamily: Typography.body, marginBottom: 3 },
+  contribMetaValue: { fontSize: 12.5, fontFamily: Typography.bodySemiBold, color: '#fff' },
+
+  // KPI grid
   kpiGrid: {
     flexDirection: 'row', flexWrap: 'wrap',
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg,
     gap: 10, marginBottom: 4,
   },
-  annCard: {
-    marginHorizontal: Spacing.lg, marginBottom: 10,
-    backgroundColor: Colors.white,
-    borderRadius: Radius.lg,
-    borderWidth: 1, borderColor: Colors.borderCard,
-    padding: Spacing.md,
+  kpiCard: {
+    flex: 1, flexBasis: '47%',
+    backgroundColor: Colors.white, borderRadius: Radius.lg,
+    padding: Spacing.lg, borderTopWidth: 3,
+    borderWidth: 1, borderColor: Colors.borderCard, ...Shadow.sm,
   },
-  annTitle: { fontSize: 13.5, fontFamily: Typography.bodyBold,   color: Colors.textPrimary, marginBottom: 4 },
-  annBody:  { fontSize: 12,   fontFamily: Typography.body,       color: Colors.textSecondary, lineHeight: 17, marginBottom: 8 },
-  annMeta:  { fontSize: 11,   fontFamily: Typography.body,       color: Colors.textMuted },
-  projTitle: { fontSize: 14, fontFamily: Typography.bodyBold, color: Colors.textPrimary, flex: 1 },
-  projSub:   { fontSize: 12, fontFamily: Typography.body,    color: Colors.textMuted },
+  kpiIconWrap: {
+    width: 36, height: 36, borderRadius: Radius.md,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 10,
+  },
+  kpiValue: { fontSize: 22, fontFamily: Typography.bodyExtraBold, color: Colors.textPrimary, marginBottom: 2 },
+  kpiLabel: { fontSize: 12.5, fontFamily: Typography.bodySemiBold, color: Colors.textSecondary, marginBottom: 2 },
+  kpiSub:   { fontSize: 11.5, fontFamily: Typography.body, color: Colors.textMuted },
+
+  // Transaction rows inside the unified Section
+  txEmpty:     { padding: 28, alignItems: 'center' },
+  txEmptyText: { fontSize: 14, color: Colors.textMuted },
   txRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: Spacing.lg, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: Colors.borderInner,
+    paddingHorizontal: Spacing.lg, paddingVertical: 14,
+    backgroundColor: Colors.white,
   },
-  txDot:    { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  txTitle:  { fontSize: 13.5, fontFamily: Typography.bodySemiBold, color: Colors.textPrimary },
-  txMeta:   { fontSize: 11.5, fontFamily: Typography.body, color: Colors.textMuted, marginTop: 1 },
-  txAmount: { fontSize: 13.5, fontFamily: Typography.bodyBold },
+  txBorder: { borderBottomWidth: 1, borderBottomColor: Colors.borderInner },
+  txIcon: {
+    width: 40, height: 40, borderRadius: 20,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  txTitle:  { fontSize: 14, fontFamily: Typography.bodySemiBold, color: Colors.textPrimary },
+  txMeta:   { fontSize: 12, fontFamily: Typography.body, color: Colors.textMuted, marginTop: 2 },
+  txAmount: { fontSize: 14, fontFamily: Typography.bodyBold },
 })

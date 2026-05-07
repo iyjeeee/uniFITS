@@ -98,34 +98,79 @@ function UtilityDetailModal({ item, editForm, editMode, setEditMode, onFormChang
   /* ── READ-ONLY DETAIL VIEW ────────────────────────────────── */
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
       {/* Payment progress bar */}
       <div style={{ padding: '14px 18px', borderRadius: 10, background: 'var(--neutral-light)', border: '1px solid var(--border-card)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 8 }}>
-          <span style={{ color: 'var(--text-muted)' }}>Payment Progress</span>
+          <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Payment Progress</span>
           <span style={{ fontWeight: 700, color: item.status === 'paid' ? 'var(--success)' : 'var(--warning)' }}>{pctPaid}% paid</span>
         </div>
         <div style={{ height: 8, background: 'var(--border)', borderRadius: 6, overflow: 'hidden' }}>
           <div style={{ height: '100%', width: `${pctPaid}%`, background: item.status === 'paid' ? 'var(--success)' : 'var(--warning)', borderRadius: 6, transition: 'width .4s' }} />
         </div>
       </div>
-      {/* Detail rows */}
-      {[
-        ['Utility ID',   `#${item.id}`],
-        ['Category',     item.expense_type],
-        ['Paid To',      item.paid_to   || '—'],
-        ['Fund',         item.fund      || '—'],
-        ['Payment Date', formatDate(item.payment_date)],
-        ['Status',       item.status.charAt(0).toUpperCase() + item.status.slice(1)],
-        ['Total Amount', formatCurrency(item.total_amount, org.currency_symbol)],
-        ['Amount Paid',  formatCurrency(item.amount_paid, org.currency_symbol)],
-        ['Remaining',    formatCurrency(remaining, org.currency_symbol)],
-        ['Notes',        item.notes || '—'],
-      ].map(([k, v], idx) => (
-        <div key={k} style={{ display: 'flex', gap: 16, padding: '10px 14px', borderBottom: '1px solid var(--border-inner)', background: idx % 2 === 0 ? 'var(--neutral-light)' : '#fff' }}>
-          <div style={{ width: 140, fontSize: 12.5, color: 'var(--text-muted)', flexShrink: 0, fontWeight: 500 }}>{k}</div>
-          <div style={{ fontSize: 13.5, fontWeight: 600, color: k === 'Remaining' && remaining > 0 ? 'var(--danger)' : 'var(--text-primary)' }}>{v}</div>
+
+      {/* Section 1 — Expense Identity */}
+      <div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 8 }}>Expense Details</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          {[
+            ['Utility ID',   `#${item.id}`],
+            ['Category',     item.expense_type],
+            ['Paid To',      item.paid_to || '—'],
+            ['Fund',         item.fund    || '—'],
+          ].map(([k, v]) => (
+            <div key={k} style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--neutral-light)', border: '1px solid var(--border-card)' }}>
+              <div style={{ fontSize: 10.5, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 4 }}>{k}</div>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)' }}>{v}</div>
+            </div>
+          ))}
         </div>
-      ))}
+      </div>
+
+      {/* Section 2 — Payment Info */}
+      <div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 8 }}>Payment Information</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--neutral-light)', border: '1px solid var(--border-card)' }}>
+            <div style={{ fontSize: 10.5, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 4 }}>Payment Date</div>
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)' }}>{formatDate(item.payment_date)}</div>
+          </div>
+          <div style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--neutral-light)', border: '1px solid var(--border-card)' }}>
+            <div style={{ fontSize: 10.5, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 4 }}>Status</div>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: item.status === 'paid' ? 'var(--success)' : item.status === 'partial' ? 'var(--warning)' : 'var(--danger)' }}>
+              {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 3 — Financial Breakdown */}
+      <div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 8 }}>Financial Breakdown</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+          <div style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--success-light)', border: '1px solid rgba(46,125,82,.18)' }}>
+            <div style={{ fontSize: 10.5, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 4 }}>Total</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)' }}>{formatCurrency(item.total_amount, org.currency_symbol)}</div>
+          </div>
+          <div style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--accent-light)', border: '1px solid rgba(75,94,170,.18)' }}>
+            <div style={{ fontSize: 10.5, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 4 }}>Paid</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--accent)' }}>{formatCurrency(item.amount_paid, org.currency_symbol)}</div>
+          </div>
+          <div style={{ padding: '12px 14px', borderRadius: 10, background: remaining > 0 ? 'var(--danger-light)' : 'var(--neutral-light)', border: `1px solid ${remaining > 0 ? 'rgba(192,57,43,.18)' : 'var(--border-card)'}` }}>
+            <div style={{ fontSize: 10.5, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 4 }}>Remaining</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: remaining > 0 ? 'var(--danger)' : 'var(--success)' }}>{formatCurrency(remaining, org.currency_symbol)}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 4 — Notes (if any) */}
+      {item.notes && (
+        <div style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--neutral-light)', border: '1px solid var(--border-card)' }}>
+          <div style={{ fontSize: 10.5, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 6 }}>Notes</div>
+          <div style={{ fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{item.notes}</div>
+        </div>
+      )}
     </div>
   )
 }
