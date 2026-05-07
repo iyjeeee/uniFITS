@@ -3,7 +3,7 @@
 // Home dashboard.
 // Top section: plain primary color, no decorative glow circles.
 // Greeting row + My Total Contributions card.
-// 2×2 KPI tile grid + Recent Transactions section.
+// 2×2 KPI tile grid + Recent Transactions + Calendar sections.
 // ─────────────────────────────────────────────────────────────────────────────
 import React, { useState, useCallback, useMemo } from 'react'
 import {
@@ -21,7 +21,7 @@ import {
 import { Colors, Typography, Spacing, Radius, Shadow } from '../constants/theme'
 import {
   Avatar, StatusBadge,
-  MoneyIcon, AttendanceIcon, ProjectsIcon, EventsIcon,
+  MoneyIcon, AttendanceIcon, ProjectsIcon, EventsIcon, CalendarIcon,
 } from '../components/ui'
 import AppLayout from '../components/AppLayout'
 
@@ -47,6 +47,144 @@ function KpiCard({ label, value, sub, color, icon }) {
   )
 }
 
+// ── Month names for calendar ──────────────────────────────────────────────────
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+const DAY_NAMES   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+
+// ── Mini calendar section ─────────────────────────────────────────────────────
+function CalendarSection({ events, projects }) {
+  const today       = new Date()
+  const [viewYear,  setViewYear]  = useState(today.getFullYear())
+  const [viewMonth, setViewMonth] = useState(today.getMonth())
+
+  // Collect all activity dates for the viewed month
+  const activityDates = useMemo(() => {
+    const set = new Set()
+    events.forEach(e => {
+      const d = new Date(e.event_date)
+      if (d.getFullYear() === viewYear && d.getMonth() === viewMonth)
+        set.add(d.getDate())
+    })
+    projects.forEach(p => {
+      const s = new Date(p.start_date)
+      if (s.getFullYear() === viewYear && s.getMonth() === viewMonth)
+        set.add(s.getDate())
+    })
+    return set
+  }, [events, projects, viewYear, viewMonth])
+
+  // Upcoming events in the viewed month
+  const monthEvents = useMemo(() => {
+    const all = [
+      ...events.map(e => ({ date: e.event_date, title: e.title, type: 'event', status: e.status })),
+      ...projects.map(p => ({ date: p.start_date, title: p.title, type: 'project', status: p.status })),
+    ]
+    return all
+      .filter(item => {
+        const d = new Date(item.date)
+        return d.getFullYear() === viewYear && d.getMonth() === viewMonth
+      })
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+  }, [events, projects, viewYear, viewMonth])
+
+  // Calendar grid days
+  const calendarDays = useMemo(() => {
+    const firstDay   = new Date(viewYear, viewMonth, 1).getDay()
+    const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
+    const cells = []
+    for (let i = 0; i < firstDay; i++) cells.push(null)
+    for (let d = 1; d <= daysInMonth; d++) cells.push(d)
+    return cells
+  }, [viewYear, viewMonth])
+
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11) }
+    else setViewMonth(m => m - 1)
+  }
+  const nextMonth = () => {
+    if (viewMonth === 11) { setViewYear(y => y + 1); setViewMonth(0) }
+    else setViewMonth(m => m + 1)
+  }
+
+  const isToday = (day) =>
+    day === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear()
+
+  return (
+    <AppLayout.Section title="Calendar" style={styles.calendarSection}>
+      {/* Month nav */}
+      <View style={styles.calHeader}>
+        <TouchableOpacity onPress={prevMonth} activeOpacity={0.7} style={styles.calNavBtn}>
+          <Text style={styles.calNavText}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.calMonthLabel}>{MONTH_NAMES[viewMonth]} {viewYear}</Text>
+        <TouchableOpacity onPress={nextMonth} activeOpacity={0.7} style={styles.calNavBtn}>
+          <Text style={styles.calNavText}>›</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Day labels */}
+      <View style={styles.calDayRow}>
+        {DAY_NAMES.map(d => (
+          <Text key={d} style={styles.calDayLabel}>{d}</Text>
+        ))}
+      </View>
+
+      {/* Calendar grid */}
+      <View style={styles.calGrid}>
+        {calendarDays.map((day, i) => (
+          <View key={i} style={styles.calCell}>
+            {day !== null && (
+              <>
+                <View style={[
+                  styles.calDayCircle,
+                  isToday(day) && styles.calDayToday,
+                ]}>
+                  <Text style={[styles.calDayNum, isToday(day) && styles.calDayNumToday]}>
+                    {day}
+                  </Text>
+                </View>
+                {activityDates.has(day) && (
+                  <View style={styles.calDot} />
+                )}
+              </>
+            )}
+          </View>
+        ))}
+      </View>
+
+      {/* Upcoming items for this month */}
+      {monthEvents.length > 0 ? (
+        <View style={styles.calEvents}>
+          {monthEvents.map((item, i) => (
+            <View key={i} style={[styles.calEventRow, i < monthEvents.length - 1 && styles.calEventBorder]}>
+              <View style={[styles.calEventDot, {
+                backgroundColor: item.type === 'event' ? Colors.info : Colors.accent,
+              }]} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.calEventTitle} numberOfLines={1}>{item.title}</Text>
+                <Text style={styles.calEventDate}>{formatDate(item.date)}</Text>
+              </View>
+              <View style={[styles.calTypeBadge, {
+                backgroundColor: item.type === 'event' ? Colors.infoLight : Colors.accentLight,
+              }]}>
+                <Text style={[styles.calTypeBadgeText, {
+                  color: item.type === 'event' ? Colors.info : Colors.accent,
+                }]}>
+                  {item.type === 'event' ? 'Event' : 'Project'}
+                </Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      ) : (
+        <View style={styles.calEmpty}>
+          <Text style={styles.calEmptyText}>No activities this month</Text>
+        </View>
+      )}
+    </AppLayout.Section>
+  )
+}
+
 export default function HomeScreen() {
   const navigation = useNavigation()
   const { user }   = useAuth()
@@ -57,10 +195,11 @@ export default function HomeScreen() {
     setTimeout(() => setRefreshing(false), 900)
   }, [])
 
-  // All derived data memoised
   const { myTx, totalContributed, pendingTx, recentTx,
           attPresent, attTotal, upcomingEv } = useMemo(() => {
-    const myTx = MOCK_TRANSACTIONS.filter(t => t.user_id === user.id)
+    const myTx = MOCK_TRANSACTIONS
+      .filter(t => t.user_id === user.id)
+      .sort((a, b) => new Date(b.transaction_date) - new Date(a.transaction_date)) // most recent first
     const totalContributed = myTx
       .filter(t => t.entry_type !== 'expense')
       .reduce((s, t) => s + t.amount, 0)
@@ -83,9 +222,8 @@ export default function HomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />
         }
       >
-        {/* ── Plain-color header — no glow circles ───────────────────── */}
+        {/* ── Plain-color header ──────────────────────────────────────── */}
         <View style={styles.header}>
-          {/* Top row: greeting left, avatar right */}
           <View style={styles.headerTop}>
             <View style={{ flex: 1 }}>
               <Text style={styles.greetText}>{greeting()}</Text>
@@ -95,19 +233,12 @@ export default function HomeScreen() {
                 <Text style={styles.metaText}>{user.department}</Text>
               </View>
             </View>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('ProfileTab')}
-              activeOpacity={0.85}
-            >
-              <Avatar
-                name={user.full_name}
-                size={50}
-                style={{ borderWidth: 2.5, borderColor: 'rgba(255,255,255,0.22)' }}
-              />
+            <TouchableOpacity onPress={() => navigation.navigate('ProfileTab')} activeOpacity={0.85}>
+              <Avatar name={user.full_name} size={50} style={{ borderWidth: 2.5, borderColor: 'rgba(255,255,255,0.22)' }} />
             </TouchableOpacity>
           </View>
 
-          {/* ── My Total Contributions card — glassmorphism ─────────── */}
+          {/* My Total Contributions card — glassmorphism */}
           <View style={styles.contribCard}>
             <View style={styles.contribTop}>
               <View>
@@ -171,7 +302,6 @@ export default function HomeScreen() {
           title="Recent Transactions"
           action="See all"
           onAction={() => navigation.navigate('ProfileTab', { screen: 'MyTransactions' })}
-          style={{ marginBottom: 32 }}
         >
           {recentTx.length === 0 ? (
             <View style={styles.txEmpty}>
@@ -198,6 +328,14 @@ export default function HomeScreen() {
             )
           })}
         </AppLayout.Section>
+
+        {/* ── Calendar section — below Recent Transactions ────────── */}
+        <CalendarSection
+          events={MOCK_EVENTS}
+          projects={MOCK_PROJECTS}
+        />
+
+        <View style={{ height: 32 }} />
       </ScrollView>
     </SafeAreaView>
   )
@@ -207,30 +345,27 @@ const styles = StyleSheet.create({
   safe:   { flex: 1, backgroundColor: Colors.primary },
   scroll: { backgroundColor: Colors.bgApp },
 
-  // Header — plain primary color, no decorative circles
   header: {
-    backgroundColor: Colors.primary, // solid, no gradient, no glow
-    paddingHorizontal: Spacing.xl, paddingTop: Spacing.lg,
-    paddingBottom: Spacing.xl,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.xl, paddingTop: Spacing.lg, paddingBottom: Spacing.xl,
   },
   headerTop: {
     flexDirection: 'row', alignItems: 'flex-start',
     justifyContent: 'space-between', marginBottom: Spacing.lg,
   },
-  greetText: { fontSize: 12.5, color: 'rgba(255,255,255,0.5)', fontFamily: Typography.body, marginBottom: 2 },
-  nameText:  { fontSize: 24, fontFamily: Typography.display, color: '#fff', marginBottom: 8 },
-  headerMeta:{ flexDirection: 'row', alignItems: 'center', gap: 8 },
-  metaText:  { fontSize: 12, color: 'rgba(255,255,255,0.4)', fontFamily: Typography.body },
+  greetText:  { fontSize: 12.5, color: 'rgba(255,255,255,0.5)', fontFamily: Typography.body, marginBottom: 2 },
+  nameText:   { fontSize: 24, fontFamily: Typography.display, color: '#fff', marginBottom: 8 },
+  headerMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  metaText:   { fontSize: 12, color: 'rgba(255,255,255,0.4)', fontFamily: Typography.body },
 
-  // Contributions glassmorphism card inside header
   contribCard: {
     backgroundColor: 'rgba(255,255,255,0.07)',
     borderRadius: Radius.xl, padding: Spacing.lg,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
   },
   contribTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 },
-  contribEyebrow: { fontSize: 11.5, color: 'rgba(255,255,255,0.5)', fontFamily: Typography.bodyMedium, marginBottom: 4 },
-  contribAmount:  { fontSize: 30, fontFamily: Typography.display, color: '#fff' },
+  contribEyebrow:   { fontSize: 11.5, color: 'rgba(255,255,255,0.5)', fontFamily: Typography.bodyMedium, marginBottom: 4 },
+  contribAmount:    { fontSize: 30, fontFamily: Typography.display, color: '#fff' },
   pendingBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     backgroundColor: 'rgba(212,134,10,0.18)', borderRadius: Radius.full,
@@ -246,7 +381,6 @@ const styles = StyleSheet.create({
   contribMetaLabel: { fontSize: 10.5, color: 'rgba(255,255,255,0.4)', fontFamily: Typography.body, marginBottom: 3 },
   contribMetaValue: { fontSize: 12.5, fontFamily: Typography.bodySemiBold, color: '#fff' },
 
-  // KPI grid
   kpiGrid: {
     flexDirection: 'row', flexWrap: 'wrap',
     paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg,
@@ -266,7 +400,7 @@ const styles = StyleSheet.create({
   kpiLabel: { fontSize: 12.5, fontFamily: Typography.bodySemiBold, color: Colors.textSecondary, marginBottom: 2 },
   kpiSub:   { fontSize: 11.5, fontFamily: Typography.body, color: Colors.textMuted },
 
-  // Transaction rows inside the unified Section
+  // Transaction rows inside Section
   txEmpty:     { padding: 28, alignItems: 'center' },
   txEmptyText: { fontSize: 14, color: Colors.textMuted },
   txRow: {
@@ -282,4 +416,57 @@ const styles = StyleSheet.create({
   txTitle:  { fontSize: 14, fontFamily: Typography.bodySemiBold, color: Colors.textPrimary },
   txMeta:   { fontSize: 12, fontFamily: Typography.body, color: Colors.textMuted, marginTop: 2 },
   txAmount: { fontSize: 14, fontFamily: Typography.bodyBold },
+
+  // Calendar section
+  calendarSection: { marginBottom: 0 },
+  calHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg, paddingVertical: 12,
+    borderBottomWidth: 1, borderBottomColor: Colors.borderInner,
+  },
+  calNavBtn:    { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
+  calNavText:   { fontSize: 22, color: Colors.accent, fontFamily: Typography.bodyBold, lineHeight: 26 },
+  calMonthLabel:{ fontSize: 15, fontFamily: Typography.bodyBold, color: Colors.textPrimary },
+
+  calDayRow: {
+    flexDirection: 'row', paddingHorizontal: Spacing.lg, paddingVertical: 8,
+    borderBottomWidth: 1, borderBottomColor: Colors.borderInner,
+  },
+  calDayLabel: { flex: 1, textAlign: 'center', fontSize: 11, fontFamily: Typography.bodySemiBold, color: Colors.textMuted },
+
+  calGrid: {
+    flexDirection: 'row', flexWrap: 'wrap',
+    paddingHorizontal: Spacing.lg, paddingVertical: 8,
+    borderBottomWidth: 1, borderBottomColor: Colors.borderInner,
+  },
+  calCell: {
+    width: '14.28%', alignItems: 'center', paddingVertical: 4,
+  },
+  calDayCircle: {
+    width: 30, height: 30, borderRadius: 15,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  calDayToday:    { backgroundColor: Colors.accent },
+  calDayNum:      { fontSize: 13, fontFamily: Typography.bodyMedium, color: Colors.textPrimary },
+  calDayNumToday: { color: '#fff', fontFamily: Typography.bodyBold },
+  calDot: {
+    width: 4, height: 4, borderRadius: 2,
+    backgroundColor: Colors.accent, marginTop: 2,
+  },
+
+  // Events in this month
+  calEvents: { paddingHorizontal: Spacing.lg, paddingBottom: 4 },
+  calEventRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingVertical: 11,
+  },
+  calEventBorder: { borderBottomWidth: 1, borderBottomColor: Colors.borderInner },
+  calEventDot:    { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
+  calEventTitle:  { fontSize: 13.5, fontFamily: Typography.bodySemiBold, color: Colors.textPrimary },
+  calEventDate:   { fontSize: 11.5, fontFamily: Typography.body, color: Colors.textMuted, marginTop: 1 },
+  calTypeBadge:   { paddingHorizontal: 8, paddingVertical: 3, borderRadius: Radius.full, flexShrink: 0 },
+  calTypeBadgeText:{ fontSize: 10.5, fontFamily: Typography.bodyBold },
+
+  calEmpty: { paddingVertical: 20, alignItems: 'center' },
+  calEmptyText: { fontSize: 13, color: Colors.textMuted, fontFamily: Typography.body },
 })

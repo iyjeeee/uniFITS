@@ -13,21 +13,30 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.unifits.memberapp"
+      "bundleIdentifier": "com.unifits.memberapp",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow uniFITS to take a profile photo.",
+        "NSPhotoLibraryUsageDescription": "Allow uniFITS to select a profile photo from your library."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/adaptive-icon.png",
         "backgroundColor": "#1E2128"
       },
-      "package": "com.unifits.memberapp"
+      "package": "com.unifits.memberapp",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "favicon": "./src/assets/favicon.png"
     },
     "plugins": [
       "expo-font",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-image-picker"
     ]
   }
 }

@@ -1,8 +1,8 @@
 // src/screens/ProjectDetailScreen.jsx
 // ─────────────────────────────────────────────────────────────────────────────
 // Project detail view.
-// Layout: plain-color detail header + scrollable content with unified
-//         Section card format for all data sections.
+// Status InfoRow: StatusBadge overridden with alignSelf:'flex-end' so it
+// sits flush on the right side inside the infoValue container.
 // ─────────────────────────────────────────────────────────────────────────────
 import React from 'react'
 import { View, Text, ScrollView, StyleSheet, StatusBar, TouchableOpacity } from 'react-native'
@@ -12,11 +12,12 @@ import { formatDate, formatCurrency } from '../api/mockData'
 import { Colors, Typography, Spacing, Radius, Shadow } from '../constants/theme'
 import { StatusBadge, ProgressBar } from '../components/ui'
 
-// ── InfoRow — label + value row inside section card ───────────────────────────
+// ── InfoRow — label left, value right-aligned ─────────────────────────────────
 function InfoRow({ label, value, last }) {
   return (
     <View style={[styles.infoRow, last && styles.infoRowLast]}>
       <Text style={styles.infoLabel}>{label}</Text>
+      {/* infoValue: flex-end so both text and badge nodes sit at the right */}
       <View style={styles.infoValue}>
         {typeof value === 'string' || typeof value === 'number'
           ? <Text style={styles.infoText}>{value || '—'}</Text>
@@ -46,7 +47,7 @@ export default function ProjectDetailScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
 
-      {/* Plain-color detail header */}
+      {/* Plain-color header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
           <Text style={styles.backArrow}>‹</Text>
@@ -56,14 +57,13 @@ export default function ProjectDetailScreen() {
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
 
-        {/* ── Title banner — plain primary color, left stripe accent ── */}
+        {/* Title banner */}
         <View style={styles.banner}>
           <View style={[styles.bannerStripe, { backgroundColor: stripeColor }]} />
           <View style={styles.bannerBody}>
             <StatusBadge status={proj.status} style={{ marginBottom: 10 }} />
             <Text style={styles.bannerTitle}>{proj.title}</Text>
             <Text style={styles.bannerSub}>{proj.project_type} · {proj.location}</Text>
-            {/* Funding progress */}
             <ProgressBar current={proj.current_funding} target={proj.target_funding} style={{ marginTop: 16 }} />
             <View style={styles.bannerFundRow}>
               <Text style={styles.bannerFundText}>{formatCurrency(proj.current_funding)} raised</Text>
@@ -72,7 +72,7 @@ export default function ProjectDetailScreen() {
           </View>
         </View>
 
-        {/* ── Project Information — unified Section card ────────────── */}
+        {/* Project Information */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleRow}>
@@ -84,10 +84,15 @@ export default function ProjectDetailScreen() {
           <InfoRow label="End Date"     value={formatDate(proj.end_date)} />
           <InfoRow label="Location"     value={proj.location} />
           <InfoRow label="Project Type" value={proj.project_type} />
-          <InfoRow label="Status"       value={<StatusBadge status={proj.status} />} last />
+          {/* Status: pass alignSelf:'flex-end' to override badge's default flex-start */}
+          <InfoRow
+            label="Status"
+            value={<StatusBadge status={proj.status} style={styles.badgeRight} />}
+            last
+          />
         </View>
 
-        {/* ── Funding Status — unified Section card ────────────────── */}
+        {/* Funding Status */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleRow}>
@@ -98,7 +103,6 @@ export default function ProjectDetailScreen() {
               <Text style={[styles.sectionBadgeText, { color: Colors.success }]}>{pct}%</Text>
             </View>
           </View>
-          {/* Amount display row */}
           <View style={styles.fundingRow}>
             <View>
               <Text style={styles.fundingLabel}>Raised</Text>
@@ -122,7 +126,7 @@ export default function ProjectDetailScreen() {
           </View>
         </View>
 
-        {/* ── Description — unified Section card ───────────────────── */}
+        {/* Description */}
         <View style={[styles.sectionCard, { marginBottom: 36 }]}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleRow}>
@@ -144,7 +148,6 @@ const styles = StyleSheet.create({
   safe:   { flex: 1, backgroundColor: Colors.primary },
   scroll: { backgroundColor: Colors.bgApp },
 
-  // Plain-color detail header
   header: {
     backgroundColor: Colors.primary,
     flexDirection: 'row', alignItems: 'center', gap: 10,
@@ -154,7 +157,6 @@ const styles = StyleSheet.create({
   backArrow:   { fontSize: 22, color: '#fff', lineHeight: 26, marginLeft: -1 },
   headerTitle: { flex: 1, fontSize: 17, fontFamily: Typography.bodyBold, color: '#fff' },
 
-  // Title banner — white card with left color stripe
   banner: {
     flexDirection: 'row',
     marginHorizontal: Spacing.lg, marginTop: Spacing.xl,
@@ -162,14 +164,13 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: Colors.borderCard,
     overflow: 'hidden', ...Shadow.sm,
   },
-  bannerStripe: { width: 5 },
-  bannerBody:   { flex: 1, padding: Spacing.lg },
-  bannerTitle:  { fontSize: 20, fontFamily: Typography.display, color: Colors.textPrimary, lineHeight: 26, marginBottom: 5 },
-  bannerSub:    { fontSize: 12, color: Colors.textMuted, fontFamily: Typography.body },
-  bannerFundRow:{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
-  bannerFundText:{ fontSize: 11.5, color: Colors.textMuted, fontFamily: Typography.body },
+  bannerStripe:   { width: 5 },
+  bannerBody:     { flex: 1, padding: Spacing.lg },
+  bannerTitle:    { fontSize: 20, fontFamily: Typography.display, color: Colors.textPrimary, lineHeight: 26, marginBottom: 5 },
+  bannerSub:      { fontSize: 12, color: Colors.textMuted, fontFamily: Typography.body },
+  bannerFundRow:  { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
+  bannerFundText: { fontSize: 11.5, color: Colors.textMuted, fontFamily: Typography.body },
 
-  // Unified section card
   sectionCard: {
     marginHorizontal: Spacing.lg, marginTop: Spacing.lg,
     backgroundColor: Colors.white, borderRadius: Radius.lg,
@@ -181,13 +182,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg, paddingVertical: 14,
     borderBottomWidth: 1, borderBottomColor: Colors.borderInner,
   },
-  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  sectionAccent:   { width: 4, height: 18, backgroundColor: Colors.accent, borderRadius: 2 },
-  sectionTitle:    { fontSize: 15, fontFamily: Typography.bodyBold, color: Colors.textPrimary },
-  sectionBadge:    { backgroundColor: Colors.accentLight, paddingHorizontal: 8, paddingVertical: 2, borderRadius: Radius.full },
-  sectionBadgeText:{ fontSize: 11, fontFamily: Typography.bodyBold, color: Colors.accent },
+  sectionTitleRow:  { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  sectionAccent:    { width: 4, height: 18, backgroundColor: Colors.accent, borderRadius: 2 },
+  sectionTitle:     { fontSize: 15, fontFamily: Typography.bodyBold, color: Colors.textPrimary },
+  sectionBadge:     { backgroundColor: Colors.accentLight, paddingHorizontal: 8, paddingVertical: 2, borderRadius: Radius.full },
+  sectionBadgeText: { fontSize: 11, fontFamily: Typography.bodyBold, color: Colors.accent },
 
-  // InfoRow inside section card
+  // InfoRow — label left, value right
   infoRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg, paddingVertical: 13,
@@ -195,10 +196,12 @@ const styles = StyleSheet.create({
   },
   infoRowLast: { borderBottomWidth: 0 },
   infoLabel:   { fontSize: 13, fontFamily: Typography.bodyMedium, color: Colors.textMuted, flex: 1 },
+  // infoValue: flex-end aligns child text AND StatusBadge to the right
   infoValue:   { flex: 1.5, alignItems: 'flex-end' },
   infoText:    { fontSize: 13.5, fontFamily: Typography.bodySemiBold, color: Colors.textPrimary, textAlign: 'right' },
+  // Override StatusBadge's default alignSelf:'flex-start' → 'flex-end'
+  badgeRight:  { alignSelf: 'flex-end' },
 
-  // Funding status rows
   fundingRow: {
     flexDirection: 'row', alignItems: 'flex-start',
     paddingHorizontal: Spacing.lg, paddingVertical: 16,
@@ -210,7 +213,6 @@ const styles = StyleSheet.create({
   fundingStatus: { fontSize: 13, fontFamily: Typography.bodyBold },
   fundingBarWrap:{ paddingHorizontal: Spacing.lg, paddingVertical: 14 },
 
-  // Description body
   descBody: { paddingHorizontal: Spacing.lg, paddingVertical: 16 },
   descText:  { fontSize: 13.5, color: Colors.textSecondary, lineHeight: 22, fontFamily: Typography.body },
 })

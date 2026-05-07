@@ -1,8 +1,8 @@
 // src/screens/MyAttendanceScreen.jsx
 // ─────────────────────────────────────────────────────────────────────────────
 // Member's personal attendance records.
-// Layout: plain-color detail header + stats strip + filter bar +
-//         unified Section card containing attendance rows.
+// Proper padding/spacing — rows won't touch left or right edges.
+// Data sorted most-recent first.
 // ─────────────────────────────────────────────────────────────────────────────
 import React, { useState, useCallback, useMemo } from 'react'
 import {
@@ -18,7 +18,6 @@ import { StatusBadge, AttendanceIcon } from '../components/ui'
 
 const FILTERS = ['All', 'Present', 'Late', 'Absent', 'Excused']
 
-// Status → dot color
 const DOT_COLOR = {
   present: Colors.success,
   late:    Colors.warning,
@@ -26,17 +25,17 @@ const DOT_COLOR = {
   excused: Colors.info,
 }
 
-// ── Attendance row — memoised ─────────────────────────────────────────────────
+// ── Attendance row — evenly padded ────────────────────────────────────────────
 const AttRow = React.memo(function AttRow({ att, isLast }) {
   const dotColor = DOT_COLOR[att.status] || Colors.textMuted
   return (
     <View style={[styles.attRow, isLast && styles.attRowLast]}>
       <View style={[styles.indicator, { backgroundColor: dotColor }]} />
-      <View style={{ flex: 1, minWidth: 0 }}>
+      <View style={styles.attBody}>
         <Text style={styles.attActivity} numberOfLines={1}>{att.activity}</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+        <View style={styles.attMetaRow}>
           <Text style={styles.attType}>{att.activity_type}</Text>
-          <Text style={{ fontSize: 10, color: Colors.textMuted }}>·</Text>
+          <Text style={styles.attSep}>·</Text>
           <Text style={styles.attDate}>{formatDate(att.attendance_date)}</Text>
         </View>
         {att.remarks ? <Text style={styles.attRemarks}>{att.remarks}</Text> : null}
@@ -51,8 +50,11 @@ export default function MyAttendanceScreen() {
   const { user }   = useAuth()
   const [filter, setFilter] = useState('All')
 
+  // Sort most-recent attendance first
   const all = useMemo(() =>
-    MOCK_ATTENDANCES.filter(a => a.user_id === user.id),
+    MOCK_ATTENDANCES
+      .filter(a => a.user_id === user.id)
+      .sort((a, b) => new Date(b.attendance_date) - new Date(a.attendance_date)),
     [user.id]
   )
   const shown = useMemo(() =>
@@ -77,7 +79,7 @@ export default function MyAttendanceScreen() {
 
   const ListHeader = useMemo(() => (
     <>
-      {/* Stats strip — 5 cells */}
+      {/* Stats strip */}
       <View style={styles.statsStrip}>
         <View style={styles.statCell}>
           <Text style={[styles.statVal, { color: Colors.textPrimary }]}>{stats.rate}%</Text>
@@ -142,7 +144,6 @@ export default function MyAttendanceScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
-      {/* Plain-color detail header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
           <Text style={styles.backArrow}>‹</Text>
@@ -166,8 +167,9 @@ export default function MyAttendanceScreen() {
             <Text style={styles.emptySub}>{filter === 'All' ? 'No attendance records yet' : `No ${filter.toLowerCase()} records`}</Text>
           </View>
         }
+        // Separator stays within card borders (marginHorizontal matches attRow)
         ItemSeparatorComponent={() => (
-          <View style={{ marginHorizontal: Spacing.lg, height: 1, backgroundColor: Colors.borderInner }} />
+          <View style={styles.rowSeparator} />
         )}
         style={styles.list}
         showsVerticalScrollIndicator={false}
@@ -181,10 +183,9 @@ export default function MyAttendanceScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe:  { flex: 1, backgroundColor: Colors.primary },
-  list:  { backgroundColor: Colors.bgApp },
+  safe: { flex: 1, backgroundColor: Colors.primary },
+  list: { backgroundColor: Colors.bgApp },
 
-  // Plain-color header
   header: {
     backgroundColor: Colors.primary,
     flexDirection: 'row', alignItems: 'center', gap: 10,
@@ -195,7 +196,6 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 17, fontFamily: Typography.bodyBold, color: '#fff' },
   headerSub:   { fontSize: 12, fontFamily: Typography.body, color: 'rgba(255,255,255,0.5)', marginTop: 1 },
 
-  // Stats strip
   statsStrip: {
     flexDirection: 'row', backgroundColor: Colors.white,
     borderBottomWidth: 1, borderBottomColor: Colors.borderInner, ...Shadow.sm,
@@ -206,7 +206,6 @@ const styles = StyleSheet.create({
   statBar:  { width: 16, height: 2.5, borderRadius: 2, marginTop: 4 },
   statSep:  { width: 1, backgroundColor: Colors.borderInner, marginVertical: 10 },
 
-  // Filter bar
   filterBar:     { backgroundColor: Colors.white, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Colors.borderInner },
   filterScroll:  { paddingHorizontal: Spacing.lg, gap: 8 },
   chip:          { paddingHorizontal: 14, paddingVertical: 6, borderRadius: Radius.full, backgroundColor: Colors.neutralLight, borderWidth: 1, borderColor: Colors.borderCard },
@@ -214,7 +213,6 @@ const styles = StyleSheet.create({
   chipText:      { fontSize: 12.5, fontFamily: Typography.bodySemiBold, color: Colors.textSecondary },
   chipTextActive:{ color: '#fff' },
 
-  // Section card header — unified format
   sectionHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     marginHorizontal: Spacing.lg, marginTop: Spacing.xl,
@@ -231,21 +229,29 @@ const styles = StyleSheet.create({
   sectionBadge:    { backgroundColor: Colors.accentLight, paddingHorizontal: 8, paddingVertical: 2, borderRadius: Radius.full },
   sectionBadgeText:{ fontSize: 11, fontFamily: Typography.bodyBold, color: Colors.accent },
 
-  // Attendance row — inside section card
+  // Attendance row — even horizontal padding so rows don't hug edges
   attRow: {
     flexDirection: 'row', alignItems: 'flex-start',
-    marginHorizontal: Spacing.lg, paddingVertical: 13,
-    gap: 12, backgroundColor: Colors.white,
+    marginHorizontal: Spacing.lg,
+    paddingVertical: 14,
+    paddingHorizontal: Spacing.lg, // balanced left/right padding
+    gap: 12,
+    backgroundColor: Colors.white,
     borderLeftWidth: 1, borderRightWidth: 1, borderColor: Colors.borderCard,
   },
   attRowLast: { borderBottomWidth: 1, borderBottomLeftRadius: Radius.lg, borderBottomRightRadius: Radius.lg },
-  indicator:   { width: 10, height: 10, borderRadius: 5, marginTop: 4, flexShrink: 0 },
-  attActivity: { fontSize: 13.5, fontFamily: Typography.bodyBold, color: Colors.textPrimary },
-  attType:     { fontSize: 11, fontFamily: Typography.bodySemiBold, color: Colors.accent, textTransform: 'capitalize' },
-  attDate:     { fontSize: 11.5, fontFamily: Typography.body, color: Colors.textMuted },
-  attRemarks:  { fontSize: 11.5, fontFamily: Typography.bodyMedium, color: Colors.textSecondary, marginTop: 3, fontStyle: 'italic' },
+  indicator:  { width: 10, height: 10, borderRadius: 5, marginTop: 4, flexShrink: 0 },
+  attBody:    { flex: 1, minWidth: 0 }, // flex 1 + minWidth 0 prevents badge overlap
+  attActivity:{ fontSize: 13.5, fontFamily: Typography.bodyBold, color: Colors.textPrimary },
+  attMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
+  attType:    { fontSize: 11, fontFamily: Typography.bodySemiBold, color: Colors.accent, textTransform: 'capitalize' },
+  attSep:     { fontSize: 10, color: Colors.textMuted },
+  attDate:    { fontSize: 11.5, fontFamily: Typography.body, color: Colors.textMuted },
+  attRemarks: { fontSize: 11.5, fontFamily: Typography.bodyMedium, color: Colors.textSecondary, marginTop: 3, fontStyle: 'italic' },
 
-  // Empty state
+  // Row separator — inset to match attRow's marginHorizontal + paddingHorizontal
+  rowSeparator: { marginHorizontal: Spacing.lg * 2 + Spacing.lg, height: 1, backgroundColor: Colors.borderInner },
+
   emptyWrap:  { alignItems: 'center', padding: 48 },
   emptyIcon:  { width: 56, height: 56, borderRadius: 28, backgroundColor: Colors.neutralLight, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
   emptyTitle: { fontSize: 15, fontFamily: Typography.bodyBold, color: Colors.textSecondary, marginBottom: 5 },

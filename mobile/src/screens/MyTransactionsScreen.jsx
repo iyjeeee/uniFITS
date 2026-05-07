@@ -1,8 +1,8 @@
 // src/screens/MyTransactionsScreen.jsx
 // ─────────────────────────────────────────────────────────────────────────────
 // Member's personal transaction history.
-// Layout: AppLayout.Detail header + summary stats + filter bar +
-//         unified Section card containing transaction rows.
+// Proper padding/spacing so rows never touch edges.
+// Data sorted most-recent first.
 // ─────────────────────────────────────────────────────────────────────────────
 import React, { useState, useCallback, useMemo } from 'react'
 import {
@@ -15,26 +15,28 @@ import { useAuth } from '../context/AuthContext'
 import { MOCK_TRANSACTIONS, formatDate, formatCurrency } from '../api/mockData'
 import { Colors, Typography, Spacing, Radius, Shadow } from '../constants/theme'
 import { StatusBadge, MoneyIcon } from '../components/ui'
-import AppLayout from '../components/AppLayout'
 
 const FILTERS = ['All', 'Completed', 'Pending']
 
-// ── Transaction row — memoised ─────────────────────────────────────────────────
+// ── Transaction row — properly spaced, won't touch edges ──────────────────────
 const TxRow = React.memo(function TxRow({ tx, isLast }) {
   const isContrib = tx.entry_type !== 'expense'
   const amtColor  = isContrib ? Colors.success : Colors.danger
   return (
     <View style={[styles.txRow, isLast && styles.txRowLast]}>
+      {/* Left icon */}
       <View style={[styles.txIcon, { backgroundColor: isContrib ? Colors.successLight : Colors.dangerLight }]}>
         <MoneyIcon color={amtColor} size={15} />
       </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
+      {/* Text block — flex 1 ensures it doesn't push right side off */}
+      <View style={styles.txBody}>
         <Text style={styles.txDesc} numberOfLines={1}>{tx.description || tx.category}</Text>
         <Text style={styles.txFund} numberOfLines={1}>{tx.fund}</Text>
         <Text style={styles.txMeta}>{formatDate(tx.transaction_date)} · {tx.payment_method}</Text>
         <Text style={styles.txRef} numberOfLines={1}>{tx.reference_number}</Text>
       </View>
-      <View style={{ alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+      {/* Right: amount + badges — fixed width so it never overlaps */}
+      <View style={styles.txRight}>
         <Text style={[styles.txAmt, { color: amtColor }]}>
           {isContrib ? '+' : '−'}{formatCurrency(tx.amount)}
         </Text>
@@ -50,8 +52,11 @@ export default function MyTransactionsScreen() {
   const { user }   = useAuth()
   const [filter, setFilter] = useState('All')
 
+  // Sort all user transactions most-recent first
   const all = useMemo(() =>
-    MOCK_TRANSACTIONS.filter(t => t.user_id === user.id),
+    MOCK_TRANSACTIONS
+      .filter(t => t.user_id === user.id)
+      .sort((a, b) => new Date(b.transaction_date) - new Date(a.transaction_date)),
     [user.id]
   )
   const txns = useMemo(() =>
@@ -68,10 +73,9 @@ export default function MyTransactionsScreen() {
   ), [txns.length])
   const keyExtractor = useCallback(item => item.id, [])
 
-  // ── List header: summary strip + filter bar + section card top ────────────
   const ListHeader = useMemo(() => (
     <>
-      {/* Summary stats strip — two KPI cells */}
+      {/* Summary strip */}
       <View style={styles.summaryStrip}>
         <View style={styles.summaryCell}>
           <Text style={styles.summaryLabel}>Total Paid</Text>
@@ -122,7 +126,6 @@ export default function MyTransactionsScreen() {
 
   const ListFooter = useMemo(() => (
     <>
-      {/* Pending notice — shown only when pending items exist */}
       {totalPending > 0 && (
         <View style={styles.pendingNotice}>
           <View style={styles.pendingDot} />
@@ -141,7 +144,6 @@ export default function MyTransactionsScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
-      {/* Detail-layout header bar */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
           <Text style={styles.backArrow}>‹</Text>
@@ -167,9 +169,9 @@ export default function MyTransactionsScreen() {
         }
         style={styles.list}
         showsVerticalScrollIndicator={false}
-        // Row separator inside the section card
+        // Row separator
         ItemSeparatorComponent={() => (
-          <View style={{ marginHorizontal: Spacing.lg, height: 1, backgroundColor: Colors.borderInner }} />
+          <View style={styles.rowSeparator} />
         )}
         removeClippedSubviews
         maxToRenderPerBatch={12}
@@ -181,10 +183,9 @@ export default function MyTransactionsScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1, backgroundColor: Colors.primary },
-  list:   { backgroundColor: Colors.bgApp },
+  safe: { flex: 1, backgroundColor: Colors.primary },
+  list: { backgroundColor: Colors.bgApp },
 
-  // Plain-color detail header
   header: {
     backgroundColor: Colors.primary,
     flexDirection: 'row', alignItems: 'center', gap: 10,
@@ -195,17 +196,15 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 17, fontFamily: Typography.bodyBold, color: '#fff' },
   headerSub:   { fontSize: 12, fontFamily: Typography.body, color: 'rgba(255,255,255,0.5)', marginTop: 1 },
 
-  // Summary strip — white card row
   summaryStrip: {
     flexDirection: 'row', backgroundColor: Colors.white,
     borderBottomWidth: 1, borderBottomColor: Colors.borderInner, ...Shadow.sm,
   },
-  summaryCell:  { flex: 1, alignItems: 'center', paddingVertical: 14, paddingHorizontal: 4 },
+  summaryCell:  { flex: 1, alignItems: 'center', paddingVertical: 14, paddingHorizontal: 8 },
   summaryLabel: { fontSize: 10.5, fontFamily: Typography.bodyMedium, color: Colors.textMuted, marginBottom: 3, textAlign: 'center' },
   summaryValue: { fontSize: 16, fontFamily: Typography.bodyExtraBold, color: Colors.textPrimary, textAlign: 'center' },
   summarySep:   { width: 1, backgroundColor: Colors.borderInner, marginVertical: 10 },
 
-  // Filter bar
   filterBar:     { backgroundColor: Colors.white, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Colors.borderInner },
   filterScroll:  { paddingHorizontal: Spacing.lg, gap: 8 },
   chip:          { paddingHorizontal: 16, paddingVertical: 6, borderRadius: Radius.full, backgroundColor: Colors.neutralLight, borderWidth: 1, borderColor: Colors.borderCard },
@@ -213,7 +212,6 @@ const styles = StyleSheet.create({
   chipText:      { fontSize: 13, fontFamily: Typography.bodySemiBold, color: Colors.textSecondary },
   chipTextActive:{ color: '#fff' },
 
-  // Section card header — unified format (accent bar + title + count badge)
   sectionHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     marginHorizontal: Spacing.lg, marginTop: Spacing.xl,
@@ -230,11 +228,13 @@ const styles = StyleSheet.create({
   sectionBadge:    { backgroundColor: Colors.accentLight, paddingHorizontal: 8, paddingVertical: 2, borderRadius: Radius.full },
   sectionBadgeText:{ fontSize: 11, fontFamily: Typography.bodyBold, color: Colors.accent },
 
-  // Transaction row — inside section card
+  // Transaction row — even padding left/right so content never touches edges
   txRow: {
     flexDirection: 'row', alignItems: 'flex-start',
     marginHorizontal: Spacing.lg,
-    paddingVertical: 13, gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: Spacing.lg, // even horizontal padding
+    gap: 12,
     backgroundColor: Colors.white,
     borderLeftWidth: 1, borderRightWidth: 1, borderColor: Colors.borderCard,
   },
@@ -242,13 +242,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomLeftRadius: Radius.lg, borderBottomRightRadius: Radius.lg,
   },
   txIcon:  { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 },
+  txBody:  { flex: 1, minWidth: 0 }, // flex 1 + minWidth 0 prevents overflow
   txDesc:  { fontSize: 13.5, fontFamily: Typography.bodyBold, color: Colors.textPrimary, marginBottom: 2 },
   txFund:  { fontSize: 12, fontFamily: Typography.bodyMedium, color: Colors.accent, marginBottom: 2 },
   txMeta:  { fontSize: 11.5, color: Colors.textMuted, fontFamily: Typography.body },
   txRef:   { fontSize: 10.5, color: Colors.textMuted, fontFamily: Typography.body, marginTop: 1 },
-  txAmt:   { fontSize: 14, fontFamily: Typography.bodyBold },
+  // Right column — fixed maxWidth so badges fit without squeezing the text
+  txRight: { alignItems: 'flex-end', gap: 4, flexShrink: 0, maxWidth: 120 },
+  txAmt:   { fontSize: 13.5, fontFamily: Typography.bodyBold, textAlign: 'right' },
 
-  // Pending notice
+  // Row separator — stays within card boundaries (matches marginHorizontal of txRow)
+  rowSeparator: { marginHorizontal: Spacing.lg * 2 + Spacing.lg, height: 1, backgroundColor: Colors.borderInner },
+
   pendingNotice: {
     marginHorizontal: Spacing.lg, marginTop: Spacing.md,
     backgroundColor: Colors.warningLight,
@@ -260,7 +265,6 @@ const styles = StyleSheet.create({
   pendingTitle:{ fontSize: 13, fontFamily: Typography.bodyBold, color: Colors.warning, marginBottom: 3 },
   pendingBody: { fontSize: 12.5, color: Colors.textSecondary, lineHeight: 18, fontFamily: Typography.body },
 
-  // Empty state
   emptyWrap:  { alignItems: 'center', padding: 48 },
   emptyIcon:  { width: 56, height: 56, borderRadius: 28, backgroundColor: Colors.neutralLight, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
   emptyTitle: { fontSize: 15, fontFamily: Typography.bodyBold, color: Colors.textSecondary, marginBottom: 5 },

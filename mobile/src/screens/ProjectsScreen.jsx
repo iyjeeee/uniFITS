@@ -1,7 +1,6 @@
 // src/screens/ProjectsScreen.jsx
 // ─────────────────────────────────────────────────────────────────────────────
-// Projects list — full-bleed plain-colour top section (no gradient, no circles,
-// no side margin). Matches the Home and Profile hero style exactly.
+// Projects list — full-bleed plain-colour top section.
 // ─────────────────────────────────────────────────────────────────────────────
 import React, { useState, useCallback, useMemo } from 'react'
 import {
@@ -16,8 +15,12 @@ import { StatusBadge, ProgressBar, ProjectsIcon, Avatar } from '../components/ui
 import { useAuth } from '../context/AuthContext'
 
 const FILTERS = ['All', 'Ongoing', 'Upcoming', 'Completed']
+const STRIPE  = { ongoing: Colors.accent, upcoming: Colors.warning, completed: Colors.success }
 
-const STRIPE = { ongoing: Colors.accent, upcoming: Colors.warning, completed: Colors.success }
+// Sorted by most recent start_date first
+const SORTED_PROJECTS = [...MOCK_PROJECTS].sort(
+  (a, b) => new Date(b.start_date) - new Date(a.start_date)
+)
 
 // ── Project card ──────────────────────────────────────────────────────────────
 const ProjectCard = React.memo(function ProjectCard({ item, onPress }) {
@@ -33,12 +36,7 @@ const ProjectCard = React.memo(function ProjectCard({ item, onPress }) {
         <Text style={[styles.cardType, { color: stripe }]}>{item.project_type}</Text>
         <Text style={styles.cardLoc} numberOfLines={1}>📍 {item.location}</Text>
         <Text style={styles.cardDesc} numberOfLines={2}>{item.description}</Text>
-        <ProgressBar
-          current={item.current_funding}
-          target={item.target_funding}
-          showLabel
-          style={{ marginTop: 12 }}
-        />
+        <ProgressBar current={item.current_funding} target={item.target_funding} showLabel style={{ marginTop: 12 }} />
       </View>
     </TouchableOpacity>
   )
@@ -51,8 +49,8 @@ export default function ProjectsScreen() {
 
   const projects = useMemo(() =>
     filter === 'All'
-      ? MOCK_PROJECTS
-      : MOCK_PROJECTS.filter(p => p.status.toLowerCase() === filter.toLowerCase()),
+      ? SORTED_PROJECTS
+      : SORTED_PROJECTS.filter(p => p.status.toLowerCase() === filter.toLowerCase()),
     [filter]
   )
 
@@ -66,7 +64,6 @@ export default function ProjectsScreen() {
   const renderItem   = useCallback(({ item }) => (
     <ProjectCard item={item} onPress={() => navigation.navigate('ProjectDetail', { item })} />
   ), [navigation])
-
   const keyExtractor = useCallback(item => item.id, [])
 
   return (
@@ -83,44 +80,44 @@ export default function ProjectsScreen() {
         initialNumToRender={6}
         windowSize={5}
         contentContainerStyle={styles.listContent}
-        // ── Header: plain-colour hero + filter bar ──────────────────────────
         ListHeaderComponent={
           <View>
-            {/* Full-bleed plain-colour top — backgroundColor covers edge to edge */}
             <View style={styles.hero}>
               <View style={styles.heroRow}>
+                {/* Left: eyebrow + title + pills row */}
                 <View style={styles.heroLeft}>
                   <View style={styles.eyebrow}>
                     <ProjectsIcon color={Colors.accent} size={13} />
                     <Text style={[styles.eyebrowText, { color: Colors.accent }]}>ORGANIZATION</Text>
                   </View>
                   <Text style={styles.heroTitle}>Projects</Text>
+                  {/* Pills — no bullet dots, white text for status pills */}
                   <View style={styles.pills}>
                     <View style={styles.pill}>
-                      <Text style={styles.pillText}>{counts.all} total</Text>
+                      <Text style={styles.pillText}>{counts.all} Total</Text>
                     </View>
                     <View style={[styles.pill, { borderColor: Colors.accent + '55' }]}>
-                      <View style={[styles.pillDot, { backgroundColor: Colors.accent }]} />
-                      <Text style={[styles.pillText, { color: Colors.accent }]}>{counts.ongoing} ongoing</Text>
+                      <Text style={[styles.pillText, styles.pillWhite]}>{counts.ongoing} Ongoing</Text>
                     </View>
                     <View style={[styles.pill, { borderColor: Colors.success + '55' }]}>
-                      <Text style={[styles.pillText, { color: Colors.success }]}>{counts.completed} done</Text>
+                      <Text style={[styles.pillText, styles.pillWhite]}>{counts.completed} Completed</Text>
                     </View>
                   </View>
                 </View>
-                <Avatar name={user?.full_name ?? ''} size={46} style={styles.avatar} />
+                {/* Right: avatar + Upcoming pill below it */}
+                <View style={styles.heroRight}>
+                  <Avatar name={user?.full_name ?? ''} size={46} style={styles.avatar} />
+                  <View style={[styles.pill, { borderColor: Colors.warning + '55', marginTop: 8 }]}>
+                    <Text style={[styles.pillText, styles.pillWhite]}>{counts.upcoming} Upcoming</Text>
+                  </View>
+                </View>
               </View>
             </View>
-            {/* Filter chip bar */}
             <View style={styles.filterBar}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
                 {FILTERS.map(f => (
-                  <TouchableOpacity
-                    key={f}
-                    onPress={() => setFilter(f)}
-                    activeOpacity={0.75}
-                    style={[styles.chip, filter === f && styles.chipActive]}
-                  >
+                  <TouchableOpacity key={f} onPress={() => setFilter(f)} activeOpacity={0.75}
+                    style={[styles.chip, filter === f && styles.chipActive]}>
                     <Text style={[styles.chipText, filter === f && styles.chipTextActive]}>{f}</Text>
                   </TouchableOpacity>
                 ))}
@@ -141,51 +138,40 @@ export default function ProjectsScreen() {
 }
 
 const styles = StyleSheet.create({
-  // Root containers
-  safe: { flex: 1, backgroundColor: Colors.primary }, // primary fills status-bar gap
+  safe: { flex: 1, backgroundColor: Colors.primary },
   list: { backgroundColor: Colors.bgApp },
   listContent: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg, paddingBottom: 36, gap: 12 },
 
-  // ── Full-bleed plain-colour hero — NO padding on the View itself so
-  //    backgroundColor fills edge-to-edge; content padding is inside heroRow
   hero: {
-    backgroundColor: Colors.primary, // solid flat colour, no gradient
-    marginHorizontal: -Spacing.lg,   // cancel listContent horizontal padding
-    marginTop: -Spacing.lg,          // cancel listContent top padding
-    paddingBottom: Spacing.xl,
+    backgroundColor: Colors.primary,
+    marginHorizontal: -Spacing.lg, marginTop: -Spacing.lg, paddingBottom: Spacing.xl,
   },
   heroRow: {
     flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between',
     paddingHorizontal: Spacing.xl, paddingTop: Spacing.lg,
   },
-  heroLeft: { flex: 1, marginRight: 12 },
-  eyebrow:  { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 6 },
+  heroLeft:  { flex: 1, marginRight: 12 },
+  heroRight: { alignItems: 'flex-end' }, // avatar + Upcoming pill stacked right
+  eyebrow:   { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 6 },
   eyebrowText: { fontSize: 10, fontFamily: Typography.bodyBold, letterSpacing: 2 },
   heroTitle:   { fontSize: 32, fontFamily: Typography.display, color: '#fff', lineHeight: 36, marginBottom: 14 },
-  pills:    { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  pills:       { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
   pill: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: Radius.full,
     backgroundColor: 'rgba(255,255,255,0.09)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
   },
-  pillDot:  { width: 5, height: 5, borderRadius: 3 },
-  pillText: { fontSize: 11.5, fontFamily: Typography.bodyMedium, color: 'rgba(255,255,255,0.8)' },
-  avatar:   { borderWidth: 2, borderColor: 'rgba(255,255,255,0.22)' },
+  pillText:  { fontSize: 11.5, fontFamily: Typography.bodyMedium, color: 'rgba(255,255,255,0.8)' },
+  pillWhite: { color: '#fff' }, // white text for Ongoing/Completed/Upcoming
+  avatar:    { borderWidth: 2, borderColor: 'rgba(255,255,255,0.22)' },
 
-  // Filter chips
-  filterBar: {
-    backgroundColor: Colors.white,
-    marginHorizontal: -Spacing.lg, // cancel listContent horizontal padding
-    borderBottomWidth: 1, borderBottomColor: Colors.borderInner,
-    marginBottom: 0,
-  },
-  filterScroll:  { paddingHorizontal: Spacing.xl, paddingVertical: 12, gap: 8 },
-  chip:          { paddingHorizontal: 16, paddingVertical: 7, borderRadius: Radius.full, backgroundColor: Colors.neutralLight, borderWidth: 1, borderColor: Colors.borderCard },
-  chipActive:    { backgroundColor: Colors.accent, borderColor: Colors.accent },
-  chipText:      { fontSize: 13, fontFamily: Typography.bodySemiBold, color: Colors.textSecondary },
-  chipTextActive:{ color: '#fff' },
+  filterBar:      { backgroundColor: Colors.white, marginHorizontal: -Spacing.lg, borderBottomWidth: 1, borderBottomColor: Colors.borderInner },
+  filterScroll:   { paddingHorizontal: Spacing.xl, paddingVertical: 12, gap: 8 },
+  chip:           { paddingHorizontal: 16, paddingVertical: 7, borderRadius: Radius.full, backgroundColor: Colors.neutralLight, borderWidth: 1, borderColor: Colors.borderCard },
+  chipActive:     { backgroundColor: Colors.accent, borderColor: Colors.accent },
+  chipText:       { fontSize: 13, fontFamily: Typography.bodySemiBold, color: Colors.textSecondary },
+  chipTextActive: { color: '#fff' },
 
-  // Project card
   card: {
     backgroundColor: Colors.white, borderRadius: Radius.lg,
     borderWidth: 1, borderColor: Colors.borderCard,
@@ -200,7 +186,6 @@ const styles = StyleSheet.create({
   cardLoc:    { fontSize: 12, fontFamily: Typography.body, color: Colors.textMuted, marginBottom: 6 },
   cardDesc:   { fontSize: 13, fontFamily: Typography.body, color: Colors.textSecondary, lineHeight: 18 },
 
-  // Empty state
   empty:      { alignItems: 'center', paddingVertical: 48 },
   emptyIcon:  { width: 56, height: 56, borderRadius: 28, backgroundColor: Colors.neutralLight, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
   emptyTitle: { fontSize: 15, fontFamily: Typography.bodyBold, color: Colors.textSecondary, marginBottom: 5 },
