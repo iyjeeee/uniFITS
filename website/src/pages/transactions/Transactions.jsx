@@ -45,7 +45,7 @@ function IconBtn({ children, solidBg, title, onClick }) {
       style={{ width: 32, height: 32, borderRadius: 7, border: 'none', background: solidBg, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform .18s ease, box-shadow .18s ease', flexShrink: 0 }}
       onMouseEnter={e => {
         e.currentTarget.style.transform = 'translateY(-2px)'
-        e.currentTarget.style.boxShadow = '0 0 0 2px rgba(0,0,0,.80), 0 5px 14px rgba(0,0,0,.28)'
+        e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)'
       }}
       onMouseLeave={e => {
         e.currentTarget.style.transform = ''
@@ -190,6 +190,7 @@ export default function Transactions() {
   const [data,         setData]         = useState(MOCK_TRANSACTIONS.map(normalise))
   const [search,       setSearch]       = useState('')
   const [typeFilter,   setTypeFilter]   = useState('all')   // filter by entry_type
+  const [statusFilter, setStatusFilter] = useState('all')   // filter by status
   const [page,         setPage]         = useState(1)
   const [viewItem,     setViewItem]     = useState(null)    // tx open in detail modal
   const [deleteItem,   setDeleteItem]   = useState(null)    // tx pending deletion
@@ -202,11 +203,13 @@ export default function Transactions() {
   const totalIncome  = data.filter(t => t.entry_type !== 'expense').reduce((s, t) => s + t.amount, 0)
   const totalExpense = data.filter(t => t.entry_type === 'expense').reduce((s, t) => s + t.amount, 0)
   const balance      = totalIncome - totalExpense
-  const typeOptions  = ['all', 'contribution', 'income', 'expense']
+  const typeOptions   = ['all', 'contribution', 'income', 'expense']
+  const statusOptions = ['all', 'approved', 'pending', 'rejected']
 
   /* Filter + paginate */
   const filtered = data
-    .filter(t => typeFilter === 'all' || t.entry_type === typeFilter)
+    .filter(t => typeFilter   === 'all' || t.entry_type === typeFilter)
+    .filter(t => statusFilter === 'all' || t.status     === statusFilter)
     .filter(t => Object.values(t).some(v => String(v).toLowerCase().includes(search.toLowerCase())))
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const paged      = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
@@ -267,6 +270,11 @@ export default function Transactions() {
             <select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setPage(1) }}
               style={{ padding: '7px 10px', borderRadius: 7, border: '1.5px solid var(--border-card)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: '#fff', cursor: 'pointer', outline: 'none' }}>
               {typeOptions.map(t => <option key={t} value={t}>{t === 'all' ? 'All Types' : cap(t)}</option>)}
+            </select>
+            {/* Status filter */}
+            <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
+              style={{ padding: '7px 10px', borderRadius: 7, border: '1.5px solid var(--border-card)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: '#fff', cursor: 'pointer', outline: 'none' }}>
+              {statusOptions.map(s => <option key={s} value={s}>{s === 'all' ? 'All Status' : cap(s)}</option>)}
             </select>
             {/* Search */}
             <div style={{ position: 'relative' }}>
@@ -342,12 +350,16 @@ export default function Transactions() {
         footer={
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <button onClick={() => window.print()}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 20px', borderRadius: 9, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 20px', borderRadius: 9, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'transform .18s ease, box-shadow .18s ease' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
               <IcoPrint /> Print
             </button>
             <button onClick={() => setViewItem(null)}
-              style={{ padding: '10px 28px', borderRadius: 9, border: '1.5px solid var(--border-card)', background: 'var(--neutral-light)', color: 'var(--text-primary)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{marginRight:4}}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Close
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '10px 28px', borderRadius: 9, border: '1px solid var(--border-card)', background: 'var(--neutral-light)', color: 'var(--text-primary)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'transform .18s ease, box-shadow .18s ease, background .18s ease' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)'; e.currentTarget.style.background = 'var(--border-inner)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; e.currentTarget.style.background = 'var(--neutral-light)' }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Close
             </button>
           </div>
         }>
@@ -364,12 +376,16 @@ export default function Transactions() {
         footer={
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <button onClick={handleDelete}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 24px', borderRadius: 9, border: 'none', background: 'var(--danger)', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 24px', borderRadius: 9, border: 'none', background: 'var(--danger)', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'transform .18s ease, box-shadow .18s ease' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
               <BtnIco.Delete /> Yes, Delete
             </button>
             <button onClick={() => setDeleteItem(null)}
-              style={{ padding: '10px 28px', borderRadius: 9, border: '1.5px solid var(--border-card)', background: 'var(--neutral-light)', color: 'var(--text-primary)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{marginRight:4}}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Cancel
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '10px 28px', borderRadius: 9, border: '1px solid var(--border-card)', background: 'var(--neutral-light)', color: 'var(--text-primary)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'transform .18s ease, box-shadow .18s ease, background .18s ease' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)'; e.currentTarget.style.background = 'var(--border-inner)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; e.currentTarget.style.background = 'var(--neutral-light)' }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Cancel
             </button>
           </div>
         }>

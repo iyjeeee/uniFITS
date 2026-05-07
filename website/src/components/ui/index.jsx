@@ -102,7 +102,7 @@ export function Button({ children, variant = 'primary', size = 'md', icon, disab
         transition: 'background .18s ease, transform .18s ease, box-shadow .18s ease',
         transform: !disabled && hovered ? 'translateY(-2px)' : 'none',
         /* box-shadow layers: ring (animates smoothly) + depth shadow */
-        boxShadow: !disabled && hovered ? '0 0 0 2px rgba(0,0,0,.80), 0 6px 16px rgba(0,0,0,.22)' : 'none',
+        boxShadow: !disabled && hovered ? '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)' : 'none',
         whiteSpace: 'nowrap', lineHeight: 1.4, ...style,
       }}>
       {icon && icon}
@@ -336,7 +336,7 @@ function CloseButton({ onClose }) {
         color: '#ffffff',    /* always white icon */
         transition: 'background .18s ease, transform .18s ease, box-shadow .18s ease',
         transform: hov ? 'translateY(-1px)' : 'none',
-        boxShadow: hov ? '0 0 0 2px rgba(0,0,0,.80), 0 4px 10px rgba(0,0,0,.25)' : 'none',
+        boxShadow: hov ? '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)' : 'none',
         flexShrink: 0,
       }}>
       <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
@@ -551,12 +551,23 @@ export function ResponseModal({ open, onClose, variant = 'success', title, messa
             style={{
               flex: cancelLabel ? 1 : undefined,
               width: cancelLabel ? undefined : '100%',
-              padding: '11px 32px', borderRadius: 10, border: 'none',
+              padding: '11px 32px', borderRadius: 10,
+              border: 'none',
               background: loading ? 'var(--border)' : v.color,
               color: '#fff', fontSize: 14, fontWeight: 700,
               cursor: loading ? 'not-allowed' : 'pointer',
-              fontFamily: 'var(--font-body)', transition: 'opacity .15s',
+              fontFamily: 'var(--font-body)',
+              transition: 'transform .18s ease, box-shadow .18s ease',
               letterSpacing: '.02em',
+            }}
+            onMouseEnter={e => {
+              if (loading) return
+              e.currentTarget.style.transform = 'translateY(-2px)'
+              e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.transform = ''
+              e.currentTarget.style.boxShadow = ''
             }}>
             {loading ? 'Processing…' : confirmLabel}
           </button>

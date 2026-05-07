@@ -1,6 +1,3 @@
-// PersonalTransactions.jsx — Personal financial contributions and dues
-// Removed page title per spec; tile cards for dues; View All Dues modal with pagination
-// Responsive via useBreakpoint
 import { useState } from 'react'
 import { Card, CardHeader, Button, StatusBadge, Badge, DataTable, InfoModal, ResponseModal } from '../../components/ui'
 import { MOCK_TRANSACTIONS, MOCK_FUNDS, formatCurrency, formatDate } from '../../api/mockData'
@@ -12,6 +9,21 @@ function IcoMoney() { return <svg width="14" height="14" viewBox="0 0 24 24" fil
 function IcoCalendar() { return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> }
 function IcoChevL() { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg> }
 function IcoChevR() { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg> }
+
+/* ── TypeBadge — Income / Expense / Contribution pill ────────── */
+function TypeBadge({ type }) {
+  const map = {
+    income:       { bg: 'var(--success-light)', color: 'var(--success)', label: 'Income'       },
+    expense:      { bg: 'var(--danger-light)',  color: 'var(--danger)',  label: 'Expense'      },
+    contribution: { bg: 'var(--accent-light)',  color: 'var(--accent)',  label: 'Contribution' },
+  }
+  const s = map[type] || { bg: 'var(--neutral-light)', color: 'var(--text-muted)', label: type }
+  return (
+    <span style={{ padding: '2px 10px', borderRadius: 20, fontSize: 11.5, fontWeight: 700, background: s.bg, color: s.color }}>
+      {s.label}
+    </span>
+  )
+}
 
 /* ── Pagination ───────────────────────────────────────────────── */
 function Pagination({ page, total, onChange }) {
@@ -58,6 +70,7 @@ export default function PersonalTransactions({ userId = '1' }) {
   const [selectedDue, setSelectedDue]     = useState(null)  // InfoModal target
   const [showAllDues, setShowAllDues]      = useState(false) // View All modal
   const [duesPage,    setDuesPage]         = useState(1)
+  const [viewTx,      setViewTx]           = useState(null)  // transaction detail modal
 
   /* View All dues — show all funds (required + optional) */
   const ALL_FUNDS     = MOCK_FUNDS
@@ -78,7 +91,7 @@ export default function PersonalTransactions({ userId = '1' }) {
     { label: 'Category',    accessor: 'category', render: r => <Badge variant="neutral">{r.category.charAt(0).toUpperCase() + r.category.slice(1)}</Badge> },
     { label: 'Description', accessor: 'description', render: r => <span style={{ fontSize: 13 }}>{r.description || '—'}</span> },
     { label: 'Method',      accessor: 'payment_method', render: r => <span style={{ fontSize: 13 }}>{r.payment_method}</span> },
-    { label: 'Reference',   key: 'ref',  render: r => <code style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace' }}>{r.reference_number}</code> },
+    { label: 'Reference',   key: 'ref',  render: r => <code style={{ fontSize: 11, color: 'var(--text-primary)', fontFamily: 'monospace' }}>{r.reference_number}</code> },
     { label: 'Status',      key: 'st',   render: r => <StatusBadge status={r.status} /> },
   ]
 
@@ -130,35 +143,109 @@ export default function PersonalTransactions({ userId = '1' }) {
             }
           </div>
 
-          {/* View All Dues button */}
+          {/* View All Dues button — standard Button style with smooth hover */}
           <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border-inner)', textAlign: 'center' }}>
             <button
               onClick={() => { setDuesPage(1); setShowAllDues(true) }}
               style={{
                 padding: '8px 28px', borderRadius: 8,
-                border: '1.5px solid var(--accent)',
-                background: 'var(--accent-light)', color: 'var(--accent)',
+                border: '2px solid transparent',
+                background: 'var(--accent)', color: '#fff',
                 cursor: 'pointer', fontSize: 13, fontWeight: 600,
-                fontFamily: 'var(--font-body)', transition: 'background .15s',
+                fontFamily: 'var(--font-body)',
+                transition: 'transform .18s ease, box-shadow .18s ease, border-color .18s ease',
               }}
-              onMouseEnter={e => e.currentTarget.style.background = 'var(--accent)' && (e.currentTarget.style.color = '#fff')}
-              onMouseLeave={e => { e.currentTarget.style.background = 'var(--accent-light)'; e.currentTarget.style.color = 'var(--accent)' }}>
+              onMouseEnter={e => {
+                e.currentTarget.style.transform   = 'translateY(-2px)'
+                e.currentTarget.style.boxShadow   = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)'
+                e.currentTarget.style.borderColor = 'rgba(0,0,0,.28)'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform   = ''
+                e.currentTarget.style.boxShadow   = ''
+                e.currentTarget.style.borderColor = 'transparent'
+              }}>
               View All Dues ({MOCK_FUNDS.length})
             </button>
           </div>
         </Card>
       </div>
 
-      {/* Full transaction history table */}
+      {/* Full transaction history table — click row for detail */}
       <DataTable
         columns={columns}
         data={myTx}
         title="My Transaction History"
-        subtitle="All your financial contributions and dues"
+        subtitle="All your financial contributions and dues — click any row for details"
         emptyMsg="No transactions found."
+        onRowClick={row => setViewTx(row)}
       />
 
-      {/* ── Due Detail InfoModal ─────────────────────────────── */}
+      {/* ── Transaction Detail InfoModal — same layout as Transactions.jsx ── */}
+      {viewTx && (
+        <InfoModal
+          open={!!viewTx}
+          onClose={() => setViewTx(null)}
+          title={viewTx.description || 'Transaction Detail'}
+          subtitle={`${formatDate(viewTx.transaction_date)} · ${viewTx.fund || '—'}`}
+          accentColor={viewTx.entry_type === 'expense' ? 'var(--danger)' : 'var(--success)'}
+          footer={<Button variant="secondary" onClick={() => setViewTx(null)}>Close</Button>}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Transaction Flow */}
+            <div style={{ marginBottom: 4 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 10 }}>Transaction Flow</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: 100, padding: '12px 14px', borderRadius: 10, background: 'var(--neutral-light)', border: '1px solid var(--border-card)', textAlign: 'center' }}>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 5 }}>From</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)' }}>{viewTx.user_name || 'Me'}</div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                  <TypeBadge type={viewTx.entry_type} />
+                  <svg width="20" height="14" viewBox="0 0 24 14" fill="none"><path d="M0 7h20M15 2l7 5-7 5" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </div>
+                <div style={{ flex: 1, minWidth: 100, padding: '12px 14px', borderRadius: 10, background: viewTx.entry_type === 'expense' ? 'var(--danger-light)' : 'var(--success-light)', border: `1px solid ${viewTx.entry_type === 'expense' ? 'rgba(192,57,43,.20)' : 'rgba(46,125,82,.20)'}`, textAlign: 'center' }}>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 5 }}>To Fund</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)' }}>{viewTx.fund || '—'}</div>
+                </div>
+              </div>
+            </div>
+            {/* Amount + category */}
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
+              <div style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--neutral-light)', border: '1px solid var(--border-card)' }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 5 }}>Category</div>
+                <div style={{ fontSize: 14, fontWeight: 600, textTransform: 'capitalize', color: 'var(--text-primary)' }}>{viewTx.category}</div>
+              </div>
+              <div style={{ padding: '12px 14px', borderRadius: 10, background: viewTx.entry_type === 'expense' ? 'var(--danger-light)' : 'var(--success-light)', border: `1px solid ${viewTx.entry_type === 'expense' ? 'rgba(192,57,43,.20)' : 'rgba(46,125,82,.20)'}` }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 5 }}>Amount</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: viewTx.entry_type === 'expense' ? 'var(--danger)' : 'var(--success)' }}>
+                  {viewTx.entry_type === 'expense' ? '−' : '+'}{formatCurrency(viewTx.amount, org.currency_symbol)}
+                </div>
+              </div>
+            </div>
+            {/* Details grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10 }}>
+              {[
+                ['Date',           formatDate(viewTx.transaction_date)],
+                ['Status',         viewTx.status],
+                ['Payment Method', viewTx.payment_method || '—'],
+                ['Reference No.',  viewTx.reference_number || '—'],
+              ].map(([k, v]) => (
+                <div key={k} style={{ padding: '10px 14px', borderRadius: 10, background: 'var(--neutral-light)', border: '1px solid var(--border-card)' }}>
+                  <div style={{ fontSize: 10.5, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 4 }}>{k}</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)', textTransform: k === 'Status' ? 'capitalize' : 'none' }}>{v}</div>
+                </div>
+              ))}
+            </div>
+            {/* Notes */}
+            {viewTx.notes && (
+              <div style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--neutral-light)', border: '1px solid var(--border-card)' }}>
+                <div style={{ fontSize: 10.5, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 6 }}>Notes</div>
+                <div style={{ fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{viewTx.notes}</div>
+              </div>
+            )}
+          </div>
+        </InfoModal>
+      )}
       {selectedDue && (
         <InfoModal
           open={!!selectedDue}

@@ -89,7 +89,7 @@ function IconBtn({ children, solidBg, title, onClick }) {
       style={{ width: 32, height: 32, borderRadius: 7, border: 'none', background: solidBg, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform .18s ease, box-shadow .18s ease', flexShrink: 0 }}
       onMouseEnter={e => {
         e.currentTarget.style.transform = 'translateY(-2px)'
-        e.currentTarget.style.boxShadow = '0 0 0 2px rgba(0,0,0,.80), 0 5px 14px rgba(0,0,0,.28)'
+        e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)'
       }}
       onMouseLeave={e => {
         e.currentTarget.style.transform = ''
@@ -124,26 +124,76 @@ function PermPill({ perm, active, onToggle, disabled }) {
 }
 
 /* ── Role detail + permission editor content inside InfoModal ────── */
-function RoleModalContent({ role, editPerms, onToggle, org }) {
-  const assigned = MOCK_USERS.filter(u => u.role === role.name)
+function RoleModalContent({ role, editPerms, onToggle, assignedIds, onToggleMember, org }) {
+  const allUsers    = MOCK_USERS
+  const assigned    = allUsers.filter(u => assignedIds.includes(u.id))
+  const unassigned  = allUsers.filter(u => !assignedIds.includes(u.id))
+  const [showAdd, setShowAdd] = useState(false)
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-      {/* Assigned members */}
-      {assigned.length > 0 && (
-        <div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 10 }}>
-            Assigned Members ({assigned.length})
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {assigned.map(u => (
-              <span key={u.id} style={{ padding: '4px 12px', borderRadius: 20, background: 'var(--table-head-bg)', border: '1px solid var(--border-card)', fontSize: 13, fontWeight: 500 }}>
+      {/* Assigned members — editable */}
+      <div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span>Assigned Members ({assigned.length})</span>
+          <button
+            onClick={() => setShowAdd(v => !v)}
+            style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 6, transition: 'background .15s' }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--accent-light)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+            {showAdd ? '− Hide' : '+ Add Member'}
+          </button>
+        </div>
+
+        {/* Current assigned members — click to remove */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: showAdd ? 10 : 0 }}>
+          {assigned.length === 0
+            ? <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>No members assigned yet.</span>
+            : assigned.map(u => (
+              <button key={u.id}
+                onClick={() => onToggleMember(u.id)}
+                title="Click to remove"
+                style={{
+                  padding: '4px 12px', borderRadius: 20, fontSize: 13, fontWeight: 600,
+                  background: 'var(--accent)', color: '#fff',          /* white text on accent bg */
+                  border: 'none', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  transition: 'background .15s, transform .15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--danger)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.transform = '' }}>
                 {u.full_name}
-              </span>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            ))
+          }
+        </div>
+
+        {/* Add unassigned members dropdown list */}
+        {showAdd && unassigned.length > 0 && (
+          <div style={{ padding: '10px 14px', borderRadius: 10, border: '1.5px solid var(--border-card)', background: 'var(--neutral-light)', display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            <div style={{ width: '100%', fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 600, marginBottom: 4 }}>Click to add:</div>
+            {unassigned.map(u => (
+              <button key={u.id}
+                onClick={() => onToggleMember(u.id)}
+                style={{
+                  padding: '4px 12px', borderRadius: 20, fontSize: 13, fontWeight: 500,
+                  background: '#fff', color: 'var(--text-primary)',
+                  border: '1.5px solid var(--border-card)', cursor: 'pointer',
+                  transition: 'background .15s, border-color .15s, color .15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'var(--accent)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.borderColor = 'var(--border-card)' }}>
+                + {u.full_name}
+              </button>
             ))}
           </div>
-        </div>
-      )}
+        )}
+        {showAdd && unassigned.length === 0 && (
+          <div style={{ fontSize: 13, color: 'var(--text-muted)', padding: '8px 0' }}>All members are already assigned to this role.</div>
+        )}
+      </div>
 
       {/* Permissions editor grouped by module */}
       <div>
@@ -162,7 +212,7 @@ function RoleModalContent({ role, editPerms, onToggle, org }) {
                   perm={p}
                   active={editPerms.includes(p.key)}
                   onToggle={() => onToggle(p.key)}
-                  disabled={false} /* all roles editable — system roles can be customized */
+                  disabled={false}
                 />
               ))}
             </div>
@@ -184,7 +234,7 @@ function AddRoleContent({ form, setForm }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '.04em', fontSize: 12 }}>Role Name *</label>
+        <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '.04em' }}>Role Name *</label>
         <input
           value={form.name}
           onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
@@ -259,20 +309,28 @@ export default function RolesPage() {
   const [roles,        setRoles]        = useState(MOCK_ROLES)
   const [viewRole,     setViewRole]     = useState(null)    // role open in detail modal
   const [editPerms,    setEditPerms]    = useState([])      // permission state inside detail modal
+  const [assignedIds,  setAssignedIds]  = useState([])      // member assignment state inside detail modal
   const [showAdd,      setShowAdd]      = useState(false)   // add role modal
   const [deleteItem,   setDeleteItem]   = useState(null)    // role pending deletion
   const [actionResult, setActionResult] = useState(null)    // feedback
   const [addForm,      setAddForm]      = useState({ name: '', description: '', permissions: [] })
 
-  /* Open detail modal — load role's current permissions into edit state */
+  /* Open detail modal — load role's current permissions + assigned members */
   function openDetail(role) {
     setViewRole(role)
     setEditPerms([...role.permissions])
+    // Derive assigned member ids from MOCK_USERS where role name matches
+    setAssignedIds(MOCK_USERS.filter(u => u.role === role.name).map(u => u.id))
   }
 
   /* Toggle a permission inside the detail modal */
   function togglePerm(key) {
     setEditPerms(prev => prev.includes(key) ? prev.filter(p => p !== key) : [...prev, key])
+  }
+
+  /* Toggle a member assignment inside the detail modal */
+  function toggleMember(uid) {
+    setAssignedIds(prev => prev.includes(uid) ? prev.filter(id => id !== uid) : [...prev, uid])
   }
 
   /* Save permission changes */
@@ -401,16 +459,20 @@ export default function RolesPage() {
         footer={
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <button onClick={handleSavePerms}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 22px', borderRadius: 9, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 22px', borderRadius: 9, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'transform .18s ease, box-shadow .18s ease' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
               <BtnIco.Shield /> Save Permissions
             </button>
             <button onClick={() => setViewRole(null)}
-              style={{ padding: '10px 28px', borderRadius: 9, border: '1.5px solid var(--border-card)', background: 'var(--neutral-light)', color: 'var(--text-primary)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+              style={{ padding: '10px 28px', borderRadius: 9, border: '1.5px solid var(--border-card)', background: 'var(--neutral-light)', color: 'var(--text-primary)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'transform .18s ease, box-shadow .18s ease' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{marginRight:4}}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Close
             </button>
           </div>
         }>
-        {viewRole && <RoleModalContent role={viewRole} editPerms={editPerms} onToggle={togglePerm} org={org} />}
+        {viewRole && <RoleModalContent role={viewRole} editPerms={editPerms} onToggle={togglePerm} assignedIds={assignedIds} onToggleMember={toggleMember} org={org} />}
       </InfoModal>
 
       {/* ── Add Role InfoModal ───────────────────────────────────── */}
@@ -424,11 +486,15 @@ export default function RolesPage() {
         footer={
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <button onClick={handleCreate} disabled={!addForm.name.trim()}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 22px', borderRadius: 9, border: 'none', background: addForm.name.trim() ? 'var(--accent)' : 'var(--border)', color: '#fff', fontSize: 14, fontWeight: 600, cursor: addForm.name.trim() ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-body)' }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 22px', borderRadius: 9, border: 'none', background: addForm.name.trim() ? 'var(--accent)' : 'var(--border)', color: '#fff', fontSize: 14, fontWeight: 600, cursor: addForm.name.trim() ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-body)', transition: 'transform .18s ease, box-shadow .18s ease' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
               <BtnIco.Plus /> Create Role
             </button>
             <button onClick={() => { setShowAdd(false); setAddForm({ name: '', description: '', permissions: [] }) }}
-              style={{ padding: '10px 28px', borderRadius: 9, border: '1.5px solid var(--border-card)', background: 'var(--neutral-light)', color: 'var(--text-primary)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+              style={{ padding: '10px 28px', borderRadius: 9, border: '1.5px solid var(--border-card)', background: 'var(--neutral-light)', color: 'var(--text-primary)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'transform .18s ease, box-shadow .18s ease' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{marginRight:4}}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Cancel
             </button>
           </div>
@@ -446,11 +512,15 @@ export default function RolesPage() {
         footer={
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <button onClick={handleDelete}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 24px', borderRadius: 9, border: 'none', background: 'var(--danger)', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 24px', borderRadius: 9, border: 'none', background: 'var(--danger)', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'transform .18s ease, box-shadow .18s ease' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
               <BtnIco.Delete /> Yes, Delete
             </button>
             <button onClick={() => setDeleteItem(null)}
-              style={{ padding: '10px 28px', borderRadius: 9, border: '1.5px solid var(--border-card)', background: 'var(--neutral-light)', color: 'var(--text-primary)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+              style={{ padding: '10px 28px', borderRadius: 9, border: '1.5px solid var(--border-card)', background: 'var(--neutral-light)', color: 'var(--text-primary)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'transform .18s ease, box-shadow .18s ease' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{marginRight:4}}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Cancel
             </button>
           </div>

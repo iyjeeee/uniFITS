@@ -20,7 +20,7 @@ export function IconBtn({ children, solidBg, title, onClick }) {
       }}
       onMouseEnter={e => {
         e.currentTarget.style.transform = 'translateY(-2px)'
-        e.currentTarget.style.boxShadow = '0 0 0 2px rgba(0,0,0,.80), 0 5px 14px rgba(0,0,0,.28)'
+        e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)'
       }}
       onMouseLeave={e => {
         e.currentTarget.style.transform = ''

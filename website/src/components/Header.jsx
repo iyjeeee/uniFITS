@@ -85,7 +85,7 @@ export default function Header({ page, sub, onMenuClick, navigate, onLogout, cur
         style={iconBtn}
         onMouseEnter={e => {
           e.currentTarget.style.transform    = 'translateY(-2px)'
-          e.currentTarget.style.boxShadow   = '0 0 0 2px rgba(0,0,0,.80), 0 5px 14px rgba(0,0,0,.22)'
+          e.currentTarget.style.boxShadow   = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)'
           e.currentTarget.style.background  = 'var(--neutral-light)'
           e.currentTarget.style.borderColor = 'var(--accent)'
           e.currentTarget.style.color       = 'var(--accent)'
@@ -128,7 +128,7 @@ export default function Header({ page, sub, onMenuClick, navigate, onLogout, cur
             aria-label={`${unreadCount} unread notifications`}
             onMouseEnter={e => {
               e.currentTarget.style.transform    = 'translateY(-2px)'
-              e.currentTarget.style.boxShadow   = '0 0 0 2px rgba(0,0,0,.80), 0 5px 14px rgba(0,0,0,.22)'
+              e.currentTarget.style.boxShadow   = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)'
               e.currentTarget.style.background  = 'var(--neutral-light)'
               e.currentTarget.style.borderColor = 'var(--accent)'
               e.currentTarget.style.color       = 'var(--accent)'
@@ -232,7 +232,7 @@ export default function Header({ page, sub, onMenuClick, navigate, onLogout, cur
                   style={{ ...dropItem, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 9, margin: '3px 8px', borderRadius: 7, transition: 'transform .18s ease, box-shadow .18s ease, background .12s ease' }}
                   onMouseEnter={e => {
                     e.currentTarget.style.transform = 'translateY(-2px)'
-                    e.currentTarget.style.boxShadow = '0 0 0 2px rgba(0,0,0,.80), 0 5px 14px rgba(0,0,0,.28)'
+                    e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)'
                     e.currentTarget.style.background = 'var(--neutral-light)'
                   }}
                   onMouseLeave={e => {
@@ -250,7 +250,7 @@ export default function Header({ page, sub, onMenuClick, navigate, onLogout, cur
                   style={{ width: '100%', padding: '9px 12px', background: 'var(--danger-light)', border: '1px solid transparent', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--danger)', fontFamily: 'var(--font-body)', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 9, transition: 'transform .18s ease, box-shadow .18s ease, background .12s ease, color .12s ease' }}
                   onMouseEnter={e => {
                     e.currentTarget.style.transform = 'translateY(-2px)'
-                    e.currentTarget.style.boxShadow = '0 0 0 2px rgba(0,0,0,.80), 0 5px 14px rgba(0,0,0,.28)'
+                    e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)'
                     e.currentTarget.style.background = 'var(--danger)'
                     e.currentTarget.style.color = '#fff'
                   }}

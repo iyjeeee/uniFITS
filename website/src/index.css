@@ -167,9 +167,9 @@ button {
 button:not(:disabled):hover {
   transform: translateY(-2px);
   /* Layer 1 (spread): dark border ring; Layer 2 (blur): depth shadow — both animate smoothly */
-  box-shadow: 0 0 0 2px rgba(0,0,0,.80), 0 6px 16px rgba(0,0,0,.22);
+  box-shadow: 0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14);
 }
 button:not(:disabled):active {
   transform: translateY(0);
-  box-shadow: 0 0 0 2px rgba(0,0,0,.80);
+  box-shadow: 0 0 0 1.5px rgba(0,0,0,.70);
 }

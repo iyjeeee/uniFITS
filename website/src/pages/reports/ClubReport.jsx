@@ -33,17 +33,28 @@ function ReportSection({ title, children }) {
 }
 
 /* ── Two-col stat row ─────────────────────────────────────────────── */
-function StatRow({ label, value, color, bold, indent, border }) {
+function StatRow({ label, value, color, bold, indent, border, whiteLabel }) {
+  // whiteLabel=true: INCOME/EXPENSES/NET SURPLUS header rows — accent bg, white text
+  // bold without whiteLabel: total rows — color-tinted light bg so green/red stays visible
+  const isHeader   = bold && whiteLabel
+  const isTotalRow = bold && !whiteLabel
+  const rowBg = isHeader
+    ? 'var(--accent)'
+    : isTotalRow
+      ? color === 'var(--success)' ? 'rgba(46,125,82,.10)'
+      : color === 'var(--danger)'  ? 'rgba(192,57,43,.10)'
+      : 'rgba(75,94,170,.10)'
+    : 'transparent'
   return (
     <div style={{
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      padding: '8px 14px',
+      padding: '9px 14px',
       paddingLeft: indent ? 28 : 14,
       borderBottom: border ? '2px solid var(--text-primary)' : '1px solid var(--border-inner)',
-      background: bold ? 'var(--table-head-bg)' : 'transparent',
+      background: rowBg,
     }}>
-      <span style={{ fontSize: 13.5, fontWeight: bold ? 700 : 400, color: 'var(--text-primary)' }}>{label}</span>
-      <span style={{ fontSize: 14, fontWeight: bold ? 800 : 600, color: color || 'var(--text-primary)' }}>{value}</span>
+      <span style={{ fontSize: 13.5, fontWeight: bold ? 700 : 400, color: isHeader ? '#fff' : 'var(--text-primary)' }}>{label}</span>
+      <span style={{ fontSize: 14, fontWeight: bold ? 800 : 600, color: isHeader ? '#fff' : (color || 'var(--text-primary)') }}>{value}</span>
     </div>
   )
 }
@@ -215,7 +226,7 @@ export default function ClubReport() {
             <ReportSection title="II. Statement of Income & Expenses">
               <div style={{ borderRadius: 10, overflow: 'hidden', border: '1.5px solid var(--border-card)' }}>
                 {/* Income */}
-                <StatRow label="INCOME" value="" bold />
+                <StatRow label="INCOME" value="" bold whiteLabel />
                 <StatRow label="Member Dues & Contributions"     value={formatCurrency(memberDues,    org.currency_symbol)} indent color="var(--success)" />
                 <StatRow label="Project-Related Income"          value={formatCurrency(projectIncome, org.currency_symbol)} indent color="var(--success)" />
                 <StatRow label="Event-Related Income"            value={formatCurrency(eventIncome,   org.currency_symbol)} indent color="var(--success)" />
@@ -224,7 +235,7 @@ export default function ClubReport() {
 
                 {/* Expenses */}
                 <div style={{ height: 8 }} />
-                <StatRow label="EXPENSES" value="" bold />
+                <StatRow label="EXPENSES" value="" bold whiteLabel />
                 <StatRow label="Project Expenses"                value={formatCurrency(projectExpense, org.currency_symbol)} indent color="var(--danger)" />
                 <StatRow label="Event Expenses"                  value={formatCurrency(eventExpense,   org.currency_symbol)} indent color="var(--danger)" />
                 <StatRow label="Operational / Utility Expenses"  value={formatCurrency(utilityExpense, org.currency_symbol)} indent color="var(--danger)" />
@@ -233,7 +244,7 @@ export default function ClubReport() {
                 {/* Net */}
                 <div style={{ height: 8 }} />
                 <StatRow
-                  label={`NET ${netSurplus >= 0 ? 'SURPLUS' : 'DEFICIT'}`}
+                  label={`NET ${netSurplus >= 0 ? 'SURPLUS' : 'DEFICIT'}`} whiteLabel
                   value={`${netSurplus >= 0 ? '+' : '−'}${formatCurrency(Math.abs(netSurplus), org.currency_symbol)}`}
                   bold color={netSurplus >= 0 ? 'var(--success)' : 'var(--danger)'} border
                 />
@@ -245,9 +256,9 @@ export default function ClubReport() {
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                   <thead>
-                    <tr style={{ background: 'var(--table-head-bg)' }}>
+                    <tr style={{ background: 'var(--accent)' }}>
                       {['Fund Name', 'Type', 'Status', 'Total Received', 'Total Spent', 'Current Balance'].map(h => (
-                        <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--table-head-fg)', textTransform: 'uppercase', letterSpacing: '.06em', borderBottom: '2px solid var(--border-table)', whiteSpace: 'nowrap' }}>{h}</th>
+                        <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#fff', textTransform: 'uppercase', letterSpacing: '.06em', borderBottom: '2px solid var(--border-table)', whiteSpace: 'nowrap' }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -266,7 +277,7 @@ export default function ClubReport() {
                         <td style={{ padding: '10px 14px', fontWeight: 800, color: 'var(--accent)'  }}>{formatCurrency(f.balance,  org.currency_symbol)}</td>
                       </tr>
                     ))}
-                    <tr style={{ background: 'var(--table-head-bg)', fontWeight: 700 }}>
+                    <tr style={{ background: '#EAECF0', fontWeight: 700 }}>
                       <td colSpan={3} style={{ padding: '10px 14px', fontWeight: 700 }}>TOTAL</td>
                       <td style={{ padding: '10px 14px', fontWeight: 800, color: 'var(--success)' }}>
                         {formatCurrency(fundRows.reduce((s, f) => s + f.received, 0), org.currency_symbol)}
@@ -337,10 +348,11 @@ export default function ClubReport() {
             {/* ── Report footer ───────────────────────────────── */}
             <div style={{ marginTop: 32, paddingTop: 20, borderTop: '2px solid var(--border-inner)', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 24 }}>
               {['Prepared by', 'Reviewed by', 'Approved by'].map(role => (
-                <div key={role} style={{ textAlign: 'center', minWidth: 150 }}>
-                  <div style={{ height: 1, background: 'var(--text-primary)', marginBottom: 8, width: '100%' }} />
-                  <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{role}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Signature over Printed Name</div>
+                <div key={role} style={{ textAlign: 'center', minWidth: 160, flex: 1 }}>
+                  {/* Signature space — 72px gives enough room to write */}
+                  <div style={{ height: 72, borderBottom: '1.5px solid var(--text-primary)', marginBottom: 8, width: '100%' }} />
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{role}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 3 }}>Signature over Printed Name</div>
                 </div>
               ))}
             </div>

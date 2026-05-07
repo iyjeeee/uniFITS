@@ -109,7 +109,7 @@ function CalDay({ day, isToday, hasAct, projects, events, totalActs, onClick }) 
         /* Smooth hover transition — same as buttons */
         transition: 'background .18s ease, border-color .18s ease, transform .18s ease, box-shadow .18s ease',
         transform: hov && hasAct ? 'translateY(-2px)' : 'none',
-        boxShadow: hov && hasAct ? '0 0 0 2px rgba(0,0,0,.75), 0 5px 12px rgba(0,0,0,.14)' : 'none',
+        boxShadow: hov && hasAct ? '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)' : 'none',
       }}>
 
       {/* Day number */}
