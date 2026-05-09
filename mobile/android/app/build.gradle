@@ -1,0 +1,61 @@
+plugins {
+    id "com.android.application"
+    id "org.jetbrains.kotlin.android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+android {
+    namespace "com.unifits.mobile"
+    compileSdk 35
+    ndkVersion "27.0.12077973"
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
+    defaultConfig {
+        applicationId "com.unifits.mobile"
+        minSdk 21
+        targetSdk 35
+        versionCode 1
+        versionName "1.0.0"
+    }
+
+    buildTypes {
+        debug {
+            debuggable true
+        }
+        release {
+            signingConfig signingConfigs.debug
+            minifyEnabled false
+            shrinkResources false
+        }
+    }
+}
+
+flutter {
+    source "../.."
+}
+
+// Fix: copy APK to the path flutter tool expects after every build
+afterEvaluate {
+    android.applicationVariants.all { variant ->
+        variant.assembleProvider.get().doLast {
+            def apkDir  = new File("${rootProject.projectDir}/../build/app/outputs/flutter-apk")
+            apkDir.mkdirs()
+            variant.outputs.each { output ->
+                def src = output.outputFile
+                def dst = new File(apkDir, src.name)
+                if (src.exists()) {
+                    dst.bytes = src.bytes
+                    println "Copied ${src.name} → build/app/outputs/flutter-apk/"
+                }
+            }
+        }
+    }
+}

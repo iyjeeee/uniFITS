@@ -346,25 +346,46 @@ function CloseButton({ onClose }) {
   )
 }
 
-// ── InfoModal — large detail/form modal (max 800px wide, up to 90vh tall) ─────
-// editMode=true: border transitions smoothly to purple (#7C3AED) with "Editing" chip
-// — gives a clear visual distinction between view-mode and edit-mode states
-// Smooth open (scale+fade in) and close (fade out only) animation via CSS keyframes
+// ── InfoModal — large detail/form modal (max 800px wide, up to 92vh tall) ─────
+// Uses CSS transition (not keyframe animation) for open/close — no flicker, no reappear,
+// no resize. Same pattern as ResponseModal: `closing` bool + useRef timer.
 export function InfoModal({ open, onClose, title, subtitle, accentColor = 'var(--accent)', editMode = false, children, footer }) {
-  const [visible, setVisible] = useState(false)   // controls DOM mount/unmount
-  const [anim,    setAnim]    = useState('in')    // 'in' | 'out' animation direction
+  const [visible,   setVisible]   = useState(false)
+  const [closing,   setClosing]   = useState(false)
+  const timerRef   = useRef(null)
+  const closingRef = useRef(false)
 
-  const EDIT_COLOR  = '#7C3AED'                   // purple — universal edit indicator
+  const EDIT_COLOR  = '#7C3AED'
   const borderColor = editMode ? EDIT_COLOR : accentColor
 
   useEffect(() => {
+    // Cancel any pending close timer immediately
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+
     if (open) {
+      closingRef.current = false
+      setClosing(false)
       setVisible(true)
-      requestAnimationFrame(() => setAnim('in'))
     } else {
-      setAnim('out')
-      const t = setTimeout(() => setVisible(false), 220)
-      return () => clearTimeout(t)
+      if (!visible && !closingRef.current) return
+      closingRef.current = true
+      setClosing(true)
+      timerRef.current = setTimeout(() => {
+        timerRef.current   = null
+        closingRef.current = false
+        setVisible(false)
+        setClosing(false)
+      }, 240)
+    }
+
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current)
+        timerRef.current = null
+      }
     }
   }, [open])
 
@@ -377,25 +398,20 @@ export function InfoModal({ open, onClose, title, subtitle, accentColor = 'var(-
         position: 'fixed', inset: 0, zIndex: 300,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: '20px 16px', backdropFilter: 'blur(3px)',
-        background: anim === 'in' ? 'rgba(15,18,30,.55)' : 'rgba(15,18,30,0)',
+        background: closing ? 'rgba(15,18,30,0)' : 'rgba(15,18,30,.55)',
         transition: 'background .22s ease',
+        pointerEvents: closing ? 'none' : 'auto',
       }}
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      onClick={e => { if (e.target === e.currentTarget && !closing) onClose() }}>
       <div style={{
         background: 'var(--white)', borderRadius: 16,
         boxShadow: '0 12px 48px rgba(0,0,0,.22), 0 36px 96px rgba(0,0,0,.20)',
         width: '100%', maxWidth: 920, maxHeight: '92vh',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
-        /* Border color transitions smoothly between status color ↔ edit purple */
         border: 'none',
-        transition: 'none',
-        /* will-change:opacity tells browser to composite on GPU layer —
-           prevents any layout recalculation during the opacity animation
-           which was the secondary cause of the "size change" artifact */
-        willChange: 'opacity',
-        animation: anim === 'in'
-          ? 'modalSlideIn .20s ease forwards'
-          : 'modalSlideOut .18s ease forwards',
+        opacity: closing ? 0 : 1,
+        transform: closing ? 'scale(.98) translateY(6px)' : 'scale(1) translateY(0)',
+        transition: 'opacity .22s ease, transform .22s ease',
       }}>
         {/* Header */}
         <div style={{
@@ -405,7 +421,6 @@ export function InfoModal({ open, onClose, title, subtitle, accentColor = 'var(-
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.25 }}>{title}</div>
-              {/* "Editing" chip — appears when editMode is true */}
               {editMode && (
                 <span style={{ padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: '#EDE9FE', color: EDIT_COLOR, border: `1px solid ${EDIT_COLOR}40`, whiteSpace: 'nowrap' }}>
                   Editing
@@ -431,7 +446,6 @@ export function InfoModal({ open, onClose, title, subtitle, accentColor = 'var(-
     </div>
   )
 }
-
 // ── ResponseModal — compact feedback modal (max 460px) ─────────────────────────
 // Variant usage:
 //   success → green  — saved, posted, accepted, confirmed, completed, approved
@@ -463,54 +477,84 @@ const RESPONSE_VARIANTS = {
 }
 
 // ResponseModal — compact feedback/confirmation modal (max 460px)
-// Smooth open (spring scale-in) and close (fade-out) animation
+// Uses Button component for action buttons — hover fully consistent with design system
+// Animation: CSS opacity+transform transition driven by `closing` state
+// Timer stored in ref so it's always properly cancelled — no stale closure bugs
 export function ResponseModal({ open, onClose, variant = 'success', title, message, confirmLabel = 'OK', cancelLabel, onConfirm, loading = false }) {
-  const [visible,  setVisible]  = useState(false)     // controls DOM mount
-  const [anim,     setAnim]     = useState('in')      // 'in' | 'out' animation state
-  // Snapshot — keeps variant/title/message frozen during close animation
-  // so the modal doesn't flash to green ('success' default) while fading out
+  const [visible,  setVisible]  = useState(false)
+  const [closing,  setClosing]  = useState(false)
+  const timerRef  = useRef(null)   // ref so the timer can always be cancelled
+  const closingRef = useRef(false) // ref mirror of closing — avoids stale closure reads
+
+  // Snapshot freezes variant/title/message during close animation
   const [snapshot, setSnapshot] = useState({ variant, title, message, confirmLabel, cancelLabel })
 
   useEffect(() => {
+    // Always clear any pending close timer first
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+
     if (open) {
+      // Opening: freeze content, reset close state, mount
       setSnapshot({ variant, title, message, confirmLabel, cancelLabel })
+      closingRef.current = false
+      setClosing(false)
       setVisible(true)
-      requestAnimationFrame(() => setAnim('in'))
     } else {
-      setAnim('out')
-      const t = setTimeout(() => setVisible(false), 200)
-      return () => clearTimeout(t)
+      // Closing: only animate if the modal is actually visible and not already closing
+      if (!visible && !closingRef.current) return
+      closingRef.current = true
+      setClosing(true)
+      timerRef.current = setTimeout(() => {
+        timerRef.current = null
+        closingRef.current = false
+        setVisible(false)
+        setClosing(false)
+      }, 240)
+    }
+
+    // Cleanup on unmount — cancel any pending close timer
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current)
+        timerRef.current = null
+      }
     }
   }, [open])
 
   useModalLock(visible)
   if (!visible) return null
-  // Use snapshot during close animation to prevent variant reversion to default
-  const frozenVariant = anim === 'out' ? snapshot.variant : variant
-  const frozenTitle   = anim === 'out' ? snapshot.title   : title
-  const frozenMessage = anim === 'out' ? snapshot.message : message
-  const v = RESPONSE_VARIANTS[frozenVariant] || RESPONSE_VARIANTS.info
+
+  const sv = closing ? snapshot.variant      : variant
+  const st = closing ? snapshot.title        : title
+  const sm = closing ? snapshot.message      : message
+  const sc = closing ? snapshot.confirmLabel : confirmLabel
+  const sk = closing ? snapshot.cancelLabel  : cancelLabel
+  const v  = RESPONSE_VARIANTS[sv] || RESPONSE_VARIANTS.info
+  const btnVariant = sv === 'danger' ? 'danger' : sv === 'success' ? 'success' : 'primary'
+
   return (
     <div
-      style={{ position: 'fixed', inset: 0, zIndex: 400,
+      style={{
+        position: 'fixed', inset: 0, zIndex: 400,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: '20px 16px', backdropFilter: 'blur(3px)',
-        background: anim === 'in' ? 'rgba(15,18,30,.58)' : 'rgba(15,18,30,0)',
+        background: closing ? 'rgba(15,18,30,0)' : 'rgba(15,18,30,.58)',
         transition: 'background .22s ease',
+        pointerEvents: closing ? 'none' : 'auto',
       }}
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      onClick={e => { if (e.target === e.currentTarget && !closing) onClose() }}>
       <div style={{
         background: 'var(--white)', borderRadius: 18,
         boxShadow: '0 12px 48px rgba(0,0,0,.22), 0 36px 96px rgba(0,0,0,.20)',
         width: '100%', maxWidth: 460, overflow: 'hidden',
         border: 'none',
-        willChange: 'opacity',
-        animation: anim === 'in'
-          ? 'modalSlideIn .20s ease forwards'
-          : 'modalSlideOut .18s ease forwards',
+        opacity: closing ? 0 : 1,
+        transform: closing ? 'scale(.96) translateY(6px)' : 'scale(1) translateY(0)',
+        transition: 'opacity .22s ease, transform .22s ease',
       }}>
-        {/* No top strip — border color carries the visual identity */}
-
         {/* Icon + content */}
         <div style={{ padding: '32px 32px 24px', textAlign: 'center' }}>
           <div style={{
@@ -522,61 +566,43 @@ export function ResponseModal({ open, onClose, variant = 'success', title, messa
             {v.icon}
           </div>
           <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10, lineHeight: 1.25 }}>
-            {frozenTitle}
+            {st}
           </div>
-          {frozenMessage && (
+          {sm && (
             <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7, maxWidth: 340, margin: '0 auto' }}>
-              {frozenMessage}
+              {sm}
             </div>
           )}
         </div>
 
-        {/* Action buttons */}
-        <div style={{ padding: '0 32px 28px', display: 'flex', gap: 12, flexDirection: cancelLabel ? 'row' : 'column' }}>
-          {cancelLabel && (
-            <button onClick={onClose} style={{
-              flex: 1, padding: '11px 0', borderRadius: 10,
-              border: '2px solid var(--border-card)',
-              background: 'var(--neutral-light)', color: 'var(--text-primary)',
-              fontSize: 14, fontWeight: 600, cursor: 'pointer',
-              fontFamily: 'var(--font-body)', transition: 'background .15s',
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = 'var(--border-inner)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'var(--neutral-light)'}
-            >{cancelLabel}</button>
+        {/* Action buttons — Button component ensures hover is identical to all other buttons */}
+        <div style={{ padding: '0 32px 28px', display: 'flex', gap: 12, flexDirection: sk ? 'row' : 'column' }}>
+          {sk && (
+            <Button
+              variant="secondary"
+              style={{ flex: 1, justifyContent: 'center', padding: '11px 0', borderRadius: 10 }}
+              onClick={onClose}>
+              {sk}
+            </Button>
           )}
-          <button
-            onClick={onConfirm || onClose}
+          <Button
+            variant={btnVariant}
             disabled={loading}
             style={{
-              flex: cancelLabel ? 1 : undefined,
-              width: cancelLabel ? undefined : '100%',
-              padding: '11px 32px', borderRadius: 10,
-              border: 'none',
-              background: loading ? 'var(--border)' : v.color,
-              color: '#fff', fontSize: 14, fontWeight: 700,
-              cursor: loading ? 'not-allowed' : 'pointer',
-              fontFamily: 'var(--font-body)',
-              transition: 'transform .18s ease, box-shadow .18s ease',
-              letterSpacing: '.02em',
+              flex: sk ? 1 : undefined,
+              width: sk ? undefined : '100%',
+              justifyContent: 'center',
+              padding: '11px 32px',
+              borderRadius: 10,
             }}
-            onMouseEnter={e => {
-              if (loading) return
-              e.currentTarget.style.transform = 'translateY(-2px)'
-              e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)'
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.transform = ''
-              e.currentTarget.style.boxShadow = ''
-            }}>
-            {loading ? 'Processing…' : confirmLabel}
-          </button>
+            onClick={onConfirm || onClose}>
+            {loading ? 'Processing…' : sc}
+          </Button>
         </div>
       </div>
     </div>
   )
 }
-
 // ── Modal — backwards-compatible alias → routes to InfoModal ──────────────────
 // All existing <Modal> usages continue to work unchanged
 export function Modal({ open, onClose, title, subtitle, children, width, footer }) {

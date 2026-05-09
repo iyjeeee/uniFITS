@@ -268,12 +268,16 @@ export default function Transactions() {
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             {/* Entry type filter */}
             <select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setPage(1) }}
-              style={{ padding: '7px 10px', borderRadius: 7, border: '1.5px solid var(--border-card)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: '#fff', cursor: 'pointer', outline: 'none' }}>
+              style={{ padding: '7px 26px 7px 10px', borderRadius: 7, border: '1px solid var(--border-card)', fontSize: 13, fontFamily: 'var(--font-body)', color: '#fff', background: '#5A6474', cursor: 'pointer', outline: 'none', transition: 'background .18s ease, transform .18s ease, box-shadow .18s ease', appearance: 'none', WebkitAppearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23ffffff' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '10px' }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#4A5264'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#5A6474'; e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
               {typeOptions.map(t => <option key={t} value={t}>{t === 'all' ? 'All Types' : cap(t)}</option>)}
             </select>
             {/* Status filter */}
             <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
-              style={{ padding: '7px 10px', borderRadius: 7, border: '1.5px solid var(--border-card)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: '#fff', cursor: 'pointer', outline: 'none' }}>
+              style={{ padding: '7px 26px 7px 10px', borderRadius: 7, border: '1px solid var(--border-card)', fontSize: 13, fontFamily: 'var(--font-body)', color: '#fff', background: '#5A6474', cursor: 'pointer', outline: 'none', transition: 'background .18s ease, transform .18s ease, box-shadow .18s ease', appearance: 'none', WebkitAppearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23ffffff' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '10px' }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#4A5264'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#5A6474'; e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
               {statusOptions.map(s => <option key={s} value={s}>{s === 'all' ? 'All Status' : cap(s)}</option>)}
             </select>
             {/* Search */}

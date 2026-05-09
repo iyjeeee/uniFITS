@@ -211,6 +211,7 @@ export default function Utilities() {
   const [data,         setData]         = useState(MOCK_UTILITIES)
   const [search,       setSearch]       = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [typeFilter,   setTypeFilter]   = useState('all')   // filter by expense_type/category
   const [page,         setPage]         = useState(1)
   const [viewItem,     setViewItem]     = useState(null)    // item open in detail modal
   const [editMode,     setEditMode]     = useState(false)   // toggle edit view inside detail modal
@@ -263,8 +264,10 @@ export default function Utilities() {
 
   /* Filter + paginate */
   const statusOptions = ['all', ...Array.from(new Set(data.map(u => u.status)))]
+  const typeOptions   = ['all', ...Array.from(new Set(data.map(u => u.expense_type).filter(Boolean)))]
   const filtered = data
-    .filter(u => statusFilter === 'all' || u.status === statusFilter)
+    .filter(u => statusFilter === 'all' || u.status       === statusFilter)
+    .filter(u => typeFilter   === 'all' || u.expense_type === typeFilter)
     .filter(u => Object.values(u).some(v => String(v).toLowerCase().includes(search.toLowerCase())))
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const paged      = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
@@ -300,10 +303,19 @@ export default function Utilities() {
             <div style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 2 }}>{filtered.length} records · click any row for details</div>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* Type filter — by expense category */}
+            <select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setPage(1) }}
+              style={{ padding: '7px 10px', borderRadius: 7, border: '1.5px solid var(--border-card)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: '#fff', cursor: 'pointer', outline: 'none', transition: 'border-color .18s ease, box-shadow .18s ease' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(75,94,170,.25)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-card)'; e.currentTarget.style.boxShadow = '' }}>
+              {typeOptions.map(t => <option key={t} value={t}>{t === 'all' ? 'All Types' : t}</option>)}
+            </select>
             {/* Status filter */}
             <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
-              style={{ padding: '7px 10px', borderRadius: 7, border: '1.5px solid var(--border-card)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: '#fff', cursor: 'pointer', outline: 'none' }}>
-              {statusOptions.map(s => <option key={s} value={s}>{s === 'all' ? 'All Statuses' : cap(s)}</option>)}
+              style={{ padding: '7px 10px', borderRadius: 7, border: '1.5px solid var(--border-card)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: '#fff', cursor: 'pointer', outline: 'none', transition: 'border-color .18s ease, box-shadow .18s ease' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(75,94,170,.25)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-card)'; e.currentTarget.style.boxShadow = '' }}>
+              {statusOptions.map(s => <option key={s} value={s}>{s === 'all' ? 'All Status' : cap(s)}</option>)}
             </select>
             {/* Search */}
             <div style={{ position: 'relative' }}>

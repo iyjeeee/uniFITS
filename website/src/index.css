@@ -134,17 +134,8 @@ input:focus, select:focus, textarea:focus {
   to   { opacity: 1; }
 }
 
-/* Modal open — pure fade in only, zero transform so size never changes */
-@keyframes modalSlideIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-/* Modal close — pure fade out, zero transform so size never changes */
-@keyframes modalSlideOut {
-  from { opacity: 1; }
-  to   { opacity: 0; }
-}
+/* Modal open/close — handled via CSS transitions (opacity+transform) in the component,
+   not keyframes, so there is zero flicker or reappear on close */
 
 .text-muted   { color: var(--text-muted)   !important; }
 .text-accent  { color: var(--accent)        !important; }

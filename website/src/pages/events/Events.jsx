@@ -86,13 +86,25 @@ export default function Events() {
   const [actionResult, setActionResult] = useState(null)
   const [search,       setSearch]       = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [typeFilter,   setTypeFilter]   = useState('all')   // filter by category keyword
   const [page,         setPage]         = useState(1)
   const PAGE_SIZE = 10
 
   const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : '—'
-  const statusOptions = ['all', ...Array.from(new Set(data.map(r => r.status)))]
+  // Derive event category from title keywords for type filter
+  const getEventCategory = t => {
+    const title = (t.title || '').toLowerCase()
+    if (title.includes('gala') || title.includes('fundrais') || title.includes('benefit')) return 'Fundraising'
+    if (title.includes('sport') || title.includes('game') || title.includes('tournament')) return 'Sports'
+    if (title.includes('parade') || title.includes('civic') || title.includes('independence') || title.includes('national')) return 'Civic'
+    if (title.includes('seminar') || title.includes('training') || title.includes('workshop')) return 'Training'
+    return 'General'
+  }
+  const statusOptions  = ['all', ...Array.from(new Set(data.map(r => r.status)))]
+  const typeOptions    = ['all', 'Fundraising', 'Sports', 'Civic', 'Training', 'General']
   const filtered  = data
     .filter(r => statusFilter === 'all' || r.status === statusFilter)
+    .filter(r => typeFilter   === 'all' || getEventCategory(r) === typeFilter)
     .filter(r => Object.values(r).some(v => String(v).toLowerCase().includes(search.toLowerCase())))
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const paged      = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
@@ -145,9 +157,19 @@ export default function Events() {
             <div style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 2 }}>{filtered.length} records · click any row for details</div>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* Type filter — by event category */}
+            <select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setPage(1) }}
+              style={{ padding: '7px 10px', borderRadius: 7, border: '1.5px solid var(--border-card)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: '#fff', cursor: 'pointer', outline: 'none', transition: 'border-color .18s ease, box-shadow .18s ease' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(75,94,170,.25)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-card)'; e.currentTarget.style.boxShadow = '' }}>
+              {typeOptions.map(t => <option key={t} value={t}>{t === 'all' ? 'All Types' : t}</option>)}
+            </select>
+            {/* Status filter */}
             <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
-              style={{ padding: '7px 10px', borderRadius: 7, border: '1.5px solid var(--border-card)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: '#fff', cursor: 'pointer', outline: 'none' }}>
-              {statusOptions.map(s => <option key={s} value={s}>{s === 'all' ? 'All Statuses' : cap(s)}</option>)}
+              style={{ padding: '7px 10px', borderRadius: 7, border: '1.5px solid var(--border-card)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: '#fff', cursor: 'pointer', outline: 'none', transition: 'border-color .18s ease, box-shadow .18s ease' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(75,94,170,.25)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-card)'; e.currentTarget.style.boxShadow = '' }}>
+              {statusOptions.map(s => <option key={s} value={s}>{s === 'all' ? 'All Status' : cap(s)}</option>)}
             </select>
             <div style={{ position: 'relative' }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>

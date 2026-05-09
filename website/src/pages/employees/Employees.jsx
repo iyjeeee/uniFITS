@@ -91,6 +91,7 @@ export default function Employees() {
   const [actionResult, setActionResult] = useState(null)   // feedback
   const [search,       setSearch]       = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [typeFilter,   setTypeFilter]   = useState('all')   // filter by role
   const [page,         setPage]         = useState(1)
   const PAGE_SIZE = 10
 
@@ -99,8 +100,10 @@ export default function Employees() {
 
   // Derived
   const statusOptions = ['all', ...Array.from(new Set(data.map(r => r.status)))]
+  const typeOptions   = ['all', ...Array.from(new Set(data.map(r => r.role).filter(Boolean)))]
   const filtered = data
     .filter(r => statusFilter === 'all' || r.status === statusFilter)
+    .filter(r => typeFilter   === 'all' || r.role   === typeFilter)
     .filter(r => Object.values(r).some(v => String(v).toLowerCase().includes(search.toLowerCase())))
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const paged      = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
@@ -153,10 +156,19 @@ export default function Employees() {
             <div style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 2 }}>{filtered.length} records · click any row for details</div>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* Type filter — by role */}
+            <select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setPage(1) }}
+              style={{ padding: '7px 10px', borderRadius: 7, border: '1.5px solid var(--border-card)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: '#fff', cursor: 'pointer', outline: 'none', transition: 'border-color .18s ease, box-shadow .18s ease' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(75,94,170,.25)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-card)'; e.currentTarget.style.boxShadow = '' }}>
+              {typeOptions.map(t => <option key={t} value={t}>{t === 'all' ? 'All Types' : t}</option>)}
+            </select>
             {/* Status filter */}
             <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
-              style={{ padding: '7px 10px', borderRadius: 7, border: '1.5px solid var(--border-card)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: '#fff', cursor: 'pointer', outline: 'none' }}>
-              {statusOptions.map(s => <option key={s} value={s}>{s === 'all' ? 'All Statuses' : cap(s)}</option>)}
+              style={{ padding: '7px 10px', borderRadius: 7, border: '1.5px solid var(--border-card)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: '#fff', cursor: 'pointer', outline: 'none', transition: 'border-color .18s ease, box-shadow .18s ease' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(75,94,170,.25)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-card)'; e.currentTarget.style.boxShadow = '' }}>
+              {statusOptions.map(s => <option key={s} value={s}>{s === 'all' ? 'All Status' : cap(s)}</option>)}
             </select>
             {/* Search */}
             <div style={{ position: 'relative' }}>
