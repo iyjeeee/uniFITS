@@ -2,7 +2,7 @@
 import React, { useState } from 'react'
 import { KpiGrid } from '../../components/KPI'
 import { Button, Modal } from '../../components/shared'
-import '../../styles/global.css'
+
 
 const FUND_METRICS = [
   { id:'fund-total',       color:'green',  icon:'💰', value:'₱ 4.8M', label:'Total Funds',          trend:1,  trendLabel:'+₱ 120K',       period:'this quarter'   },

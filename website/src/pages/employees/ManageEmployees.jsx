@@ -2,7 +2,7 @@
 import React, { useState } from 'react'
 import { KpiGrid } from '../../components/KPI'
 import { Button, Modal } from '../../components/shared'
-import '../../styles/global.css'
+
 
 // KPI tile metrics
 const EMPLOYEE_METRICS = [

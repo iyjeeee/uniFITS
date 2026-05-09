@@ -2,7 +2,7 @@
 import React, { useState } from 'react'
 import { KpiGrid } from '../../components/KPI'
 import { Button, Modal } from '../../components/shared'
-import '../../styles/global.css'
+
 
 const EVENT_METRICS = [
   { id:'evt-total',      color:'violet', icon:'🗓️', value:'54',  label:'Total Events',    trend:8,  trendLabel:'+8 this year',       period:'vs last year'   },

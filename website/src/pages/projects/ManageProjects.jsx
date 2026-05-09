@@ -2,7 +2,7 @@
 import React, { useState } from 'react'
 import { KpiGrid } from '../../components/KPI'
 import { Button, Modal } from '../../components/shared'
-import '../../styles/global.css'
+
 
 const PROJECT_METRICS = [
   { id:'proj-total',      color:'teal',   icon:'📁', value:'47',  label:'Total Projects',    trend:5,  trendLabel:'+5 this year',      period:'vs last year'   },
