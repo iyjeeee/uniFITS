@@ -354,7 +354,8 @@ export default function Employees() {
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10 }}>Required CSV Columns</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
                 {['first_name','last_name','email','contact_number','gender','date_of_birth','department','occupation'].map(col => (
-                  <div key={col} style={{ padding: '8px 12px', borderRadius: 8, background: 'var(--table-head-bg)', border: '1px solid var(--border-card)', fontSize: 12.5 }}>
+                  /* CSV column pills — neutral-light bg ensures code text is readable (removed dark table-head-bg) */
+                  <div key={col} style={{ padding: '8px 12px', borderRadius: 8, background: 'var(--neutral-light)', border: '1.5px solid var(--border-card)', fontSize: 12.5 }}>
                     <code style={{ color: 'var(--accent)', fontWeight: 600 }}>{col}</code>
                   </div>
                 ))}
