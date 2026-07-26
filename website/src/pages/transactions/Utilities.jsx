@@ -3,7 +3,7 @@
 // Edit functionality moved inside the detail InfoModal footer.
 // Matches Projects/Events table style: status-colored rows, KPI strip, search+filter, PaginationRow.
 import { useState } from 'react'
-import { Card, StatusBadge, InfoModal, ResponseModal, Input, Select } from '../../components/ui'
+import { Card, StatusBadge, InfoModal, ResponseModal, Input, Select, FilterSelect } from '../../components/ui'
 import { IconBtn, PaginationRow } from '../../components/TableUtils'
 import { BtnIco, TableIco } from '../../components/Icons'
 import { MOCK_UTILITIES, MOCK_FUNDS, formatCurrency, formatDate } from '../../api/mockData'
@@ -246,19 +246,9 @@ export default function Utilities() {
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             {/* Type filter — by expense category */}
-            <select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setPage(1) }}
-              style={{ padding: '7px 10px', borderRadius: 7, border: '1.5px solid var(--border-card)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: '#fff', cursor: 'pointer', outline: 'none', transition: 'border-color .18s ease, box-shadow .18s ease' }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(75,94,170,.25)' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-card)'; e.currentTarget.style.boxShadow = '' }}>
-              {typeOptions.map(t => <option key={t} value={t}>{t === 'all' ? 'All Types' : t}</option>)}
-            </select>
-            {/* Status filter */}
-            <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
-              style={{ padding: '7px 10px', borderRadius: 7, border: '1.5px solid var(--border-card)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: '#fff', cursor: 'pointer', outline: 'none', transition: 'border-color .18s ease, box-shadow .18s ease' }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(75,94,170,.25)' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-card)'; e.currentTarget.style.boxShadow = '' }}>
-              {statusOptions.map(s => <option key={s} value={s}>{s === 'all' ? 'All Status' : cap(s)}</option>)}
-            </select>
+            {/* Shared FilterSelect — type and status filters use the global shared component */}
+            <FilterSelect value={typeFilter}   onChange={v => { setTypeFilter(v);   setPage(1) }} options={typeOptions.map(t => ({ value: t, label: t === 'all' ? 'All Types' : t }))} />
+            <FilterSelect value={statusFilter} onChange={v => { setStatusFilter(v); setPage(1) }} options={statusOptions.map(s => ({ value: s, label: s === 'all' ? 'All Status' : cap(s) }))} />
             {/* Search */}
             <div style={{ position: 'relative' }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>

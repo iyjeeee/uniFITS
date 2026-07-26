@@ -2,7 +2,7 @@
 // Exports: Badge, StatusBadge, Card, CardHeader, Button, Input, Select, Textarea,
 //          DataTable, Modal, InfoModal, ResponseModal, StepWizard, KpiCard, EmptyState, PageHeader,
 //          SectionDivider, Avatar
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 
 // ── Badge ─────────────────────────────────────────────────────────────────────
 const BADGE_STYLES = {
@@ -299,27 +299,6 @@ function PagBtn({ label, onClick, disabled, active }) {
 //   InfoModal   — large (max 800px), rich detail view with header accent bar
 //   ResponseModal — compact (max 420px), success/error/confirm feedback
 
-// Shared overlay lock — prevents body scroll while any modal is open
-// Uses scrollbar-width compensation to prevent layout shift (the main cause of
-// the "modal resizes on close" bug: scrollbar appearing/disappearing shifts the
-// page width which re-positions fixed elements mid-animation)
-function useModalLock(open) {
-  useEffect(() => {
-    if (open) {
-      const sbw = window.innerWidth - document.documentElement.clientWidth
-      document.body.style.overflow    = 'hidden'
-      document.body.style.paddingRight = sbw + 'px'   // compensate scrollbar width
-    } else {
-      document.body.style.overflow    = ''
-      document.body.style.paddingRight = ''
-    }
-    return () => {
-      document.body.style.overflow    = ''
-      document.body.style.paddingRight = ''
-    }
-  }, [open])
-}
-
 // CloseButton — solid dark button with white X icon so it stands out clearly
 function CloseButton({ onClose }) {
   const [hov, setHov] = useState(false)
@@ -347,50 +326,23 @@ function CloseButton({ onClose }) {
 }
 
 // ── InfoModal — large detail/form modal (max 800px wide, up to 92vh tall) ─────
-// Uses CSS transition (not keyframe animation) for open/close — no flicker, no reappear,
-// no resize. Same pattern as ResponseModal: `closing` bool + useRef timer.
+// Instant open/close — no closing animation, no resize flash, no timer complexity.
 export function InfoModal({ open, onClose, title, subtitle, accentColor = 'var(--accent)', editMode = false, children, footer }) {
-  const [visible,   setVisible]   = useState(false)
-  const [closing,   setClosing]   = useState(false)
-  const timerRef   = useRef(null)
-  const closingRef = useRef(false)
+  const EDIT_COLOR = '#7C3AED'
 
-  const EDIT_COLOR  = '#7C3AED'
-  const borderColor = editMode ? EDIT_COLOR : accentColor
-
+  // Lock body scroll while open; release immediately on close
   useEffect(() => {
-    // Cancel any pending close timer immediately
-    if (timerRef.current) {
-      clearTimeout(timerRef.current)
-      timerRef.current = null
-    }
-
-    if (open) {
-      closingRef.current = false
-      setClosing(false)
-      setVisible(true)
-    } else {
-      if (!visible && !closingRef.current) return
-      closingRef.current = true
-      setClosing(true)
-      timerRef.current = setTimeout(() => {
-        timerRef.current   = null
-        closingRef.current = false
-        setVisible(false)
-        setClosing(false)
-      }, 240)
-    }
-
+    if (!open) return
+    const sbw = window.innerWidth - document.documentElement.clientWidth
+    document.body.style.overflow     = 'hidden'
+    document.body.style.paddingRight = sbw + 'px'
     return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current)
-        timerRef.current = null
-      }
+      document.body.style.overflow     = ''
+      document.body.style.paddingRight = ''
     }
   }, [open])
 
-  useModalLock(visible)
-  if (!visible) return null
+  if (!open) return null
 
   return (
     <div
@@ -398,20 +350,14 @@ export function InfoModal({ open, onClose, title, subtitle, accentColor = 'var(-
         position: 'fixed', inset: 0, zIndex: 300,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: '20px 16px', backdropFilter: 'blur(3px)',
-        background: closing ? 'rgba(15,18,30,0)' : 'rgba(15,18,30,.55)',
-        transition: 'background .22s ease',
-        pointerEvents: closing ? 'none' : 'auto',
+        background: 'rgba(15,18,30,.55)',
       }}
-      onClick={e => { if (e.target === e.currentTarget && !closing) onClose() }}>
-      <div style={{
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}>\n      <div style={{
         background: 'var(--white)', borderRadius: 16,
         boxShadow: '0 12px 48px rgba(0,0,0,.22), 0 36px 96px rgba(0,0,0,.20)',
         width: '100%', maxWidth: 920, maxHeight: '92vh',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
         border: 'none',
-        opacity: closing ? 0 : 1,
-        transform: closing ? 'scale(.98) translateY(6px)' : 'scale(1) translateY(0)',
-        transition: 'opacity .22s ease, transform .22s ease',
       }}>
         {/* Header */}
         <div style={{
@@ -477,63 +423,24 @@ const RESPONSE_VARIANTS = {
 }
 
 // ResponseModal — compact feedback/confirmation modal (max 460px)
-// Uses Button component for action buttons — hover fully consistent with design system
-// Animation: CSS opacity+transform transition driven by `closing` state
-// Timer stored in ref so it's always properly cancelled — no stale closure bugs
+// Instant open/close — no closing animation, no resize flash, no timer complexity.
 export function ResponseModal({ open, onClose, variant = 'success', title, message, confirmLabel = 'OK', cancelLabel, onConfirm, loading = false }) {
-  const [visible,  setVisible]  = useState(false)
-  const [closing,  setClosing]  = useState(false)
-  const timerRef  = useRef(null)   // ref so the timer can always be cancelled
-  const closingRef = useRef(false) // ref mirror of closing — avoids stale closure reads
-
-  // Snapshot freezes variant/title/message during close animation
-  const [snapshot, setSnapshot] = useState({ variant, title, message, confirmLabel, cancelLabel })
-
+  // Lock body scroll while open; release immediately on close
   useEffect(() => {
-    // Always clear any pending close timer first
-    if (timerRef.current) {
-      clearTimeout(timerRef.current)
-      timerRef.current = null
-    }
-
-    if (open) {
-      // Opening: freeze content, reset close state, mount
-      setSnapshot({ variant, title, message, confirmLabel, cancelLabel })
-      closingRef.current = false
-      setClosing(false)
-      setVisible(true)
-    } else {
-      // Closing: only animate if the modal is actually visible and not already closing
-      if (!visible && !closingRef.current) return
-      closingRef.current = true
-      setClosing(true)
-      timerRef.current = setTimeout(() => {
-        timerRef.current = null
-        closingRef.current = false
-        setVisible(false)
-        setClosing(false)
-      }, 240)
-    }
-
-    // Cleanup on unmount — cancel any pending close timer
+    if (!open) return
+    const sbw = window.innerWidth - document.documentElement.clientWidth
+    document.body.style.overflow     = 'hidden'
+    document.body.style.paddingRight = sbw + 'px'
     return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current)
-        timerRef.current = null
-      }
+      document.body.style.overflow     = ''
+      document.body.style.paddingRight = ''
     }
   }, [open])
 
-  useModalLock(visible)
-  if (!visible) return null
+  if (!open) return null
 
-  const sv = closing ? snapshot.variant      : variant
-  const st = closing ? snapshot.title        : title
-  const sm = closing ? snapshot.message      : message
-  const sc = closing ? snapshot.confirmLabel : confirmLabel
-  const sk = closing ? snapshot.cancelLabel  : cancelLabel
-  const v  = RESPONSE_VARIANTS[sv] || RESPONSE_VARIANTS.info
-  const btnVariant = sv === 'danger' ? 'danger' : sv === 'success' ? 'success' : 'primary'
+  const v          = RESPONSE_VARIANTS[variant] || RESPONSE_VARIANTS.info
+  const btnVariant = variant === 'danger' ? 'danger' : variant === 'success' ? 'success' : 'primary'
 
   return (
     <div
@@ -541,19 +448,14 @@ export function ResponseModal({ open, onClose, variant = 'success', title, messa
         position: 'fixed', inset: 0, zIndex: 400,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: '20px 16px', backdropFilter: 'blur(3px)',
-        background: closing ? 'rgba(15,18,30,0)' : 'rgba(15,18,30,.58)',
-        transition: 'background .22s ease',
-        pointerEvents: closing ? 'none' : 'auto',
+        background: 'rgba(15,18,30,.58)',
       }}
-      onClick={e => { if (e.target === e.currentTarget && !closing) onClose() }}>
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div style={{
         background: 'var(--white)', borderRadius: 18,
         boxShadow: '0 12px 48px rgba(0,0,0,.22), 0 36px 96px rgba(0,0,0,.20)',
         width: '100%', maxWidth: 460, overflow: 'hidden',
         border: 'none',
-        opacity: closing ? 0 : 1,
-        transform: closing ? 'scale(.96) translateY(6px)' : 'scale(1) translateY(0)',
-        transition: 'opacity .22s ease, transform .22s ease',
       }}>
         {/* Icon + content */}
         <div style={{ padding: '32px 32px 24px', textAlign: 'center' }}>
@@ -566,37 +468,37 @@ export function ResponseModal({ open, onClose, variant = 'success', title, messa
             {v.icon}
           </div>
           <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10, lineHeight: 1.25 }}>
-            {st}
+            {title}
           </div>
-          {sm && (
+          {message && (
             <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7, maxWidth: 340, margin: '0 auto' }}>
-              {sm}
+              {message}
             </div>
           )}
         </div>
 
         {/* Action buttons — Button component ensures hover is identical to all other buttons */}
-        <div style={{ padding: '0 32px 28px', display: 'flex', gap: 12, flexDirection: sk ? 'row' : 'column' }}>
-          {sk && (
+        <div style={{ padding: '0 32px 28px', display: 'flex', gap: 12, flexDirection: cancelLabel ? 'row' : 'column' }}>
+          {cancelLabel && (
             <Button
               variant="secondary"
               style={{ flex: 1, justifyContent: 'center', padding: '11px 0', borderRadius: 10 }}
               onClick={onClose}>
-              {sk}
+              {cancelLabel}
             </Button>
           )}
           <Button
             variant={btnVariant}
             disabled={loading}
             style={{
-              flex: sk ? 1 : undefined,
-              width: sk ? undefined : '100%',
+              flex: cancelLabel ? 1 : undefined,
+              width: cancelLabel ? undefined : '100%',
               justifyContent: 'center',
               padding: '11px 32px',
               borderRadius: 10,
             }}
             onClick={onConfirm || onClose}>
-            {loading ? 'Processing…' : sc}
+            {loading ? 'Processing…' : confirmLabel}
           </Button>
         </div>
       </div>
@@ -707,5 +609,29 @@ export function SectionDivider({ label }) {
       <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '.08em', whiteSpace: 'nowrap' }}>{label}</div>
       <div style={{ flex: 1, height: 1, background: 'var(--border-inner)' }} />
     </div>
+  )
+}
+
+// ── FilterSelect ──────────────────────────────────────────────────────────────
+// Shared filter dropdown — single source of truth used by all data table pages.
+// White bg, accent border + lift + ring-shadow on hover, custom dark chevron SVG.
+export function FilterSelect({ value, onChange, options }) {
+  return (
+    <select
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      style={{
+        padding: '7px 28px 7px 10px', borderRadius: 7, fontSize: 13, fontFamily: 'var(--font-body)',
+        border: '1.5px solid var(--border-card)', backgroundColor: '#fff', color: 'var(--text-primary)',
+        cursor: 'pointer', outline: 'none',
+        transition: 'border-color .18s ease, transform .18s ease, box-shadow .18s ease',
+        appearance: 'none', WebkitAppearance: 'none',
+        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%231E2128' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
+        backgroundRepeat: 'no-repeat', backgroundPosition: 'right 9px center', backgroundSize: '10px',
+      }}
+      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)'; e.currentTarget.style.borderColor = 'var(--accent)' }}
+      onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; e.currentTarget.style.borderColor = 'var(--border-card)' }}>
+      {options.map(o => <option key={o.value ?? o} value={o.value ?? o}>{o.label ?? o}</option>)}
+    </select>
   )
 }

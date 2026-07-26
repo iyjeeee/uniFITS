@@ -3,7 +3,7 @@
 // Actions: Approve (green), Reject (red), Delete (dark red) — no receipt button in table.
 // Row click opens transaction detail modal (receipt-style).
 import { useState } from 'react'
-import { Card, StatusBadge, Badge, InfoModal, ResponseModal } from '../../components/ui'
+import { Card, StatusBadge, Badge, InfoModal, ResponseModal, FilterSelect } from '../../components/ui'
 import { IconBtn, PaginationRow } from '../../components/TableUtils'
 import { BtnIco, TableIco } from '../../components/Icons'
 import { MOCK_TRANSACTIONS, formatCurrency, formatDate } from '../../api/mockData'
@@ -207,20 +207,9 @@ export default function Transactions() {
             <div style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 2 }}>{filtered.length} records · click any row for details</div>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            {/* Entry type filter */}
-            <select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setPage(1) }}
-              style={{ padding: '7px 26px 7px 10px', borderRadius: 7, border: '1px solid var(--border-card)', fontSize: 13, fontFamily: 'var(--font-body)', color: '#fff', background: '#5A6474', cursor: 'pointer', outline: 'none', transition: 'background .18s ease, transform .18s ease, box-shadow .18s ease', appearance: 'none', WebkitAppearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23ffffff' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '10px' }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#4A5264'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#5A6474'; e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
-              {typeOptions.map(t => <option key={t} value={t}>{t === 'all' ? 'All Types' : cap(t)}</option>)}
-            </select>
-            {/* Status filter */}
-            <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
-              style={{ padding: '7px 26px 7px 10px', borderRadius: 7, border: '1px solid var(--border-card)', fontSize: 13, fontFamily: 'var(--font-body)', color: '#fff', background: '#5A6474', cursor: 'pointer', outline: 'none', transition: 'background .18s ease, transform .18s ease, box-shadow .18s ease', appearance: 'none', WebkitAppearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23ffffff' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '10px' }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#4A5264'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#5A6474'; e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
-              {statusOptions.map(s => <option key={s} value={s}>{s === 'all' ? 'All Status' : cap(s)}</option>)}
-            </select>
+            {/* Shared FilterSelect — type and status filters use the global shared component */}
+            <FilterSelect value={typeFilter}   onChange={v => { setTypeFilter(v);   setPage(1) }} options={typeOptions.map(t => ({ value: t, label: t === 'all' ? 'All Types' : cap(t) }))} />
+            <FilterSelect value={statusFilter} onChange={v => { setStatusFilter(v); setPage(1) }} options={statusOptions.map(s => ({ value: s, label: s === 'all' ? 'All Status' : cap(s) }))} />
             {/* Search */}
             <div style={{ position: 'relative' }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>

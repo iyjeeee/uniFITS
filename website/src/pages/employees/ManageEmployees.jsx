@@ -14,29 +14,25 @@ const EMPLOYEE_METRICS = [
   { id:'emp-turnover',    color:'rose',   icon:'📉', value:'3.2%', label:'Turnover Rate',     trend:-1, trendLabel:'-0.5% improved',    period:'vs last quarter'},
 ]
 
-// Reusable filter select with hover animation
+// Reusable filter select — white bg, border-card style, standard global hover animation
 function FilterSelect({ value, onChange, options }) {
-  const [hov, setHov] = useState(false)
   return (
     <select
       value={value}
       onChange={e => onChange(e.target.value)}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
       style={{
-        padding: '7px 28px 7px 12px', borderRadius: 8, fontSize: 13, fontFamily: 'inherit',
-        border: '1px solid var(--color-border-dark)',
-        background: hov ? '#4A5264' : '#5A6474',
-        color: '#fff',
+        padding: '7px 28px 7px 12px', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font-body)',
+        border: '1.5px solid var(--border-card)',
+        background: '#fff', color: 'var(--text-primary)',
         cursor: 'pointer', outline: 'none',
-        transition: 'background .18s ease, transform .18s ease, box-shadow .18s ease',
-        transform: hov ? 'translateY(-2px)' : 'none',
-        boxShadow: hov ? '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)' : 'none',
+        transition: 'border-color .18s ease, transform .18s ease, box-shadow .18s ease',
         appearance: 'none', WebkitAppearance: 'none',
-        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23ffffff' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
+        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%231E2128' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
         backgroundRepeat: 'no-repeat', backgroundPosition: 'right 9px center',
         backgroundSize: '10px',
-      }}>
+      }}
+      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)'; e.currentTarget.style.borderColor = 'var(--accent)' }}
+      onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; e.currentTarget.style.borderColor = 'var(--border-card)' }}>
       {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
   )
