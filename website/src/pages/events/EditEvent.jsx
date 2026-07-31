@@ -1,6 +1,6 @@
 // EditEvent.jsx — Edit an existing event; includes photo upload
 import { useState, useRef } from 'react'
-import { Card, PageHeader, Button, Input, Select, Textarea, SectionDivider } from '../../components/ui'
+import { Card, PageHeader, Button, Input, Select, Textarea, SectionDivider, ResponseModal } from '../../components/ui'
 import { MOCK_EVENTS } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 
@@ -18,6 +18,7 @@ export default function EditEvent({ eventId = '1' }) {
     location: event.location || '', status: event.status,
     target_funding: event.target_funding,
   })
+  const [feedback, setFeedback] = useState(false)
   const [photo, setPhoto]   = useState(event.photo_url || null)  // local object URL preview
   const [dragging, setDrag] = useState(false)
   const fileRef             = useRef()
@@ -30,9 +31,10 @@ export default function EditEvent({ eventId = '1' }) {
   }
 
   return (
+  <>
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <PageHeader title="Edit Event" subtitle={event.title} actions={
-        <><Button variant="secondary">Cancel</Button><Button onClick={() => alert('Saved!')}>Save Changes</Button></>
+        <><Button variant="secondary" onClick={() => window.location.hash = '/events'}>Cancel</Button><Button onClick={() => setFeedback(true)}>Save Changes</Button></>
       } />
 
       {/* ── Photo Upload ──────────────────────────────────────── */}
@@ -100,5 +102,8 @@ export default function EditEvent({ eventId = '1' }) {
         </div>
       </Card>
     </div>
+      <ResponseModal open={feedback} onClose={() => { setFeedback(false); window.location.hash = '/events' }}
+        variant="success" title="Changes Saved!" message="The event has been successfully updated." confirmLabel="Done" />
+  </>
   )
 }

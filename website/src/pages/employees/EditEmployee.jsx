@@ -1,6 +1,6 @@
 // EditEmployee.jsx — Edit an existing employee's profile information
 import { useState } from 'react'
-import { Card, PageHeader, Button, Input, Select, SectionDivider, Avatar } from '../../components/ui'
+import { Card, PageHeader, Button, Input, Select, SectionDivider, Avatar, ResponseModal } from '../../components/ui'
 import { MOCK_USERS } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 import useBreakpoint from '../../hooks/useBreakpoint'
@@ -21,13 +21,15 @@ export default function EditEmployee({ userId = '1' }) {
     department: user.department || '', address_city: user.address_city || '',
     address_province: user.address_province || '',
   })
+  const [feedback, setFeedback] = useState(false)
 
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }))
   const fullName = `${form.first_name} ${form.last_name}`
 
-  function handleSave() { alert('Profile updated! (Connect to backend)') }
+  function handleSave() { setFeedback(true) }
 
   return (
+  <>
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <PageHeader title="Edit Employee" subtitle={fullName} actions={
         <><Button variant="secondary">Cancel</Button><Button onClick={handleSave}>Save Changes</Button></>
@@ -67,5 +69,8 @@ export default function EditEmployee({ userId = '1' }) {
         </Card>
       </div>
     </div>
+      <ResponseModal open={feedback} onClose={() => { setFeedback(false); window.location.hash = '/employees' }}
+        variant="success" title="Profile Updated!" message="Employee profile has been successfully updated." confirmLabel="Done" />
+  </>
   )
 }

@@ -1,7 +1,7 @@
 // AddFund.jsx — 3-col layout: StepSidebar | Form | Live Preview
 // Validation: per-step validation blocks Continue; shows inline field errors
 import { useState } from 'react'
-import { Card, Button, Input, Select, Textarea, SectionDivider } from '../../components/ui'
+import { Card, Button, Input, Select, Textarea, SectionDivider, ResponseModal } from '../../components/ui'
 import { useOrg } from '../../context/OrgContext'
 import useBreakpoint from '../../hooks/useBreakpoint'
 import { required, isPositiveNumber, validateStep } from '../../utils/validation'
@@ -100,6 +100,7 @@ export default function AddFund() {
   const org  = useOrg()
   const { isMobile } = useBreakpoint()
   const [step, setStep] = useState(0)
+  const [feedback, setFeedback] = useState(false)
   const [form, setForm] = useState({
     name: '', description: '', fund_type: 'internal',
     is_required: false, payment_frequency: '', annual_fee: '', owner: '',
@@ -137,6 +138,7 @@ export default function AddFund() {
   }
 
   return (
+  <>
     <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '200px 1fr 240px', gap: 14, alignItems: 'stretch' }}>
 
       {/* LEFT — Step sidebar */}
@@ -223,7 +225,7 @@ export default function AddFund() {
           <Button variant="secondary" onClick={() => { setErrors({}); setStep(s => Math.max(0, s - 1)) }} disabled={step === 0}>← Back</Button>
           {step < STEPS.length - 1
             ? <Button onClick={handleContinue}>Continue →</Button>
-            : <Button variant="success" onClick={() => alert('Fund created!')}>✓ Create {org.fund_label}</Button>
+            : <Button variant="success" onClick={() => setFeedback(true)}>✓ Create {org.fund_label}</Button>
           }
         </div>
       </Card>
@@ -235,5 +237,9 @@ export default function AddFund() {
         </Card>
       )}
     </div>
+      <ResponseModal open={feedback} onClose={() => { setFeedback(false); window.location.hash = '/funds' }}
+        variant="success" title={`${org.fund_label} Created!`}
+        message={`The fund has been successfully created.`} confirmLabel="Go to Funds" />
+  </>
   )
 }

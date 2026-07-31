@@ -22,30 +22,6 @@ const Ico = {
 }
 
 /* ── Chart data ───────────────────────────────────────────────────────────────── */
-const MONTHLY_DATA = [
-  { month: 'Jan', income: 45000, expense: 22000 },
-  { month: 'Feb', income: 38000, expense: 18000 },
-  { month: 'Mar', income: 62000, expense: 31000 },
-  { month: 'Apr', income: 50000, expense: 28000 },
-  { month: 'May', income: 71000, expense: 35000 },
-  { month: 'Jun', income: 55000, expense: 24000 },
-]
-
-const FUND_DATA = [
-  { name: 'Membership', balance: 85000 },
-  { name: 'Project',    balance: 45500 },
-  { name: 'Event',      balance: 125000 },
-  { name: 'Emergency',  balance: 20000 },
-  { name: 'Building',   balance: 150000 },
-]
-
-const STATUS_BREAKDOWN = [
-  { label: 'Completed', count: 2, color: '#2E7D52' },
-  { label: 'Ongoing',   count: 2, color: '#4B5EAA' },
-  { label: 'Upcoming',  count: 5, color: '#D4860A' },
-  { label: 'Cancelled', count: 0, color: '#C0392B' },
-]
-
 /* ── Bar chart — monthly income vs expense ───────────────────────────────────── */
 function BarChart({ data, currency }) {
   const maxVal = Math.max(...data.flatMap(d => [d.income, d.expense]), 1)
@@ -213,6 +189,37 @@ export default function Dashboard() {
   const totalExpense     = MOCK_TRANSACTIONS.filter(t => t.entry_type === 'expense').reduce((s, t) => s + t.amount, 0)
   const completedProjects = MOCK_PROJECTS.filter(p => p.status === 'completed').length
   const totalTransactions = MOCK_TRANSACTIONS.length
+
+  /* ── Chart data derived from live mock data ─────────────────────── */
+  // Monthly income vs expense — last 6 months rolling from MOCK_TRANSACTIONS
+  const MONTHLY_DATA = (() => {
+    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    const now = new Date()
+    const months = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1)
+      return { key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2,'0')}`, month: MONTHS[d.getMonth()] }
+    })
+    const map = {}
+    months.forEach(m => { map[m.key] = { month: m.month, income: 0, expense: 0 } })
+    MOCK_TRANSACTIONS.forEach(t => {
+      const key = t.transaction_date ? t.transaction_date.slice(0, 7) : null
+      if (!key || !map[key]) return
+      if (t.entry_type === 'expense') map[key].expense += t.amount
+      else map[key].income += t.amount
+    })
+    return months.map(m => map[m.key])
+  })()
+
+  // Fund balances — from live MOCK_FUNDS
+  const FUND_DATA = MOCK_FUNDS.map(f => ({ name: f.fund_name, balance: f.balance }))
+
+  // Project status breakdown — from live MOCK_PROJECTS + MOCK_EVENTS
+  const STATUS_BREAKDOWN = [
+    { label: 'Completed', count: MOCK_PROJECTS.filter(p => p.status === 'completed').length,  color: '#2E7D52' },
+    { label: 'Ongoing',   count: MOCK_PROJECTS.filter(p => p.status === 'ongoing').length,    color: '#4B5EAA' },
+    { label: 'Upcoming',  count: MOCK_EVENTS.filter(e => e.status === 'upcoming').length,     color: '#D4860A' },
+    { label: 'Cancelled', count: MOCK_PROJECTS.filter(p => p.status === 'cancelled').length,  color: '#C0392B' },
+  ]
 
   /* ── Top contributors ──────────────────────────────────────────── */
   const topContributors = Object.values(

@@ -1,7 +1,7 @@
 // Backup.jsx — Backup & Recovery System; create, restore, export, download backups
 // Responsive via useBreakpoint — action tile grid collapses on mobile
 import { useState } from 'react'
-import { Card, CardHeader, Button, Badge } from '../../components/ui'
+import { Card, CardHeader, Button, Badge, ResponseModal } from '../../components/ui'
 import { MOCK_BACKUP_JOBS, formatDate } from '../../api/mockData'
 import useBreakpoint from '../../hooks/useBreakpoint'
 
@@ -23,6 +23,9 @@ export default function Backup() {
   const backupLayout = isMobile || isTablet ? '1fr' : '1fr 240px' // history + status panel
   const [jobs, setJobs]         = useState(MOCK_BACKUP_JOBS)
   const [creating, setCreating] = useState(false)
+  // Feedback modal state — replaces all native alert() calls
+  const [feedback, setFeedback] = useState({ open: false, title: '', message: '' })
+  const notify = (title, message) => setFeedback({ open: true, title, message })
   // Simulate creating a new backup job
   function handleCreateBackup() {
     setCreating(true)
@@ -39,10 +42,10 @@ export default function Backup() {
 
   // Quick action tiles config
   const actions = [
-    { label: 'Create New Backup', color: 'var(--accent)',  bg: 'var(--accent-light)',  icon: <IconSave />,    onClick: handleCreateBackup,                              loading: creating },
-    { label: 'Export Database',   color: 'var(--success)', bg: 'var(--success-light)', icon: <IconExport />,  onClick: () => alert('Exporting secure SQL dump…') },
-    { label: 'Restore System',    color: 'var(--warning)', bg: 'var(--warning-light)', icon: <IconRestore />, onClick: () => alert('Select a backup below to restore.') },
-    { label: 'Force Full Cleanup',color: 'var(--danger)',  bg: 'var(--danger-light)',  icon: <IconTrash />,   onClick: () => alert('Cleaning up old backup files…') },
+    { label: 'Create New Backup', color: 'var(--accent)',  bg: 'var(--accent-light)',  icon: <IconSave />,    onClick: handleCreateBackup,                                                                    loading: creating },
+    { label: 'Export Database',   color: 'var(--success)', bg: 'var(--success-light)', icon: <IconExport />,  onClick: () => notify('Export Started', 'A secure SQL dump is being prepared for download.') },
+    { label: 'Restore System',    color: 'var(--warning)', bg: 'var(--warning-light)', icon: <IconRestore />, onClick: () => notify('Restore System', 'Select a backup file from the list below to restore.') },
+    { label: 'Force Full Cleanup',color: 'var(--danger)',  bg: 'var(--danger-light)',  icon: <IconTrash />,   onClick: () => notify('Cleanup Started', 'Old backup files are being removed from the system.') },
   ]
 
   return (
@@ -97,8 +100,8 @@ export default function Backup() {
                     <td style={{ padding: '10px 14px' }}>{formatFileSize(job.file_size_bytes)}</td>
                     <td style={{ padding: '10px 14px' }}>
                       <div style={{ display: 'flex', gap: 6 }}>
-                        <Button variant="secondary" size="sm" onClick={() => alert('Restoring from backup…')}>Restore</Button>
-                        <Button variant="secondary" size="sm" onClick={() => alert('Downloading backup…')}>Download</Button>
+                        <Button variant="secondary" size="sm" onClick={() => notify('Restore', `Restoring system from ${j.filename}…`)}>Restore</Button>
+                        <Button variant="secondary" size="sm" onClick={() => notify('Download', `Preparing ${j.filename} for download…`)}>Download</Button>
                         <Button variant="danger"    size="sm">Delete</Button>
                       </div>
                     </td>
@@ -128,6 +131,16 @@ export default function Backup() {
           </div>
         </Card>
       </div>
+
+      {/* Feedback modal — replaces all native alert() calls */}
+      <ResponseModal
+        open={feedback.open}
+        onClose={() => setFeedback(f => ({ ...f, open: false }))}
+        variant="info"
+        title={feedback.title}
+        message={feedback.message}
+        confirmLabel="OK"
+      />
     </div>
   )
 }

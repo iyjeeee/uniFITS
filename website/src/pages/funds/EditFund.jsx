@@ -1,6 +1,6 @@
 // EditFund.jsx — Edit an existing fund's settings
 import { useState } from 'react'
-import { Card, Button, Input, Select, Textarea, PageHeader, SectionDivider } from '../../components/ui'
+import { Card, Button, Input, Select, Textarea, PageHeader, SectionDivider, ResponseModal } from '../../components/ui'
 import { MOCK_FUNDS } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 
@@ -11,6 +11,7 @@ export default function EditFund({ fundId = '1' }) {
   const org  = useOrg()
   const fund = MOCK_FUNDS.find(f => f.id === fundId) || MOCK_FUNDS[0]
   const [form, setForm] = useState({ name: fund.name, description: fund.description || '', status: fund.status, is_required: fund.is_required, payment_frequency: fund.payment_frequency || '', annual_fee: fund.annual_fee || '' })
+  const [feedback, setFeedback] = useState(false)
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }))
 
   // Computed: required amount per period based on annual fee / frequency
@@ -20,9 +21,10 @@ export default function EditFund({ fundId = '1' }) {
     : 0
 
   return (
+  <>
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <PageHeader title={`Edit ${org.fund_label}`} subtitle={fund.name} actions={
-        <><Button variant="secondary">Cancel</Button><Button onClick={() => alert('Saved!')}>Apply Changes</Button></>
+        <><Button variant="secondary" onClick={() => window.location.hash = '/funds'}>Cancel</Button><Button onClick={() => setFeedback(true)}>Apply Changes</Button></>
       } />
       <Card style={{ padding: 28 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -49,5 +51,8 @@ export default function EditFund({ fundId = '1' }) {
         </div>
       </Card>
     </div>
+      <ResponseModal open={feedback} onClose={() => { setFeedback(false); window.location.hash = '/funds' }}
+        variant="success" title="Changes Saved!" message="The fund has been successfully updated." confirmLabel="Done" />
+  </>
   )
 }

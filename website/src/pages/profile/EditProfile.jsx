@@ -1,6 +1,6 @@
 // EditProfile.jsx — User self-service profile edit page
 import { useState } from 'react'
-import { Card, PageHeader, Button, Input, Select, SectionDivider, Avatar } from '../../components/ui'
+import { Card, PageHeader, Button, Input, Select, SectionDivider, Avatar, ResponseModal } from '../../components/ui'
 import { MOCK_USERS } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 import useBreakpoint from '../../hooks/useBreakpoint'
@@ -18,12 +18,14 @@ export default function EditProfile({ userId = '1' }) {
     address_province: user.address_province || '', occupation: user.occupation || '',
     has_partner: false, showPwSection: false,
   })
+  const [feedback, setFeedback] = useState(false)
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }))
 
   return (
+  <>
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <PageHeader title="Edit Profile" subtitle="Update your personal information" actions={
-        <><Button variant="secondary">Cancel</Button><Button onClick={() => alert('Saved!')}>Save Changes</Button></>
+        <><Button variant="secondary" onClick={() => window.history.back()}>Cancel</Button><Button onClick={() => setFeedback(true)}>Save Changes</Button></>
       } />
 
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 260px', gap: 20, alignItems: 'flex-start' }}>
@@ -92,5 +94,8 @@ export default function EditProfile({ userId = '1' }) {
         </Card>
       </div>
     </div>
+      <ResponseModal open={feedback} onClose={() => { setFeedback(false); window.history.back() }}
+        variant="success" title="Profile Updated!" message="Your profile has been successfully saved." confirmLabel="Done" />
+  </>
   )
 }

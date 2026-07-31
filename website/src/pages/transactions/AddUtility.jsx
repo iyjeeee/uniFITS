@@ -1,7 +1,7 @@
 // AddUtility.jsx — 3-col layout: StepSidebar | Form | Live Preview
 // Validation: per-step validation blocks Continue; shows inline field errors
 import { useState } from 'react'
-import { Card, Button, Input, Select, Textarea, SectionDivider } from '../../components/ui'
+import { Card, Button, Input, Select, Textarea, SectionDivider, ResponseModal } from '../../components/ui'
 import { MOCK_FUNDS } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 import useBreakpoint from '../../hooks/useBreakpoint'
@@ -122,6 +122,7 @@ export default function AddUtility() {
   const org = useOrg()
   const { isMobile } = useBreakpoint()
   const [step, setStep] = useState(0)
+  const [feedback, setFeedback] = useState(false)
   const [form, setForm] = useState({
     expense_type: '', custom_type: '', paid_to: '', fund_id: '',
     payment_date: '', total_amount: '', amount_paid: '',
@@ -181,6 +182,7 @@ export default function AddUtility() {
   }
 
   return (
+  <>
     <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '200px 1fr 240px', gap: 14, alignItems: 'stretch' }}>
 
       {/* LEFT — Step sidebar */}
@@ -284,7 +286,7 @@ export default function AddUtility() {
           <Button variant="secondary" onClick={() => { setErrors({}); setStep(s => Math.max(0, s - 1)) }} disabled={step === 0}>← Back</Button>
           {step < STEPS.length - 1
             ? <Button onClick={handleContinue}>Continue →</Button>
-            : <Button variant="success" onClick={() => alert(`${org.utility_label} recorded!`)}>✓ Record {org.utility_label}</Button>
+            : <Button variant="success" onClick={() => setFeedback(true)}>✓ Record {org.utility_label}</Button>
           }
         </div>
       </Card>
@@ -296,5 +298,9 @@ export default function AddUtility() {
         </Card>
       )}
     </div>
+      <ResponseModal open={feedback} onClose={() => { setFeedback(false); window.location.hash = '/transactions/utilities' }}
+        variant="success" title="Utility Recorded!"
+        message="The utility expense has been successfully recorded." confirmLabel="Go to Utilities" />
+  </>
   )
 }

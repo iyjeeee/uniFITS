@@ -4,7 +4,7 @@
 // Matches Projects/Events table style: status-colored rows, KPI strip, search+filter, PaginationRow.
 import { useState } from 'react'
 import { Card, StatusBadge, InfoModal, ResponseModal, Input, Select, FilterSelect } from '../../components/ui'
-import { IconBtn, PaginationRow } from '../../components/TableUtils'
+import { IconBtn, PaginationRow, SearchInput } from '../../components/TableUtils'
 import { BtnIco, TableIco } from '../../components/Icons'
 import { MOCK_UTILITIES, MOCK_FUNDS, formatCurrency, formatDate } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
@@ -249,16 +249,9 @@ export default function Utilities() {
             {/* Shared FilterSelect — type and status filters use the global shared component */}
             <FilterSelect value={typeFilter}   onChange={v => { setTypeFilter(v);   setPage(1) }} options={typeOptions.map(t => ({ value: t, label: t === 'all' ? 'All Types' : t }))} />
             <FilterSelect value={statusFilter} onChange={v => { setStatusFilter(v); setPage(1) }} options={statusOptions.map(s => ({ value: s, label: s === 'all' ? 'All Status' : cap(s) }))} />
-            {/* Search */}
-            <div style={{ position: 'relative' }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} placeholder="Search…"
-                style={{ padding: '7px 10px 7px 28px', borderRadius: 7, border: '1.5px solid var(--border-card)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: '#fff', outline: 'none', width: 180 }}
-                onFocus={e => e.target.style.borderColor = 'var(--accent)'}
-                onBlur={e  => e.target.style.borderColor = 'var(--border-card)'} />
-            </div>
+            <SearchInput value={search} onChange={v => { setSearch(v); setPage(1) }} />
             {/* Add button */}
-            <button onClick={() => alert('Add Utility — coming soon')}
+            <button onClick={() => window.location.hash = '/transactions/utilities/add'}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)', whiteSpace: 'nowrap' }}>
               <BtnIco.Plus /> Add {org.utility_label}
             </button>

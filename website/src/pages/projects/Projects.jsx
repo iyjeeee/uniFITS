@@ -3,6 +3,7 @@
 // Fully responsive via useBreakpoint — KPI grid collapses on mobile
 import { useState } from 'react'
 import { Card, StatusBadge, InfoModal, ResponseModal, FilterSelect } from '../../components/ui'
+import { IconBtn, PaginationRow, SearchInput } from '../../components/TableUtils'
 import { MOCK_PROJECTS, formatCurrency, formatDate } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 import { rowStyle, rowHoverBg, modalAccentColor } from '../../constants/tableColors'
@@ -16,38 +17,6 @@ function IcoApprove() { return <svg width="14" height="14" viewBox="0 0 24 24" f
 function IcoReject()  { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> }
 function IcoPlus()    { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> }
 function IcoPen()     { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"   strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> }
-
-/* ── Solid-color icon button ────────────────────────────────────── */
-function IconBtn({ children, solidBg, title, onClick }) {
-  return (
-    <button onClick={e => { e.stopPropagation(); onClick() }} title={title}
-      style={{ width: 32, height: 32, borderRadius: 7, border: 'none', background: solidBg, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform .18s ease, box-shadow .18s ease', flexShrink: 0 }}
-      onMouseEnter={e => {
-        e.currentTarget.style.transform = 'translateY(-2px)'
-        e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)'
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.transform = ''
-        e.currentTarget.style.boxShadow = ''
-      }}>
-      {children}
-    </button>
-  )
-}
-
-/* ── Pagination — always visible ────────────────────────────────── */
-function PaginationRow({ page, totalPages, onPageChange, total }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', borderTop: '1px solid var(--border-inner)', flexWrap: 'wrap', gap: 8 }}>
-      <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>Page {page} of {totalPages} · {total} records</span>
-      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-        {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-          <button key={p} onClick={() => onPageChange(p)} style={{ width: 30, height: 30, borderRadius: 6, border: '1.5px solid var(--border-card)', background: p === page ? 'var(--accent)' : '#fff', color: p === page ? '#fff' : 'var(--text-primary)', cursor: 'pointer', fontSize: 12, fontWeight: p === page ? 700 : 400 }}>{p}</button>
-        ))}
-      </div>
-    </div>
-  )
-}
 
 /* ── Delete confirmation body ───────────────────────────────────── */
 function DeleteBody({ item, type }) {
@@ -154,13 +123,7 @@ export default function Projects() {
             {/* Shared FilterSelect — type and status filters use the global shared component */}
             <FilterSelect value={typeFilter}   onChange={v => { setTypeFilter(v);   setPage(1) }} options={typeOptions.map(t => ({ value: t, label: t === 'all' ? 'All Types' : t }))} />
             <FilterSelect value={statusFilter} onChange={v => { setStatusFilter(v); setPage(1) }} options={statusOptions.map(s => ({ value: s, label: s === 'all' ? 'All Status' : cap(s) }))} />
-            <div style={{ position: 'relative' }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} placeholder="Search…"
-                style={{ padding: '7px 10px 7px 28px', borderRadius: 7, border: '1.5px solid var(--border-card)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: '#fff', outline: 'none', width: 180 }}
-                onFocus={e => e.target.style.borderColor = 'var(--accent)'}
-                onBlur={e  => e.target.style.borderColor = 'var(--border-card)'} />
-            </div>
+            <SearchInput value={search} onChange={v => { setSearch(v); setPage(1) }} />
             <button onClick={() => window.location.hash = '/projects/add'}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)', whiteSpace: 'nowrap' }}>
               <IcoPlus /> Add {org.project_label}

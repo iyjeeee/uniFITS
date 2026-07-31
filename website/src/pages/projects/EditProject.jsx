@@ -1,6 +1,6 @@
 // EditProject.jsx — Edit an existing project's details; includes photo upload
 import { useState, useRef } from 'react'
-import { Card, PageHeader, Button, Input, Select, Textarea, SectionDivider } from '../../components/ui'
+import { Card, PageHeader, Button, Input, Select, Textarea, SectionDivider, ResponseModal } from '../../components/ui'
 import { MOCK_PROJECTS } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 
@@ -16,11 +16,11 @@ const STATUS_OPTIONS = [
 export default function EditProject({ projectId = '1' }) {
   const org  = useOrg()
   const proj = MOCK_PROJECTS.find(p => p.id === projectId) || MOCK_PROJECTS[0]
-  const [form, setForm] = useState({
-    title: proj.title, project_type: proj.project_type || '', description: proj.description || '',
+  const [form, setForm] = useState({    title: proj.title, project_type: proj.project_type || '', description: proj.description || '',
     start_date: proj.start_date, end_date: proj.end_date || '', location: proj.location || '',
     target_funding: proj.target_funding, status: proj.status,
   })
+  const [feedback, setFeedback] = useState(false)
   const [photo, setPhoto]   = useState(proj.photo_url || null)  // local object URL preview
   const [dragging, setDrag] = useState(false)
   const fileRef             = useRef()
@@ -33,9 +33,10 @@ export default function EditProject({ projectId = '1' }) {
   }
 
   return (
+  <>
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <PageHeader title="Edit Project" subtitle={proj.title} actions={
-        <><Button variant="secondary">Cancel</Button><Button onClick={() => alert('Saved!')}>Save Changes</Button></>
+        <><Button variant="secondary" onClick={() => window.location.hash = '/projects'}>Cancel</Button><Button onClick={() => setFeedback(true)}>Save Changes</Button></>
       } />
 
       {/* ── Photo Upload ──────────────────────────────────────── */}
@@ -104,5 +105,8 @@ export default function EditProject({ projectId = '1' }) {
         </div>
       </Card>
     </div>
+      <ResponseModal open={feedback} onClose={() => { setFeedback(false); window.location.hash = '/projects' }}
+        variant="success" title="Changes Saved!" message="The project has been successfully updated." confirmLabel="Done" />
+  </>
   )
 }

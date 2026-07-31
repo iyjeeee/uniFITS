@@ -8,11 +8,12 @@ function buildNav(org) {
     {
       section: 'Main',
       items: [
+        // Dashboard — home overview, always first in Main nav
+        { label: 'Dashboard', href: '#/dashboard',
+          paths: ['M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z'] },
         // Announcements — direct link, no sub-items (Calendar merged in)
         { label: 'Announcements', href: '#/announcements',
           paths: ['M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9','M13.73 21a2 2 0 0 1-3.46 0'] },
-        { label: 'Dashboard', href: '#/dashboard',
-          paths: ['M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z'] },
       ],
     },
     {
