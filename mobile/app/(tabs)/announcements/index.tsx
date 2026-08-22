@@ -1,10 +1,11 @@
 // app/(tabs)/announcements/index.tsx — Announcements feed with compact cards
+// Uses ScrollView (not FlatList) so Pinned + All Announcements can each sit in their own Section panel
 
-import { FlatList, View, StyleSheet, RefreshControl } from 'react-native';
+import { ScrollView, View, StyleSheet, RefreshControl } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { Colors, Spacing, Layout } from '@/constants/theme';
-import { AppHeader, LoadingSpinner, ErrorState, EmptyState, SectionHeader } from '@/components/ui';
+import { AppHeader, ErrorState, EmptyState, Section, SkeletonList } from '@/components/ui';
 import { AnnouncementCard }     from '@/components/shared/AnnouncementCard';
 import { announcementsService } from '@/services/announcements.service';
 import { useRefreshOnFocus }    from '@/hooks/useRefreshOnFocus';
@@ -20,9 +21,6 @@ export default function AnnouncementsScreen() {
 
   useRefreshOnFocus(refetch);
 
-  if (isLoading) return <LoadingSpinner fullScreen />;
-  if (error)     return <ErrorState onRetry={refetch} />;
-
   const pinned  = data.filter((a) => a.is_pinned);
   const regular = data.filter((a) => !a.is_pinned);
 
@@ -33,60 +31,52 @@ export default function AnnouncementsScreen() {
         subtitle="News & updates from your organization"
       />
 
-      <FlatList
-        data={regular}
-        keyExtractor={(item) => item.id}
-        ListHeaderComponent={() => (
-          <View>
-            {pinned.length > 0 && (
-              <View style={styles.section}>
-                <SectionHeader title="Pinned" count={pinned.length} />
-                {pinned.map((item) => (
-                  <AnnouncementCard
-                    key={item.id}
-                    item={item}
-                    onPress={() => router.push(`/(tabs)/announcements/${item.id}` as any)}
-                  />
-                ))}
-              </View>
-            )}
-            {regular.length > 0 && (
-              <SectionHeader
-                title="All Announcements"
-                count={regular.length}
-                style={styles.allHeader}
-              />
-            )}
-          </View>
-        )}
-        renderItem={({ item }) => (
-          <AnnouncementCard
-            item={item}
-            onPress={() => router.push(`/(tabs)/announcements/${item.id}` as any)}
-          />
-        )}
-        ListEmptyComponent={
-          pinned.length === 0 ? (
-            <EmptyState
-              icon="📢"
-              title="No announcements"
-              subtitle="Check back later for updates from your organization."
-            />
-          ) : null
-        }
-        contentContainerStyle={[styles.list, { paddingBottom: bottomPad }]}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={false} onRefresh={refetch} tintColor={Colors.accent} />
-        }
-      />
+      {isLoading ? (
+        <SkeletonList />
+      ) : error ? (
+        <ErrorState onRetry={refetch} />
+      ) : data.length === 0 ? (
+        <EmptyState
+          icon="megaphone-outline"
+          title="No announcements"
+          subtitle="Check back later for updates from your organization."
+        />
+      ) : (
+        <ScrollView
+          contentContainerStyle={[styles.content, { paddingBottom: bottomPad }]}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor={Colors.accent} />}
+        >
+          {pinned.length > 0 && (
+            <Section title="Pinned" count={pinned.length}>
+              {pinned.map((item) => (
+                <AnnouncementCard
+                  key={item.id}
+                  item={item}
+                  onPress={() => router.push(`/(tabs)/announcements/${item.id}` as any)}
+                />
+              ))}
+            </Section>
+          )}
+
+          {regular.length > 0 && (
+            <Section title="All Announcements" count={regular.length}>
+              {regular.map((item) => (
+                <AnnouncementCard
+                  key={item.id}
+                  item={item}
+                  onPress={() => router.push(`/(tabs)/announcements/${item.id}` as any)}
+                />
+              ))}
+            </Section>
+          )}
+        </ScrollView>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen:    { flex: 1, backgroundColor: Colors.bgApp },
-  list:      { padding: Layout.SCREEN_PADDING_H, paddingTop: Spacing.md },
-  section:   { marginBottom: Spacing.md },
-  allHeader: { marginBottom: Spacing.sm },
+  screen:  { flex: 1, backgroundColor: Colors.bgApp },
+  content: { padding: Layout.SCREEN_PADDING_H, paddingTop: Spacing.md, gap: Spacing.lg },
 });

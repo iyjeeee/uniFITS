@@ -45,6 +45,18 @@ export const Colors = {
 
   // Overlay (for modals/backdrops)
   overlay:       'rgba(15,18,30,0.55)',
+
+  // Neutral (secondary buttons, neutral badges)
+  neutral:       '#5A6474',            // --neutral: secondary button / neutral badge bg
+  neutralBorder: '#4A5264',            // --neutral-border: secondary button / neutral badge border, pressed bg
+
+  // Pressed / border shades (darker variant of each status color, used for
+  // button pressed states and badge borders — keeps every color traceable to this file)
+  accentPressed:  '#3A4D99',           // Button primary pressed bg
+  successBorder:  '#256642',           // Badge success border / Button success pressed bg
+  dangerBorder:   '#A93226',           // Badge danger border / Button danger pressed bg
+  warningBorder:  '#B7770D',           // Badge warning border
+  infoBorder:     '#1A5C87',           // Badge info border
 } as const;
 
 // ── Avatar Colors (deterministic by first char of name) ───────────────────────

@@ -26,7 +26,13 @@ export function AppHeader({
       <View style={styles.row}>
         {/* Back button */}
         {showBack && (
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backBtn}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
             <Ionicons name="chevron-back" size={24} color={Colors.textOnDark} />
           </TouchableOpacity>
         )}

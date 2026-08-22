@@ -2,20 +2,24 @@
 // Guard: if not authenticated, redirect to login immediately via <Redirect>
 
 import { Redirect, Tabs } from 'expo-router';
+import { View, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/authStore';
-import { Colors, Layout } from '@/constants/theme';
+import { Colors, Layout, Radius } from '@/constants/theme';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
+// Pill background behind the active tab's icon — color alone was a subtle change on a dark bar
 function TabIcon({ name, focused }: { name: IconName; focused: boolean }) {
   return (
-    <Ionicons
-      name={name}
-      size={24}
-      color={focused ? Colors.textOnDark : 'rgba(249,250,251,0.4)'}
-    />
+    <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+      <Ionicons
+        name={name}
+        size={20}
+        color={focused ? Colors.textOnDark : 'rgba(249,250,251,0.4)'}
+      />
+    </View>
   );
 }
 
@@ -90,3 +94,16 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  iconWrap: {
+    width:          44,
+    height:         28,
+    borderRadius:   Radius.full,
+    alignItems:     'center',
+    justifyContent: 'center',
+  },
+  iconWrapActive: {
+    backgroundColor: Colors.accent,
+  },
+});

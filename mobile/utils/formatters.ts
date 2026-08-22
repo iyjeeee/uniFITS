@@ -93,3 +93,12 @@ export const fundingPercent = (current: number, target: number): number => {
   if (!target) return 0;
   return Math.min(100, Math.round((current / target) * 100));
 };
+
+/** getGreeting — Time-of-day greeting for the Home dashboard header (device local time) */
+export const getGreeting = (): string => {
+  const hour = new Date().getHours();
+  if (hour < 5)  return 'Good evening';   // late night still reads as "evening", not "morning"
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+};

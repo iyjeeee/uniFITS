@@ -4,7 +4,7 @@
 
 import React from 'react';
 import { View, Text, Image, StyleSheet, ViewStyle } from 'react-native';
-import { AVATAR_COLORS, Typography } from '@/constants/theme';
+import { AVATAR_COLORS, Typography, Colors } from '@/constants/theme';
 import { getInitials } from '@/utils/formatters';
 
 interface AvatarProps {
@@ -40,7 +40,7 @@ export function Avatar({ name = '?', src, size = 40, style }: AvatarProps) {
           resizeMode="cover"
         />
       ) : (
-        <Text style={[styles.initials, { fontSize, color: '#fff' }]}>
+        <Text style={[styles.initials, { fontSize, color: Colors.white }]}>
           {initials}
         </Text>
       )}
@@ -57,6 +57,6 @@ const styles = StyleSheet.create({
   },
   initials: {
     fontFamily: Typography.fontBodyBold,
-    color:      '#fff',
+    color:      Colors.white,
   },
 });

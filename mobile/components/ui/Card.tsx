@@ -1,12 +1,11 @@
 // components/ui/Card.tsx — White rounded content surface
 // Base block for all content sections; mirrors website's Card component
-// Supports optional press handler for tappable cards
+// Supports optional press handler for tappable cards (uses PressableScale for tap feedback)
 
 import React from 'react';
-import {
-  View, TouchableOpacity, StyleSheet, ViewStyle,
-} from 'react-native';
+import { View, StyleSheet, ViewStyle } from 'react-native';
 import { Colors, Radius, Layout, Shadow } from '@/constants/theme';
+import { PressableScale } from './PressableScale';
 
 interface CardProps {
   children:  React.ReactNode;
@@ -18,14 +17,9 @@ interface CardProps {
 export function Card({ children, style, onPress, testID }: CardProps) {
   if (onPress) {
     return (
-      <TouchableOpacity
-        activeOpacity={0.75}
-        onPress={onPress}
-        testID={testID}
-        style={[styles.card, style]}
-      >
+      <PressableScale onPress={onPress} testID={testID} style={[styles.card, style]}>
         {children}
-      </TouchableOpacity>
+      </PressableScale>
     );
   }
 

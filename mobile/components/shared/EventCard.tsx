@@ -1,13 +1,15 @@
 // components/shared/EventCard.tsx — Tappable event list card
 // Shows: title, date/time (12hr), location, status badge, funding progress
+// PressableScale gives consistent scale + elevation tap feedback (matches other shared cards)
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ViewStyle } from 'react-native';
-import { Colors, Typography, FontSize, Spacing, Radius, Layout } from '@/constants/theme';
+import { View, Text, StyleSheet, ViewStyle } from 'react-native';
+import { Colors, Typography, FontSize, Spacing, Radius, Layout, Shadow } from '@/constants/theme';
 import { Event } from '@/types';
 import { formatDate, fmt12 } from '@/utils/formatters';
 import { statusBorderColor } from '@/utils/statusColors';
 import { StatusBadge, FundingProgress } from '@/components/ui';
+import { PressableScale } from '@/components/ui/PressableScale';
 
 interface EventCardProps {
   item:    Event;
@@ -19,10 +21,10 @@ export function EventCard({ item, onPress, style }: EventCardProps) {
   const accentColor = statusBorderColor(item.status);
 
   return (
-    <TouchableOpacity
-      activeOpacity={0.75}
+    <PressableScale
       onPress={onPress}
       style={[styles.card, { borderLeftColor: accentColor }, style]}
+      accessibilityLabel={`Event: ${item.title}, ${item.status}`}
     >
       {/* Header */}
       <View style={styles.header}>
@@ -45,7 +47,7 @@ export function EventCard({ item, onPress, style }: EventCardProps) {
         color={accentColor}
         style={styles.progress}
       />
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 
@@ -59,6 +61,7 @@ const styles = StyleSheet.create({
     padding:         Layout.CARD_PADDING,
     marginBottom:    Spacing.sm,
     gap:             Spacing.sm,
+    ...Shadow.sm,
   },
   header: {
     flexDirection:  'row',

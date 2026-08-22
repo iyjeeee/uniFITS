@@ -1,13 +1,15 @@
 // components/shared/TransactionRow.tsx — Transaction list row item
 // Shows: entry type, fund name, amount, date, status badge; left color border
+// PressableScale gives consistent scale + elevation tap feedback (matches other shared cards)
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ViewStyle } from 'react-native';
-import { Colors, Typography, FontSize, Spacing, Radius, Layout } from '@/constants/theme';
+import { View, Text, StyleSheet, ViewStyle } from 'react-native';
+import { Colors, Typography, FontSize, Spacing, Radius, Layout, Shadow } from '@/constants/theme';
 import { Transaction } from '@/types';
 import { formatCurrency, formatDate } from '@/utils/formatters';
 import { statusBorderColor } from '@/utils/statusColors';
 import { StatusBadge } from '@/components/ui';
+import { PressableScale } from '@/components/ui/PressableScale';
 
 interface TransactionRowProps {
   item:    Transaction;
@@ -28,10 +30,10 @@ export function TransactionRow({ item, onPress, style }: TransactionRowProps) {
   const isExpense    = item.entry_type === 'expense';
 
   return (
-    <TouchableOpacity
-      activeOpacity={0.75}
+    <PressableScale
       onPress={onPress}
       style={[styles.row, { borderLeftColor: borderColor }, style]}
+      accessibilityLabel={`${entry.label} of ${formatCurrency(item.amount)}, ${item.status}`}
     >
       {/* Left: type + fund + description */}
       <View style={styles.left}>
@@ -50,7 +52,7 @@ export function TransactionRow({ item, onPress, style }: TransactionRowProps) {
         <Text style={styles.date}>{formatDate(item.transaction_date, 'short')}</Text>
         <StatusBadge status={item.status} />
       </View>
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 
@@ -67,6 +69,7 @@ const styles = StyleSheet.create({
     justifyContent:  'space-between',
     marginBottom:    Spacing.sm,
     gap:             Spacing.sm,
+    ...Shadow.sm,
   },
   left: {
     flex: 1,

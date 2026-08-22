@@ -8,7 +8,7 @@ import {
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Typography, FontSize, Spacing, Radius, Layout } from '@/constants/theme';
-import { Button, Input, ScreenHeader } from '@/components/ui';
+import { Button, Input, AppHeader } from '@/components/ui';
 
 export default function ForgotPasswordScreen() {
   const insets        = useSafeAreaInsets();
@@ -29,11 +29,10 @@ export default function ForgotPasswordScreen() {
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScreenHeader
+      <AppHeader
         title="Forgot Password"
         subtitle="Reset your account password"
         showBack
-        style={{ paddingTop: insets.top + Spacing.sm }}
       />
 
       <ScrollView

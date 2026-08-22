@@ -22,7 +22,9 @@
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundColor": "#1E2128"
       },
-      "package": "com.unifits.mobile"
+      "package": "com.unifits.mobile",
+      "softwareKeyboardLayoutMode": "pan",
+      "navigationBarColor": "#1E2128"
     },
     "web": {
       "bundler": "metro",

@@ -8,12 +8,12 @@ import { Colors, FontSize, Typography, Radius } from '@/constants/theme';
 import { BadgeVariant } from '@/types';
 
 const BADGE_STYLES: Record<BadgeVariant, { bg: string; text: string; border: string }> = {
-  accent:  { bg: Colors.accent,   text: '#fff', border: '#3D52A0' },
-  success: { bg: Colors.success,  text: '#fff', border: '#256642' },
-  danger:  { bg: Colors.danger,   text: '#fff', border: '#A93226' },
-  warning: { bg: Colors.warning,  text: '#fff', border: '#B7770D' },
-  info:    { bg: Colors.info,     text: '#fff', border: '#1A5C87' },
-  neutral: { bg: '#5A6474',       text: '#fff', border: '#4A5264' },
+  accent:  { bg: Colors.accent,   text: Colors.white, border: Colors.tableHeadBg },
+  success: { bg: Colors.success,  text: Colors.white, border: Colors.successBorder },
+  danger:  { bg: Colors.danger,   text: Colors.white, border: Colors.dangerBorder },
+  warning: { bg: Colors.warning,  text: Colors.white, border: Colors.warningBorder },
+  info:    { bg: Colors.info,     text: Colors.white, border: Colors.infoBorder },
+  neutral: { bg: Colors.neutral,  text: Colors.white, border: Colors.neutralBorder },
 };
 
 interface BadgeProps {

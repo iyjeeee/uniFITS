@@ -1,13 +1,15 @@
 // components/shared/AnnouncementCard.tsx — Compact tappable announcement card
 // Matches style of ProjectCard / EventCard — left border, key info only, tap to view detail
+// Title/preview given stronger size+color contrast for scannability; PressableScale gives tap feedback
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ViewStyle } from 'react-native';
+import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Typography, FontSize, Spacing, Radius, Layout } from '@/constants/theme';
+import { Colors, Typography, FontSize, Spacing, Radius, Layout, Shadow } from '@/constants/theme';
 import { Announcement } from '@/types';
 import { relativeTime, truncate } from '@/utils/formatters';
 import { Badge } from '@/components/ui/Badge';
+import { PressableScale } from '@/components/ui/PressableScale';
 
 interface AnnouncementCardProps {
   item:    Announcement;
@@ -19,10 +21,10 @@ export function AnnouncementCard({ item, onPress, style }: AnnouncementCardProps
   const borderColor = item.is_pinned ? Colors.accent : Colors.info;
 
   return (
-    <TouchableOpacity
-      activeOpacity={0.75}
+    <PressableScale
       onPress={onPress}
       style={[styles.card, { borderLeftColor: borderColor }, style]}
+      accessibilityLabel={`${item.is_pinned ? 'Pinned announcement' : 'Announcement'}: ${item.title}`}
     >
       {/* Header row: title + pinned badge */}
       <View style={styles.headerRow}>
@@ -32,7 +34,7 @@ export function AnnouncementCard({ item, onPress, style }: AnnouncementCardProps
         )}
       </View>
 
-      {/* Content preview — 2 lines max */}
+      {/* Content preview — 2 lines max, muted so the title reads first */}
       <Text style={styles.preview} numberOfLines={2}>
         {truncate(item.content, 120)}
       </Text>
@@ -45,7 +47,7 @@ export function AnnouncementCard({ item, onPress, style }: AnnouncementCardProps
         <Text style={styles.time}>{relativeTime(item.created_at)}</Text>
         <Ionicons name="chevron-forward" size={14} color={Colors.textMuted} style={styles.chevron} />
       </View>
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 
@@ -59,11 +61,7 @@ const styles = StyleSheet.create({
     padding:         Layout.CARD_PADDING,
     marginBottom:    Spacing.sm,
     gap:             Spacing.xs,
-    shadowColor:     '#4B5EAA',
-    shadowOffset:    { width: 0, height: 2 },
-    shadowOpacity:   0.06,
-    shadowRadius:    6,
-    elevation:       2,
+    ...Shadow.sm,
   },
   headerRow: {
     flexDirection:  'row',
@@ -72,17 +70,17 @@ const styles = StyleSheet.create({
     gap:            Spacing.sm,
   },
   title: {
-    fontFamily: Typography.fontBodySemiBold,
+    fontFamily: Typography.fontBodyBold,
     fontSize:   FontSize.md,
     color:      Colors.textPrimary,
     flex:       1,
-    lineHeight: 20,
+    lineHeight: 21,
   },
   badge:   { flexShrink: 0 },
   preview: {
     fontFamily: Typography.fontBody,
     fontSize:   FontSize.sm,
-    color:      Colors.textSecondary,
+    color:      Colors.textMuted,
     lineHeight: 19,
   },
   footer: {

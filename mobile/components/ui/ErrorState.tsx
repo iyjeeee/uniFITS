@@ -1,8 +1,10 @@
 // components/ui/ErrorState.tsx — Error placeholder with retry button
+// Uses a tinted danger icon circle instead of a raw emoji, matching EmptyState
 
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import { Colors, Typography, FontSize, Spacing } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors, Typography, FontSize, Spacing, Radius } from '@/constants/theme';
 import { Button } from './Button';
 
 interface ErrorStateProps {
@@ -18,7 +20,9 @@ export function ErrorState({
 }: ErrorStateProps) {
   return (
     <View style={[styles.container, style]}>
-      <Text style={styles.icon}>⚠️</Text>
+      <View style={styles.iconCircle}>
+        <Ionicons name="alert-circle-outline" size={28} color={Colors.danger} />
+      </View>
       <Text style={styles.message}>{message}</Text>
       {onRetry && (
         <Button title="Try Again" onPress={onRetry} variant="ghost" size="sm" />
@@ -36,8 +40,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     gap:               Spacing.md,
   },
-  icon: {
-    fontSize: 36,
+  iconCircle: {
+    width:           64,
+    height:          64,
+    borderRadius:    Radius.full,
+    backgroundColor: Colors.dangerLight,
+    alignItems:      'center',
+    justifyContent:  'center',
   },
   message: {
     fontFamily: Typography.fontBody,

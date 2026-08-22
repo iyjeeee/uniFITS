@@ -63,6 +63,8 @@ export default function ProfileScreen() {
           <TouchableOpacity
             onPress={() => router.push('/(tabs)/profile/edit' as any)}
             style={styles.editBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Edit profile"
           >
             <Ionicons name="create-outline" size={20} color={Colors.textOnDark} />
             <Text style={styles.editBtnText}>Edit</Text>
@@ -128,7 +130,13 @@ export default function ProfileScreen() {
         </View>
 
         {/* Logout */}
-        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
+        <TouchableOpacity
+        style={styles.logoutBtn}
+        onPress={handleLogout}
+        activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityLabel="Sign out"
+      >
           <Ionicons name="log-out-outline" size={18} color={Colors.danger} />
           <Text style={styles.logoutText}>Sign Out</Text>
         </TouchableOpacity>

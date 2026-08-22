@@ -1,22 +1,27 @@
 // components/ui/EmptyState.tsx — Centered empty placeholder for lists
-// Shows icon + title + subtitle + optional action button
+// Shows a tinted icon circle (matches badge/tint pattern used elsewhere) + title + subtitle + optional action
 
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import { Colors, Typography, FontSize, Spacing } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors, Typography, FontSize, Spacing, Radius } from '@/constants/theme';
+
+type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
 interface EmptyStateProps {
-  icon?:     string;           // Emoji or symbol character
+  icon?:     IoniconName;       // Ionicons name, shown inside a tinted circle
   title:     string;
   subtitle?: string;
   action?:   React.ReactNode;
   style?:    ViewStyle;
 }
 
-export function EmptyState({ icon = '📭', title, subtitle, action, style }: EmptyStateProps) {
+export function EmptyState({ icon = 'file-tray-outline', title, subtitle, action, style }: EmptyStateProps) {
   return (
     <View style={[styles.container, style]}>
-      {icon && <Text style={styles.icon}>{icon}</Text>}
+      <View style={styles.iconCircle}>
+        <Ionicons name={icon} size={28} color={Colors.accent} />
+      </View>
       <Text style={styles.title}>{title}</Text>
       {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
       {action && <View style={styles.action}>{action}</View>}
@@ -33,9 +38,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     gap:            Spacing.sm,
   },
-  icon: {
-    fontSize:     40,
-    marginBottom: Spacing.xs,
+  iconCircle: {
+    width:           64,
+    height:          64,
+    borderRadius:    Radius.full,
+    backgroundColor: Colors.accentLight,
+    alignItems:      'center',
+    justifyContent:  'center',
+    marginBottom:    Spacing.xs,
   },
   title: {
     fontFamily: Typography.fontBodySemiBold,

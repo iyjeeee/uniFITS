@@ -13,11 +13,11 @@ type BtnVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success';
 type BtnSize    = 'sm' | 'md' | 'lg';
 
 const VARIANT_STYLES: Record<BtnVariant, { bg: string; text: string; border: string; pressedBg: string }> = {
-  primary:   { bg: Colors.accent,   text: '#fff',               border: Colors.accent,   pressedBg: '#3a4d99' },
-  secondary: { bg: '#5A6474',       text: '#fff',               border: '#4A5264',       pressedBg: '#4A5264' },
-  ghost:     { bg: 'transparent',   text: Colors.accent,        border: 'transparent',   pressedBg: Colors.accentLight },
-  danger:    { bg: Colors.danger,   text: '#fff',               border: Colors.danger,   pressedBg: '#a93226' },
-  success:   { bg: Colors.success,  text: '#fff',               border: Colors.success,  pressedBg: '#256640' },
+  primary:   { bg: Colors.accent,        text: Colors.white, border: Colors.accent,        pressedBg: Colors.accentPressed },
+  secondary: { bg: Colors.neutral,       text: Colors.white, border: Colors.neutralBorder, pressedBg: Colors.neutralBorder },
+  ghost:     { bg: 'transparent',        text: Colors.accent, border: 'transparent',        pressedBg: Colors.accentLight },
+  danger:    { bg: Colors.danger,        text: Colors.white, border: Colors.danger,        pressedBg: Colors.dangerBorder },
+  success:   { bg: Colors.success,       text: Colors.white, border: Colors.success,        pressedBg: Colors.successBorder },
 };
 
 const SIZE_STYLES: Record<BtnSize, { paddingV: number; paddingH: number; fontSize: number }> = {
@@ -52,6 +52,9 @@ export function Button({
       onPress={onPress}
       disabled={isOff}
       activeOpacity={0.8}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      accessibilityState={{ disabled: isOff, busy: loading }}
       style={[
         styles.base,
         {
