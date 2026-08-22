@@ -1,0 +1,1367 @@
+================================================================
+  UNIFITS WEBSITE — FULL PROJECT KNOWLEDGE & CODEBASE STRUCTURE
+  File: unifits-knowledge-&-structure.txt
+  Monorepo path: unifits/website/
+  Stack: React 18 · Vite 5 · TypeScript · Zero external UI libs · Hash router
+  Status: TYPESCRIPT MIGRATION COMPLETE — all 41 pages + all components converted
+================================================================
+
+
+▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+  SECTION 1 — FULL PROJECT KNOWLEDGE
+▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1.1  PROJECT OVERVIEW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Name:      uniFITS — Financial Information Tracking System
+Purpose:   Club / organization management dashboard. Tracks members
+           (called "Employees"), projects, events, funds, transactions,
+           utilities, attendance, reports, audit logs, and settings.
+Target:    Philippine non-profit organizations and clubs.
+Currency:  Philippine Peso (₱ / PHP), locale en-PH.
+
+Tech stack:
+  · React 18 + Vite 5 + TypeScript 5
+  · NO external UI library (no MUI, Tailwind, Chakra, Ant Design)
+  · NO react-router — custom hash-based router in App.tsx only
+  · NO state management library — useState + Context API only
+  · ALL component styling = inline styles + CSS custom properties
+  · Fonts: DM Sans (body) + DM Serif Display (headings) — Google Fonts
+  · Only runtime deps: react + react-dom
+
+Monorepo structure (website lives at unifits/website/):
+  unifits/
+    backend/        (separate — not in this zip)
+    mobile/         (separate — not in this zip)
+    supabase/       (separate — not in this zip)
+    website/        ← THIS CODEBASE
+      src/
+      public/
+      index.html
+      package.json
+      tsconfig.json
+      tsconfig.app.json
+      tsconfig.node.json
+      vite.config.ts
+      eslint.config.js
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1.2  TYPESCRIPT MIGRATION OVERVIEW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+MIGRATION STRATEGY
+  · Gradual, file-by-file — never break working code mid-migration
+  · Order: config → types → utils → hooks → constants → context
+           → api/mock → components (ui, shared, KPI, TableUtils, Icons)
+           → layout/shell → pages (bottom-up)
+  · "allowJs: true" during migration so unconverted files still compile
+  · Strict mode enabled (strict: true in tsconfig.app.json)
+
+NEW FILES ADDED (TypeScript config)
+  tsconfig.json          Root TypeScript config (references app + node)
+  tsconfig.app.json      App source config: strict, JSX preserve, paths
+  tsconfig.node.json     Vite config only (node env)
+  vite.config.ts         Renamed from vite.config.js
+
+NEW FOLDER ADDED
+  src/types/             Shared TypeScript interfaces and type definitions
+    index.ts             Central barrel: re-exports all types
+
+TYPE FILE LOCATIONS
+  src/types/user.ts          User, Role, Permission types
+  src/types/org.ts           OrgConfig type (for OrgContext)
+  src/types/project.ts       Project, ProjectType types
+  src/types/event.ts         Event types
+  src/types/fund.ts          Fund types
+  src/types/transaction.ts   Transaction, Utility types
+  src/types/attendance.ts    Attendance types
+  src/types/announcement.ts  Announcement types
+  src/types/audit.ts         AuditLog types
+  src/types/ui.ts            Shared UI prop types (BadgeVariant, etc.)
+  src/types/index.ts         Barrel export of all the above
+
+FILE EXTENSIONS AFTER MIGRATION
+  · .jsx  →  .tsx   (React components)
+  · .js   →  .ts    (pure logic/data/hooks/utils)
+  · login.css stays .css (no JS content)
+  · index.css stays .css (no JS content)
+
+TSCONFIG STRICT SETTINGS ENABLED
+  · strict: true (includes noImplicitAny, strictNullChecks, etc.)
+  · noUnusedLocals: true
+  · noUnusedParameters: true
+  · noFallthroughCasesInSwitch: true
+
+COMPONENT TYPING CONVENTIONS
+  · Functional components: React.FC<Props> or explicit return type
+  · Props interfaces defined locally above the component (not exported
+    unless reused across files)
+  · Shared prop interfaces live in src/types/ui.ts
+  · Event handlers: React.ChangeEvent<HTMLInputElement>, etc.
+  · Style props: React.CSSProperties
+  · Children: React.ReactNode
+
+NEVER DO IN TYPESCRIPT MIGRATION
+  · Never use 'any' unless absolutely unavoidable (log it as a TODO)
+  · Never disable ts-ignore lines without a documented reason
+  · Never change component logic, styling, or UI during conversion
+  · Never rename files without updating ALL imports
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1.3  CRITICAL ARCHITECTURE RULES — NEVER VIOLATE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ROUTING
+  · Hash-based only. All navigation: window.location.hash = '#/path'
+  · ROUTES map in App.tsx: hash string → { Component, page, sub, auth }
+  · To add a page: (1) create component, (2) import in App.tsx,
+    (3) add to ROUTES, (4) add nav item to Sidebar buildNav()
+  · navigate(path) prop passed from App.tsx — pages use this, not
+    window.location.hash directly
+  · Never suggest installing react-router
+
+STYLING
+  · NEVER use className with external CSS files in components
+  · NEVER add Tailwind classes — not installed, will not work
+  · ALL colors reference CSS custom properties from index.css
+  · Never hardcode hex colors in component/page files unless truly
+    one-off and documented inline with a comment
+  · All border/spacing/shadow/radius values use --token vars
+  · Hover states use onMouseEnter/onMouseLeave with inline style
+    mutation (or the Button component's built-in hover logic)
+
+GLOBAL BUTTON HOVER (defined in index.css, auto-applies to ALL <button>)
+  · Hover: translateY(-2px) + box-shadow 0 0 0 1.5px rgba(0,0,0,.70),
+            0 4px 12px rgba(0,0,0,.14)
+  · Active: translateY(0) + ring only
+  · Transition: background .18s, transform .18s, box-shadow .18s
+  · Custom hover overrides use onMouseEnter/Leave with explicit
+    style mutation (see Header.tsx hamburger as reference)
+
+STATE MANAGEMENT
+  · No external stores — only useState + OrgContext
+  · Auth state: sessionStorage + useState in App.tsx
+  · All other state: local useState per component
+
+DATA
+  · Everything is mock — all data in src/api/mockData.ts
+  · Pages import MOCK_* arrays directly, no fetch() calls yet
+  · When connecting real backend: replace MOCK_* with API calls;
+    page components should not need changes if shapes are kept
+  · Backend base URL: VITE_API_URL in .env (default localhost:5000)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1.4  CSS DESIGN TOKEN REFERENCE (src/index.css)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+TYPOGRAPHY
+  --font-body      'DM Sans', system sans-serif  → all UI text
+  --font-display   'DM Serif Display', Georgia   → h1–h6, logo
+
+LAYOUT WIDTHS
+  --sidebar-w      240px   (expanded)
+  --sidebar-mini   64px    (collapsed / icon-only)
+
+BRAND
+  --primary        #1E2128   sidebar bg, dark headings
+  --accent         #4B5EAA   buttons, active nav, links, focus
+  --accent-light   rgba(75,94,170,.08)
+
+STATUS COLORS (each has a -light rgba variant at .08 opacity)
+  --success        #2E7D52   + --success-light
+  --danger         #C0392B   + --danger-light
+  --warning        #D4860A   + --warning-light
+  --info           #2471A3   + --info-light
+
+BACKGROUNDS
+  --white          #FFFFFF   cards, modals, inputs, KPI tiles
+  --bg-app         #EEF2F8   page background (the blue-gray field)
+  --neutral-light  #F2F5FB   table row hover, icon bg wells
+
+BORDER SYSTEM (weakest → strongest)
+  --border         #E5E9EF   misc / progress bar tracks / SVG lines
+  --border-card    #C8D3E8   Card outer border
+  --border-inner   #D8DFF0   internal dividers, row separators
+  --border-table   #B8C4DC   table thead bottom rule
+
+TABLE SURFACE
+  --table-head-bg  #3D52A0   thead background (dark accent blue)
+  --table-head-fg  #FFFFFF   thead text (always white)
+
+TEXT
+  --text-primary   #1E2128   main content
+  --text-secondary #4B5563   labels, subtitles
+  --text-muted     #9CA3AF   placeholders, hints, timestamps
+  --text-on-dark   #F9FAFB   text on sidebar / dark surfaces
+
+SHADOWS (blue-tinted)
+  --shadow-sm   0 1px 3px rgba(75,94,170,.06), 0 1px 2px rgba(0,0,0,.04)
+  --shadow-md   0 4px 12px rgba(75,94,170,.10), 0 2px 4px rgba(0,0,0,.05)
+
+RADII
+  --radius-sm  6px
+  --radius-md  10px
+  --radius-lg  16px
+
+GLOBAL RESETS (index.css)
+  · box-sizing: border-box on everything
+  · body: 14px DM Sans, color --text-primary, bg --bg-app
+  · h1–h6: DM Serif Display, font-weight 400
+    h1=28px  h2=22px  h3=18px  h4=16px
+  · input/select/textarea: inherit font-body
+  · focus: outline none, border --accent, box-shadow 3px accent ring
+  · scrollbar: 6px thin, thumb rgba(75,94,170,.18)
+  · print: bg white, hide aside/header/.no-print, reset main padding
+  · animations: blob-float (login), modalPop (unused — transitions used instead)
+  · utility classes: .text-muted  .text-accent  .text-success  .text-danger
+
+IMPORTANT DESIGN DECISIONS ON COLORS
+  · KPI tile bg is ALWAYS #FFFFFF — never --bg-app or --neutral-light
+  · Table thead bg is ALWAYS #3D52A0 — never light gray
+  · Sidebar bg is ALWAYS --primary (#1E2128) dark
+  · Modal overlay: rgba(15,18,30,.55) with backdrop blur 3px
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1.5  UI COMPONENT LIBRARY (src/components/ui/index.tsx)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Import: import { X } from '../../components/ui'   (from pages)
+        import { X } from '../components/ui'        (from components)
+
+Badge
+  Props: variant ('accent'|'success'|'danger'|'warning'|'info'|'neutral'),
+         children, style
+  Solid colored pill, 11.5px, white text, borderRadius 20.
+  Use for type/category labels, not status (use StatusBadge for status).
+
+StatusBadge
+  Props: status (string — any casing, auto-lowercased)
+  Auto-maps to Badge variant:
+    active/completed/paid/present/approved → success (green)
+    ongoing                                → accent (blue)
+    upcoming/pending/late/partial          → warning (amber)
+    inactive/cancelled/rejected/unpaid/absent/failed → danger (red)
+  Always use this for status columns — never hand-code status colors.
+
+Avatar
+  Props: name (string), size (number, default 36), src (URL), style
+  Deterministic color from first char. Renders image if src provided.
+  7 colors: accent, success, danger, warning, info, purple, teal.
+
+Card
+  Props: children, style, onClick, onMouseEnter, onMouseLeave
+  White bg, --border-card border, --shadow-sm, --radius-md.
+  The root container for all content blocks.
+
+CardHeader
+  Props: title, subtitle, actions (ReactNode)
+  Title left, actions right. Padding 16px 20px. --border-inner bottom.
+
+Button
+  Props: children, variant, size, icon (ReactNode), disabled,
+         onClick, style, type ('button'|'submit')
+  Variants:
+    primary   → --accent blue bg, white text
+    secondary → #5A6474 gray bg, white text
+    danger    → --danger red bg, white text
+    success   → --success green bg, white text
+    ghost     → transparent bg, --accent text
+  Sizes:
+    sm → 6px 12px pad / 12.5px font
+    md → 9px 18px pad / 13.5px font  (default)
+    lg → 12px 24px pad / 15px font
+  icon prop renders inline before children.
+  Disabled: grays out, cursor not-allowed, skips hover lift.
+
+Input
+  Props: label, hint, error, required, + all native input props
+  Label above, hint or error below (error overrides hint).
+  Error state: --danger border. Focus: --accent border + blue ring.
+  Required: red asterisk after label text.
+
+Select
+  Props: label, hint, error, required, options [{value, label}],
+         placeholder, style, + native select props
+  placeholder renders as first <option value=""> (disabled-looking).
+  Error state: --danger border + #fff8f8 background.
+
+Textarea
+  Props: label, hint, rows (default 3), style, + native props
+  resize: vertical. Same focus as Input.
+
+DataTable
+  Props: columns [{label, key, accessor, render(row,i)}],
+         data (array), title, subtitle, emptyMsg
+  Built-in: global text search, page sizes (10/25/50/100),
+  numbered pagination. Thead dark blue, row hover --neutral-light.
+  column.render(row, index) → ReactNode for custom cells.
+  column.accessor → direct field key. Resets page on search change.
+
+InfoModal
+  Props: open (bool), onClose, title, subtitle,
+         accentColor (default 'var(--accent)'),
+         editMode (bool), children, footer (ReactNode)
+  Size: max-width 920px, max-height 92vh, scrollable body.
+  Header: title + optional subtitle + dark CloseButton (32×32, white X).
+  Body: 26px 32px padding, overflow-y auto.
+  Footer: right-aligned slot, 18px 32px padding, --border-inner top.
+  editMode=true → purple header (#7C3AED) + "Editing" badge.
+  Animation: CSS opacity+transform transitions ONLY — no keyframes.
+    Open: scale(1) opacity 1. Close: scale(.98) translateY(6px) opacity 0, 240ms.
+  Scroll lock: compensates scrollbar width to prevent layout shift.
+  Click outside overlay closes modal.
+  z-index: 300.
+
+ResponseModal
+  Props: open, onClose, variant ('success'|'danger'|'warning'|'info'),
+         title, message, confirmLabel (default 'OK'), cancelLabel,
+         onConfirm, loading (bool)
+  Size: max-width 460px. Large icon in colored circle, centered.
+  cancelLabel present → two buttons (secondary cancel + colored confirm).
+  No cancelLabel → single full-width confirm button.
+  loading=true → "Processing…" + disabled.
+  Content frozen in snapshot ref during close animation.
+  Same animation as InfoModal (240ms transition).
+  z-index: 400 (renders above InfoModal).
+  Variants: success=green, danger=red, warning=amber, info=blue.
+  Use for: delete confirms, success/error feedback, logout confirm.
+
+StepWizard
+  Props: steps (string[]), current (number, 0-indexed)
+  Horizontal step indicator. Done=green checkmark, Active=accent,
+  Future=gray. Connector bar fills green as steps complete.
+  Used by all Add* form pages.
+
+KpiCard
+  Props: label, value, icon (ReactNode), color (CSS var or hex),
+         delta (number), bg, onClick
+  Always white (#FFFFFF) bg, 3px left border in color prop.
+  Hover: translateY(-3px) + shadow. delta shows ↑↓ % trend.
+  Used on Dashboard page only. Manage pages use KPI/index.tsx.
+
+EmptyState
+  Props: icon (emoji, default '📭'), title, subtitle, action (ReactNode)
+  Centered placeholder. padding 60px 20px. Large emoji + text + action.
+
+PageHeader
+  Props: title, subtitle, actions (ReactNode)
+  22px / 800 weight / font-display title. 13.5px muted subtitle.
+  Actions slot right-aligned. Use at top of every page.
+
+SectionDivider
+  Props: label
+  Horizontal rule with uppercase accent-blue label on left edge.
+  11.5px / .08em letter-spacing / --accent color.
+  Use inside forms to separate logical field groups.
+
+Modal (legacy alias)
+  Maps open/onClose/title/subtitle/children/footer → InfoModal.
+  Exists so old Manage* pages using <Modal> still work unchanged.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1.6  STATUS & TABLE COLOR SYSTEM (src/constants/tableColors.ts)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Single source of truth for ALL table row colors. Edit here → all pages update.
+
+STATUS_BORDER — 4px solid left border per <tr>
+  #2E7D52 (green):  active, completed, paid, present, approved
+  #4B5EAA (blue):   ongoing
+  #D4860A (amber):  upcoming, pending, late, partial
+  #C0392B (red):    inactive, cancelled, rejected, unpaid, absent, failed
+
+STATUS_BG — tinted row hover (same color families at ~12% opacity)
+
+STATUS_ACCENT — InfoModal accentColor per status
+  Green family → var(--success)
+  Blue family  → var(--accent)
+  Amber family → var(--warning)
+  Red family   → var(--danger)
+
+Helper functions (always import and use these, never hardcode):
+  rowStyle(status)          → base <tr> inline style object
+  rowHoverBg(status)        → hover bg string for onMouseEnter
+  modalAccentColor(status)  → accent string for InfoModal accentColor prop
+
+TypeScript: status param typed as string (permissive) to avoid import
+overhead in every page. Internal lookup falls back to defaults safely.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1.7  SHARED COMPONENT NOTES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Sidebar (src/components/Sidebar.tsx)
+  Nav sections:
+    Main:         Announcements (direct), Dashboard (direct)
+    Organization: Employees (sub), Projects (sub), Events (sub)
+    Finance:      Funds (sub), Transactions (sub), Utilities (sub)
+    Insights:     Reports (sub), Audit Logs (direct)
+  Labels from useOrg(): people_label, project_label, event_label, etc.
+  Active detection: isActive() uses longest-prefix matching — prevents
+    /transactions highlighting when on /transactions/utilities.
+  Collapsed: 64px icon-only, tooltips via title attribute.
+  Mobile: slide-in drawer, backdrop overlay, auto-closes on nav.
+  Brand: "uF" mark (--accent bg) + "uniFITS" wordmark (font-display).
+  Colors: all on --primary dark bg, text rgba(249,250,251,x).
+  Active item: solid --accent fill + white 3px left pip.
+  Hover item: translateX(3px) + gradient bg + accent pip.
+
+Header (src/components/Header.tsx)
+  Height 62px, sticky top, z-index 50, --white bg.
+  Left: hamburger toggle + page title (15px/700) + subtitle (11px muted).
+  Right: notification bell + profile dropdown.
+  Notifications: 12 MOCK_NOTIFICATIONS, 5 shown in dropdown,
+    "View All" opens InfoModal with paginated list. Unread count on bell.
+    markAllRead() → sets all read:true locally.
+  Profile pill: hardcoded "JD / Juan Dela Cruz / Admin" initials.
+    NOTE: should eventually read from currentUser prop.
+  Profile dropdown links: My Profile, Personal Transactions, Settings.
+  Logout: ResponseModal (warning, confirm) → calls onLogout() from App.tsx.
+  All dropdown items: hover lift + dark border ring + neutral-light bg.
+
+TableUtils (src/components/TableUtils.tsx)
+  IconBtn: 32×32 solid-color action button for table columns.
+    stopPropagation built-in. Hover: translateY(-2px) + border ring.
+    Props: children, solidBg (hex), title, onClick.
+  PaginationRow: page controls bar. "Page X of Y · N records" left,
+    numbered buttons right. Props: page, totalPages, onPageChange, total.
+  DeleteWarning: delete confirmation wrapping ResponseModal (danger).
+
+KPI/index.tsx (src/components/KPI/index.tsx)
+  KpiGrid component for all Manage* pages.
+  White (#fff) tiles, 4px left colored border, hover lift +3px.
+  Color name → hex map:
+    blue   → #2471A3  (var(--info))    for ongoing
+    green  → #2E7D52  (var(--success))
+    amber  → #D4860A  (var(--warning)) for upcoming
+    teal   → #2471A3
+    violet → #4B5EAA  (var(--accent))
+    rose   → #C0392B  (var(--danger))
+    sky    → #2471A3
+    slate  → #4B5EAA
+  metric.showBadge=true → urgency pulse dot in top-right corner.
+  metric.trend: positive=green ↑, negative=red ↓ label.
+
+Icons.tsx (src/components/Icons.tsx)
+  BtnIco (14px) — toolbar/modal button icons:
+    Save, Edit, Delete, Cancel, Close, Plus, Check, PDF,
+    Print, Export, Shield, View, Arrow, Back
+  TableIco (13px) — table action column icons:
+    Delete, Approve, Reject, Plus, Edit, Save, Print
+  Usage: <BtnIco.Save />  or  <TableIco.Delete />
+
+EditEmployeeModal.tsx
+  In-modal employee edit (no page redirect). InfoModal shell.
+  Fields: first_name, last_name, email, contact_number, gender,
+          role, department, status.
+  Accent = modalAccentColor(employee.status).
+  Splits full_name into first/last on open, rejoins on save.
+  Props: open, onClose, employee (User), org (OrgConfig), onSave(updatedItem).
+
+EditItemModal.tsx
+  In-modal edit for Projects OR Events via kind prop.
+  kind='project' → shows project fields + PROJECT_TYPE_OPTIONS.
+  kind='event'   → shows event fields (date, time, location).
+  Shared status options: upcoming/ongoing/completed/cancelled/rejected.
+  Props: open, onClose, item (Project|Event), kind, org, onSave.
+
+ItemDetailContent.tsx
+  Rich detail panel inside Project/Event manage modals (4 extra sections):
+    Row A: Member Contributions | Member Attendance
+    Row B: External Income      | External Expense
+  Imports MOCK_TRANSACTIONS, MOCK_ATTENDANCES, MOCK_USERS, fmt12.
+  Kind-specific colors: project=#4B5EAA, event=#2E7D52.
+  Props: item (Project | Event), org (OrgConfig), kind ('project'|'event').
+
+shared/index.tsx
+  Compatibility shim for legacy Manage* pages.
+  Re-exports: Button from ui/index.tsx.
+  Exports: Modal (wraps InfoModal, maps isOpen→open prop).
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1.8  CONTEXT & HOOKS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+OrgContext (src/context/OrgContext.tsx)
+  Global org config accessible everywhere via useOrg().
+  OrgConfig type defined in src/types/org.ts.
+  Fields with defaults:
+    org.name              → 'uniFITS Demo Organization'
+    org.currency_symbol   → '₱'
+    org.currency_code     → 'PHP'
+    org.people_label      → 'Employee'
+    org.project_label     → 'Project'
+    org.event_label       → 'Event'
+    org.fund_label        → 'Fund'
+    org.transaction_label → 'Transaction'
+    org.utility_label     → 'Utility'
+    org.attendance_label  → 'Attendance'
+    org.report_label      → 'Report'
+  To rename entities app-wide: update DEFAULT_ORG in App.tsx
+  (or replace with real /api/organizations/me response).
+  Sidebar, Header, and all pages that show entity names use useOrg().
+
+useBreakpoint (src/hooks/useBreakpoint.ts)
+  Listens to window resize event.
+  Returns: { width, isMobile (<768px), isTablet (768–1023px), isDesktop (≥1024px) }
+  AppLayout uses this to control sidebar + drawer. Use in any
+  component needing responsive behavior. Never hardcode media queries
+  in inline styles — use the returned booleans.
+
+useModal (src/hooks/useModal.ts)
+  Reusable modal state manager. Generic: useModal<T>()
+  Returns: { isOpen, data: T | null, open(payload: T), close(), toggle() }
+  open(item) sets data=item so the modal knows which row was clicked.
+  close() clears data to null.
+  Usage:
+    const modal = useModal<User>()
+    <button onClick={() => modal.open(row)}>View</button>
+    <InfoModal open={modal.isOpen} onClose={modal.close}>
+      {modal.data && <DetailPanel item={modal.data} />}
+    </InfoModal>
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1.9  UTILITIES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+src/utils/formatters.ts
+  formatCurrency(amount, compact=false)
+    → '₱ 12,345.00' or compact '₱ 12.3K' / '₱ 4.8M'
+  formatDate(date, style='medium')
+    'short'  → "Mar 15, '26"
+    'medium' → "Mar 15, 2026"
+    'long'   → "Sun, March 15, 2026"
+  formatNumber(num)          → '12,345' (en-PH thousands)
+  formatPercent(value, raw=true) → '87.5%'
+  truncate(str, max=40)      → clips with ellipsis
+  getInitials(name)          → 'Juan Dela Cruz' → 'JD'
+
+src/utils/validation.ts
+  All return '' if valid, error string if invalid.
+  required(value, label)
+  minLength(value, min, label)
+  maxLength(value, max, label)
+  isEmail(value)             → standard email regex
+  isPhilippinePhone(value)   → 09XXXXXXXXX (11 digits)
+  isPositiveNumber(value, label)
+  isNonZeroAmount(value, label)
+  isPastOrTodayDate(value, label)
+  isValidDateRange(startDate, endDate)
+  isAmountPaidValid(totalAmount, amountPaid)
+  passwordStrength(value)
+  runValidations(validators: (() => string)[])
+  validateStep(fieldValidators: Record<string, (() => string)[]>)
+
+Note: mockData.ts also has its own older inline helpers:
+  formatCurrency(amount, symbol)  → same output
+  formatDate(dateStr)             → 'Mar 15, 2026'
+  relativeTime(dateStr)           → '2m ago', '3h ago', '2d ago'
+  fmt12(t)                        → '14:30' → '2:30 PM' (24hr→12hr)
+  New code should prefer utils/formatters.ts.
+  fmt12 is only in mockData.ts — import it from there.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1.10  MOCK DATA SHAPES (src/api/mockData.ts)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+All arrays typed using interfaces from src/types/.
+
+MOCK_USERS → User[] (6 records)
+  id, employee_number ('EMP-000X'), first_name, last_name, full_name,
+  gender, email, contact_number, role, department, occupation,
+  joined ('YYYY-MM-DD'), status ('active'|'inactive'),
+  address_city, address_province, photo_url (null = initials avatar)
+
+MOCK_ROLES → Role[] (5 records)
+  id, name, description, is_system (bool),
+  permissions (Permission[])
+  Permission strings: add_user, edit_user, delete_user, manage_funds,
+  add_transaction, view_reports, view_audit_logs, manage_settings,
+  backup_restore, add_project, edit_project, add_event, edit_event,
+  manage_attendance
+
+MOCK_ANNOUNCEMENTS → Announcement[] (4 records)
+  id, title, content, is_pinned (bool),
+  created_by (name string), created_at (ISO date string)
+
+MOCK_PROJECTS → Project[] (5 records)
+  id, title, project_type, description, start_date, end_date,
+  location, status ('upcoming'|'ongoing'|'completed'),
+  target_funding (number), current_funding (number)
+
+MOCK_EVENTS → Event[] (multiple)
+  id, title, description, event_date ('YYYY-MM-DD'),
+  event_time ('HH:MM' 24-hr), location,
+  status, target_funding, current_funding
+  event_time always formatted with fmt12() before display
+
+MOCK_FUNDS → Fund[]
+MOCK_TRANSACTIONS → Transaction[]
+MOCK_UTILITIES → Utility[]
+MOCK_ATTENDANCES → Attendance[]
+MOCK_AUDIT_LOGS → AuditLog[]
+
+MOCK_NOTIFICATIONS (in Header.tsx)
+  id, text, time (relative string), read (bool)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1.11  AUTH FLOW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Login flow (mock):
+  LoginForm.tsx matches credentials against MOCK_USERS.
+  Success → calls handleLogin(user: User) in App.tsx.
+  App.tsx writes sessionStorage: 'unifits_authed'='true',
+    'unifits_user'=JSON.stringify(user).
+  On page refresh: sessionStorage restored → auto-login.
+
+Auth guard in App.tsx:
+  auth:false routes (/login, /forgot-password) → always visible.
+  All other routes → require authed=true.
+  Unauthenticated → redirect to /login.
+
+currentUser prop:
+  App.tsx passes currentUser (User | null) to every page.
+  Use: currentUser.id, currentUser.role, currentUser.full_name.
+  Pages receive it as a prop — never read from sessionStorage directly.
+
+Logout:
+  Header triggers ResponseModal (warning variant) for confirmation.
+  Confirmed → setShowLogoutModal(false), call onLogout() from App.tsx.
+  App.tsx clears sessionStorage, sets authed=false, navigates /login.
+
+Real auth swap points:
+  · handleLogin() in App.tsx → POST /api/auth/login
+  · handleLogout() in App.tsx → POST /api/auth/logout
+  · DEFAULT_ORG in App.tsx → GET /api/organizations/me
+  · sessionStorage → optionally replace with httpOnly cookies
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1.12  LAYOUT & ROUTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+AppLayout shell:
+  Sidebar: fixed left, 240px expanded / 64px collapsed. z-index 100.
+  Header: sticky top, 62px, z-index 50, --white bg.
+  <main>: padding 16px 20px (mobile: 14px 12px), max-width 1600px,
+    margin 0 auto, flex 1.
+
+Responsive behavior (via useBreakpoint):
+  Mobile (<768px):  sidebar hidden, opens as drawer on menu click,
+    backdrop overlay, auto-closes after nav, margin-left 0.
+  Tablet (768–1023px): sidebar auto-collapses to 64px icon-only.
+  Desktop (≥1024px): full 240px sidebar, collapse toggle at bottom.
+
+Standard authenticated page structure:
+  1. PageHeader (title + subtitle + Add button)
+  2. KpiGrid (3–6 tiles)
+  3. Filter/search controls row
+  4. DataTable or card grid
+  5. InfoModal(s) for detail/edit
+  6. ResponseModal(s) for feedback/confirmation
+
+All 40 routes in App.tsx (unchanged from JS version):
+  /login                         Login              (auth: false)
+  /forgot-password               ForgotPassword     (auth: false)
+  /dashboard                     Dashboard
+  /announcements                 Announcements
+  /announcements/calendar        Calendar
+  /employees                     Employees
+  /employees/add                 AddEmployee
+  /employees/edit                EditEmployee
+  /employees/details             EmployeeDetails
+  /employees/roles               RolesPage
+  /employees/attendance          Attendance
+  /projects                      Projects
+  /projects/add                  AddProject
+  /projects/edit                 EditProject
+  /projects/detail               ProjectDetail
+  /events                        Events
+  /events/add                    AddEvent
+  /events/edit                   EditEvent
+  /events/detail                 EventDetail
+  /funds                         Funds
+  /funds/add                     AddFund
+  /funds/edit                    EditFund
+  /transactions                  Transactions
+  /transactions/add              AddTransaction
+  /transactions/utilities        Utilities
+  /transactions/utilities/add    AddUtility
+  /profile                       Profile
+  /profile/edit                  EditProfile
+  /profile/transactions          PersonalTransactions
+  /reports/employees             EmployeeReport
+  /reports/funds                 FundReport
+  /reports/club                  ClubReport
+  /audit                         AuditLogs
+  /settings                      Settings
+  /settings/backup               Backup
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1.13  MODAL SYSTEM RULES — DO NOT BREAK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+InfoModal  → large content / detail / edit forms (max 920px, z:300)
+ResponseModal → compact feedback only (max 460px, z:400)
+Never mix the two. ResponseModal renders ABOVE InfoModal.
+
+Animation contract (both modals follow this exactly):
+  · CSS opacity + transform transitions ONLY — no @keyframe animations
+  · `closing` boolean state + timerRef (useRef) drives the exit
+  · 240ms exit duration
+  · closingRef (useRef) prevents stale closure reads during fast toggles
+  · ResponseModal also uses `snapshot` ref to freeze content during exit
+  · Adding keyframe animations WILL cause flicker/reappear bugs
+
+Scroll lock: useModalLock(open) hook inside ui/index.tsx
+  · Sets body overflow:hidden + paddingRight = scrollbar width
+  · Scrollbar compensation prevents page-width layout shift on open/close
+
+CloseButton in InfoModal:
+  · 32×32, solid dark bg (#374151), white X, border-radius 8
+  · Hover: #111827 bg + standard lift effect
+  · Always visible against any content color
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1.14  HARD RULES & KNOWN DECISIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1.  No react-router — hash routing only. Never suggest installing it.
+2.  No Tailwind — never add class names. Not installed.
+3.  No CSS files per-component — inline styles + index.css tokens only.
+4.  Content max-width is 1600px — do not lower it.
+5.  Search bar was removed from Header — each page has its own search.
+6.  Sidebar active uses longest-prefix match — do not simplify it.
+7.  Button hover is global (index.css) — all buttons auto-get lift.
+8.  Table thead is always dark blue #3D52A0 — not light gray.
+9.  KPI tiles are always white #FFFFFF — not page bg #EEF2F8.
+10. InfoModal max-width is 920px — not 800px.
+11. Status colors come only from tableColors.ts helpers — never hardcode.
+12. fmt12() is in mockData.ts only — event times stored as 24hr 'HH:MM'.
+13. Currency: always format with formatCurrency() — never raw numbers.
+14. currentUser comes from App.tsx prop — pages never read sessionStorage.
+15. OrgContext labels used in nav/forms — not hardcoded entity strings.
+16. Print styles: add class="no-print" to hide elements when printing.
+17. All 3 report pages (Employee, Fund, Club) support window.print().
+18. ManageEmployees, ManageProjects, ManageEvents, ManageFunds use
+    KpiGrid + shared/Modal (legacy) not ui/InfoModal directly.
+19. Employees.tsx and Transactions.tsx use their own local IconBtn
+    (not from TableUtils) — same visual pattern, locally defined.
+20. Header profile initials are hardcoded "JD" — not yet wired to
+    currentUser.photo_url or getInitials(currentUser.full_name).
+21. TypeScript: never use 'any' without a TODO comment explaining why.
+22. TypeScript: all component props have explicit interfaces.
+23. TypeScript: useModal<T>() — always pass generic when modal data type is known.
+24. TypeScript: React.CSSProperties for all inline style objects.
+25. TypeScript: React.ReactNode for children / action slots.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1.15  PROMPT INCLUSION GUIDE — WHAT TO INCLUDE PER TASK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Adding a new page:
+  App.tsx, Sidebar.tsx, ui/index.tsx, the new page file,
+  relevant type files from src/types/
+
+Styling / color changes:
+  index.css, ui/index.tsx, tableColors.ts, target file
+
+New table or manage view:
+  ui/index.tsx, tableColors.ts, TableUtils.tsx, KPI/index.tsx,
+  shared/index.tsx, relevant types, target page file
+
+New modal:
+  ui/index.tsx, useModal.ts, relevant types, target page file
+
+New form / Add page:
+  ui/index.tsx, validation.ts, relevant types, target page file
+
+Changing entity labels globally:
+  OrgContext.tsx, App.tsx (DEFAULT_ORG), Sidebar.tsx, types/org.ts
+
+Connecting real API:
+  mockData.ts, App.tsx (handleLogin, handleLogout, DEFAULT_ORG), .env
+
+Responsive behavior:
+  AppLayout.tsx, useBreakpoint.ts, target component
+
+Report / print page:
+  index.css (print styles), target report page
+
+Icons in buttons or tables:
+  Icons.tsx (BtnIco, TableIco), target file
+
+TypeScript types:
+  src/types/index.ts + relevant domain type file
+
+
+▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+  SECTION 2 — FULL CODEBASE FILE STRUCTURE (POST-MIGRATION)
+▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+
+
+unifits/website/
+├── index.html
+├── package.json
+├── package-lock.json
+├── tsconfig.json
+├── tsconfig.app.json
+├── tsconfig.node.json
+├── vite.config.ts
+├── eslint.config.js
+├── .env.example
+├── .gitignore
+├── README.md
+├── public/
+│   ├── favicon.svg
+│   └── icons.svg
+└── src/
+    ├── main.tsx
+    ├── App.tsx
+    ├── index.css
+    ├── api/
+    │   └── mockData.ts
+    ├── assets/
+    ├── components/
+    │   ├── ui/
+    │   │   └── index.tsx
+    │   ├── shared/
+    │   │   └── index.tsx
+    │   ├── KPI/
+    │   │   └── index.tsx
+    │   ├── Header.tsx
+    │   ├── Sidebar.tsx
+    │   ├── Icons.tsx
+    │   ├── TableUtils.tsx
+    │   ├── EditEmployeeModal.tsx
+    │   ├── EditItemModal.tsx
+    │   └── ItemDetailContent.tsx
+    ├── constants/
+    │   └── tableColors.ts
+    ├── context/
+    │   └── OrgContext.tsx
+    ├── hooks/
+    │   ├── useBreakpoint.ts
+    │   └── useModal.ts
+    ├── layouts/
+    │   └── AppLayout.tsx
+    ├── pages/
+    │   ├── announcements/
+    │   │   ├── Announcements.tsx
+    │   │   └── Calendar.tsx
+    │   ├── audit/
+    │   │   └── AuditLogs.tsx
+    │   ├── dashboard/
+    │   │   └── Dashboard.tsx
+    │   ├── employees/
+    │   │   ├── AddEmployee.tsx
+    │   │   ├── Attendance.tsx
+    │   │   ├── EditEmployee.tsx
+    │   │   ├── EmployeeDetails.tsx
+    │   │   ├── Employees.tsx
+    │   │   ├── ManageEmployees.tsx
+    │   │   └── RolesPage.tsx
+    │   ├── events/
+    │   │   ├── AddEvent.tsx
+    │   │   ├── EditEvent.tsx
+    │   │   ├── EventDetail.tsx
+    │   │   ├── Events.tsx
+    │   │   └── ManageEvents.tsx
+    │   ├── funds/
+    │   │   ├── AddFund.tsx
+    │   │   ├── EditFund.tsx
+    │   │   ├── Funds.tsx
+    │   │   └── ManageFunds.tsx
+    │   ├── login/
+    │   │   ├── ForgotPassword.tsx
+    │   │   ├── Login.tsx
+    │   │   ├── LoginBrand.tsx
+    │   │   ├── LoginForm.tsx
+    │   │   └── login.css
+    │   ├── profile/
+    │   │   ├── EditProfile.tsx
+    │   │   ├── PersonalTransactions.tsx
+    │   │   └── Profile.tsx
+    │   ├── projects/
+    │   │   ├── AddProject.tsx
+    │   │   ├── EditProject.tsx
+    │   │   ├── ManageProjects.tsx
+    │   │   ├── ProjectDetail.tsx
+    │   │   └── Projects.tsx
+    │   ├── reports/
+    │   │   ├── ClubReport.tsx
+    │   │   ├── EmployeeReport.tsx
+    │   │   └── FundReport.tsx
+    │   ├── settings/
+    │   │   ├── Backup.tsx
+    │   │   └── Settings.tsx
+    │   └── transactions/
+    │       ├── AddTransaction.tsx
+    │       ├── AddUtility.tsx
+    │       ├── Transactions.tsx
+    │       └── Utilities.tsx
+    ├── types/
+    │   ├── index.ts
+    │   ├── announcement.ts
+    │   ├── attendance.ts
+    │   ├── audit.ts
+    │   ├── event.ts
+    │   ├── fund.ts
+    │   ├── org.ts
+    │   ├── project.ts
+    │   ├── transaction.ts
+    │   ├── ui.ts
+    │   └── user.ts
+    └── utils/
+        ├── formatters.ts
+        └── validation.ts
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CATEGORY 1 — BUILD & PROJECT CONFIG
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+index.html
+  Root HTML shell. Sets page title "uniFITS — Financial Information
+  Tracking System", mounts <div id="root">, loads src/main.tsx as
+  module. Include when changing page title or adding global <head> tags.
+
+package.json
+  Project name (unifits-website), version 1.0.0, Vite scripts
+  (dev/build/preview/lint). Runtime deps: react + react-dom only.
+  Dev deps: vite, @vitejs/plugin-react, typescript, @types/react,
+  @types/react-dom, eslint + plugins.
+  Include when adding/removing packages or checking dep versions.
+
+tsconfig.json
+  Root TypeScript project config. References tsconfig.app.json and
+  tsconfig.node.json. Do not edit directly.
+  Include when debugging TS compilation issues.
+
+tsconfig.app.json
+  App source TypeScript config. Key settings:
+  target: ES2020, useDefineForClassFields: true, lib: [ES2020,DOM,DOM.Iterable],
+  module: ESNext, moduleResolution: bundler, allowImportingTsExtensions: true,
+  strict: true, noUnusedLocals: true, noUnusedParameters: true,
+  noFallthroughCasesInSwitch: true, jsx: react-jsx, allowJs: true (for migration).
+  Include when changing TS strictness or compiler behavior.
+
+tsconfig.node.json
+  TypeScript config for vite.config.ts only. Separate from app config.
+  Include only when modifying Vite config in TypeScript.
+
+vite.config.ts
+  Minimal Vite config using @vitejs/plugin-react. No custom aliases,
+  no proxy config. Include when adding path aliases, API proxy, or
+  changing build output directory.
+
+eslint.config.js
+  ESLint flat config (eslint 9 format). Uses @eslint/js, globals,
+  eslint-plugin-react-hooks, eslint-plugin-react-refresh.
+  Include when adding lint rules or fixing ESLint config errors.
+
+.env.example
+  Template for env vars. Defines VITE_API_URL=http://localhost:5000/api.
+  Copy to .env when connecting real backend. Access in code via
+  import.meta.env.VITE_API_URL. Include when wiring up real API.
+
+.gitignore
+  Standard Vite/Node ignore. Excludes node_modules, dist, .env files.
+  NEVER include in prompts.
+
+README.md
+  Project readme. Not referenced at runtime.
+  NEVER include in prompts.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CATEGORY 2 — DESIGN SYSTEM & GLOBAL STYLES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+src/index.css
+  Master design token file and global CSS reset. (unchanged)
+  Include in EVERY styling or layout prompt — all tokens live here.
+
+src/constants/tableColors.ts
+  Single source of truth for all table row status colors. Exports
+  STATUS_BORDER, STATUS_BG, STATUS_ACCENT maps and helper functions:
+  rowStyle(status: string), rowHoverBg(status: string), modalAccentColor(status: string).
+  Include when modifying table row appearance or status color logic.
+
+public/favicon.svg
+  SVG site favicon. Include only when changing the browser tab icon.
+
+public/icons.svg
+  SVG sprite sheet with icon symbol definitions.
+  Include when adding new sprite-based icons or debugging missing icons.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CATEGORY 3 — APP ENTRY & ROUTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+src/main.tsx
+  React entry point. Mounts <App /> into #root with StrictMode.
+  Imports index.css. Include only when changing app initialization.
+
+src/App.tsx
+  Root component and entire routing system. The most central file.
+  Contains: 40-route ROUTES map (hash → Component + page title + sub),
+  auth guard logic, handleLogin(user: User) / handleLogout(),
+  DEFAULT_ORG config object, currentUser: User | null state,
+  navigate() helper passed as prop, OrgProvider wrapper, AppLayout wrapper.
+  Include in EVERY prompt involving routing, auth, or adding a page.
+
+src/layouts/AppLayout.tsx
+  Main authenticated layout shell. Composes Sidebar + Header + <main>.
+  Controls sidebar collapse, mobile drawer, backdrop, margin-left shift.
+  Page content max-width 1600px, padding 16px 20px (mobile 14px 12px).
+  Include when changing layout structure, padding, or sidebar widths.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CATEGORY 4 — NAVIGATION & SHELL COMPONENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+src/components/Sidebar.tsx
+  Responsive nav sidebar. 4 nav sections using OrgContext labels.
+  Full/collapsed/mobile modes, sub-menus, longest-prefix active detection.
+  Include when changing nav items, sidebar styling, or branding.
+
+src/components/Header.tsx
+  Sticky 62px top bar. Notifications + profile dropdown.
+  Logout via ResponseModal (warning). Uses MOCK_NOTIFICATIONS.
+  Include when changing header, user menu, or notification behavior.
+
+src/components/Icons.tsx
+  All shared SVG icon components. BtnIco + TableIco namespaces.
+  Include when adding icons to buttons or table action columns.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CATEGORY 5 — UI COMPONENT LIBRARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+src/components/ui/index.tsx
+  The entire custom design system — 18 exported components in one file.
+  All fully typed with explicit prop interfaces.
+  Include in EVERY prompt touching any UI component or building a page.
+
+src/components/shared/index.tsx
+  Backward-compatibility shim. Re-exports Button. Exports Modal wrapper.
+  Used by ManageEmployees, ManageProjects, ManageEvents, ManageFunds.
+  Include when editing any Manage* page that uses shared/Button or Modal.
+
+src/components/KPI/index.tsx
+  KpiGrid component for Manage* pages. KpiMetric interface typed.
+  COLOR_MAP: string color name → hex. KpiGrid + KpiTile components.
+  Include when adding/changing KPI metrics on any Manage page.
+
+src/components/TableUtils.tsx
+  IconBtn, PaginationRow, DeleteWarning — all typed with prop interfaces.
+  Include when editing table action buttons or pagination on any page.
+
+src/components/EditEmployeeModal.tsx
+  In-modal employee edit. Props typed with User, OrgConfig interfaces.
+  Include when editing the inline employee edit experience.
+
+src/components/EditItemModal.tsx
+  In-modal edit for Projects OR Events. kind: 'project' | 'event'.
+  item typed as Project | Event union.
+  Include when editing the inline project or event edit modal.
+
+src/components/ItemDetailContent.tsx
+  Shared rich detail panel for Project/Event manage modals.
+  Props: item (Project | Event), org (OrgConfig), kind.
+  Include when editing project or event detail content panels.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CATEGORY 6 — CONTEXT & PROVIDERS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+src/context/OrgContext.tsx
+  Global org config provider typed with OrgConfig from src/types/org.ts.
+  Provides useOrg(): OrgConfig hook. OrgProvider<{ orgData: Partial<OrgConfig> }>.
+  Include in any prompt involving labels or currency.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CATEGORY 7 — UTILITIES & HOOKS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+src/hooks/useBreakpoint.ts
+  Window resize listener typed: returns Breakpoint interface.
+  Include when adding responsive layout behavior to any component.
+
+src/hooks/useModal.ts
+  Generic modal hook: useModal<T>(initialOpen?: boolean).
+  Returns ModalState<T> interface: { isOpen, data: T | null, open, close, toggle }.
+  Include when adding modals to any page.
+
+src/utils/formatters.ts
+  Shared display formatters — all typed with explicit param/return types.
+  Include when working on data display, table cells, or reports.
+
+src/utils/validation.ts
+  Centralized form validators. All return string ('' = valid, msg = error).
+  validateStep takes Record<string, (() => string)[]>.
+  Include when editing or building any Add/Edit form page.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CATEGORY 8 — TYPE DEFINITIONS (NEW — src/types/)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+src/types/index.ts
+  Barrel that re-exports all types. Import all types from here.
+  'import type { User, Project, OrgConfig } from "../types"'
+  Include in any prompt that needs data type definitions.
+
+src/types/user.ts
+  User interface (full member/employee shape).
+  Role interface. Permission type (union of string literals).
+  Include when working on employee, profile, auth, or role pages.
+
+src/types/org.ts
+  OrgConfig interface — shape of org context value.
+  Include when working on OrgContext, Settings, or label-driven UI.
+
+src/types/project.ts
+  Project interface. ProjectStatus type. ProjectType type.
+  Include when working on projects pages or ItemDetailContent.
+
+src/types/event.ts
+  Event interface (note: named AppEvent to avoid collision with DOM Event).
+  EventStatus type.
+  Include when working on events pages or ItemDetailContent.
+
+src/types/fund.ts
+  Fund interface. FundType type ('internal'|'external').
+  Include when working on funds pages.
+
+src/types/transaction.ts
+  Transaction interface. Utility interface.
+  EntryType, TransactionStatus, PaymentMethod types.
+  Include when working on transactions, utilities, reports.
+
+src/types/attendance.ts
+  Attendance interface. AttendanceStatus type.
+  Include when working on attendance page or ItemDetailContent.
+
+src/types/announcement.ts
+  Announcement interface.
+  Include when working on announcements or calendar pages.
+
+src/types/audit.ts
+  AuditLog interface. AuditAction type.
+  Include when working on audit logs page.
+
+src/types/ui.ts
+  Shared UI prop types reused across components:
+  BadgeVariant, ButtonVariant, ButtonSize, ModalVariant,
+  KpiMetric, Column (DataTable column definition),
+  BreakpointResult (useBreakpoint return), ModalState<T>.
+  Include when building new UI components or updating existing ones.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CATEGORY 9 — DATA & MOCK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+src/api/mockData.ts
+  All mock data typed with interfaces from src/types/.
+  MOCK_USERS: User[], MOCK_ROLES: Role[], etc.
+  Legacy helpers (formatCurrency, formatDate, relativeTime, fmt12)
+  retained and typed. fmt12(t: string): string is only here.
+  Include in EVERY prompt involving data, tables, forms, or content.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CATEGORY 10 — PAGES / AUTH
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+src/pages/login/Login.tsx
+  Login page shell. Props: { onLogin: (user: User) => void }.
+  Include when changing the login page layout or the auth handoff.
+
+src/pages/login/LoginBrand.tsx
+  Left panel of login. No props. Decorative blobs, branding.
+  Include when updating branding on the login screen.
+
+src/pages/login/LoginForm.tsx
+  Right panel. Props: { onLogin: (user: User) => void }.
+  Include when changing login form fields or mock auth logic.
+
+src/pages/login/login.css
+  Login-specific CSS only. No changes in TS migration.
+  Include when styling the login or forgot-password screens.
+
+src/pages/login/ForgotPassword.tsx
+  Standalone forgot-password screen. No props.
+  Include when editing this page.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CATEGORY 11 — PAGES / DASHBOARD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+src/pages/dashboard/Dashboard.tsx
+  Props: { currentUser: User | null }
+  KPI row, top contributors, recent transactions, charts. Fully responsive.
+  Include when editing dashboard metrics, charts, or layout.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CATEGORY 12 — PAGES / EMPLOYEES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+src/pages/employees/Employees.tsx
+  Props: { currentUser: User | null }
+  Primary employee list. Status-colored rows, row-click modal, edit modal.
+  Include when editing the main employee table or row interactions.
+
+src/pages/employees/ManageEmployees.tsx
+  KpiGrid + DataTable manage view. No currentUser prop needed.
+  Include when editing the manage employees page with KPI tiles.
+
+src/pages/employees/AddEmployee.tsx — Props: { currentUser?: User | null }
+src/pages/employees/EditEmployee.tsx — Props: { currentUser?: User | null }
+src/pages/employees/EmployeeDetails.tsx — Props: { currentUser?: User | null }
+src/pages/employees/RolesPage.tsx — Props: {}
+src/pages/employees/Attendance.tsx — Props: { currentUser?: User | null }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CATEGORY 13 — PAGES / PROJECTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+src/pages/projects/Projects.tsx       Props: { currentUser?: User | null }
+src/pages/projects/ManageProjects.tsx Props: {}
+src/pages/projects/AddProject.tsx     Props: { currentUser?: User | null }
+src/pages/projects/EditProject.tsx    Props: { currentUser?: User | null }
+src/pages/projects/ProjectDetail.tsx  Props: { currentUser?: User | null }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CATEGORY 14 — PAGES / EVENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+src/pages/events/Events.tsx       Props: { currentUser?: User | null }
+src/pages/events/ManageEvents.tsx Props: {}
+src/pages/events/AddEvent.tsx     Props: { currentUser?: User | null }
+src/pages/events/EditEvent.tsx    Props: { currentUser?: User | null }
+src/pages/events/EventDetail.tsx  Props: { currentUser?: User | null }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CATEGORY 15 — PAGES / FUNDS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+src/pages/funds/Funds.tsx       Props: { currentUser?: User | null }
+src/pages/funds/ManageFunds.tsx Props: {}
+src/pages/funds/AddFund.tsx     Props: { currentUser?: User | null }
+src/pages/funds/EditFund.tsx    Props: { currentUser?: User | null }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CATEGORY 16 — PAGES / TRANSACTIONS & UTILITIES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+src/pages/transactions/Transactions.tsx  Props: { currentUser?: User | null }
+src/pages/transactions/AddTransaction.tsx
+src/pages/transactions/Utilities.tsx     Props: { currentUser?: User | null }
+src/pages/transactions/AddUtility.tsx
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CATEGORY 17 — PAGES / ANNOUNCEMENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+src/pages/announcements/Announcements.tsx  Props: { currentUser?: User | null }
+src/pages/announcements/Calendar.tsx       Props: {}
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CATEGORY 18 — PAGES / PROFILE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+src/pages/profile/Profile.tsx              Props: { currentUser: User | null }
+src/pages/profile/EditProfile.tsx          Props: { currentUser: User | null }
+src/pages/profile/PersonalTransactions.tsx Props: { currentUser: User | null }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CATEGORY 19 — PAGES / REPORTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+src/pages/reports/EmployeeReport.tsx  Props: {}  (print-ready)
+src/pages/reports/FundReport.tsx      Props: {}  (print-ready)
+src/pages/reports/ClubReport.tsx      Props: {}  (print-ready, report type selector)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CATEGORY 20 — PAGES / AUDIT & SETTINGS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+src/pages/audit/AuditLogs.tsx      Props: { currentUser?: User | null }
+  Clickable rows, action color map, detail InfoModal, responsive grid.
+
+src/pages/settings/Settings.tsx    Props: { currentUser?: User | null }
+  3-col desktop layout, useOrg() for current label values.
+
+src/pages/settings/Backup.tsx      Props: {}
+  Mock only backup/restore UI.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CATEGORY 21 — BACKEND API SWAP POINTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+src/api/mockData.ts
+  Replace each MOCK_* export with async fetch() calls to REST endpoints.
+  Keep the same export names — pages should not need changes if shapes match.
+
+src/App.tsx  (3 swap points inside)
+  handleLogin()  → POST /api/auth/login
+  handleLogout() → POST /api/auth/logout
+  DEFAULT_ORG    → GET  /api/organizations/me
+
+.env.example → rename to .env
+  Set VITE_API_URL to your backend base URL.
+  Use import.meta.env.VITE_API_URL in fetch calls.
+
+src/context/OrgContext.tsx
+  No changes needed — just populate orgData prop in App.tsx from API.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CATEGORY 22 — NEVER INCLUDE IN PROMPTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+node_modules/       Third-party packages — irrelevant to prompts
+package-lock.json   Auto-generated lock file — never edit manually
+.gitignore          Version control config — not runtime relevant
+README.md           Project documentation — not runtime relevant
+src/assets/         Empty folder in this build — nothing to include
+
+================================================================
+  END OF UNIFITS KNOWLEDGE & STRUCTURE REFERENCE
+================================================================
