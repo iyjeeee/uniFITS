@@ -12,9 +12,10 @@ import { StatusBadge } from '@/components/ui';
 import { PressableScale } from '@/components/ui/PressableScale';
 
 interface TransactionRowProps {
-  item:    Transaction;
-  onPress: () => void;
-  style?:  ViewStyle;
+  item:     Transaction;
+  onPress:  () => void;
+  variant?: 'elevated' | 'flat';
+  style?:   ViewStyle;
 }
 
 // Entry type label + color
@@ -24,15 +25,21 @@ const ENTRY_LABELS: Record<string, { label: string; color: string }> = {
   expense:      { label: 'Expense',      color: Colors.danger  },
 };
 
-export function TransactionRow({ item, onPress, style }: TransactionRowProps) {
+export function TransactionRow({ item, onPress, variant = 'elevated', style }: TransactionRowProps) {
   const entry        = ENTRY_LABELS[item.entry_type] || { label: item.entry_type, color: Colors.textMuted };
   const borderColor  = statusBorderColor(item.status);
   const isExpense    = item.entry_type === 'expense';
+  const isFlat       = variant === 'flat';
 
   return (
     <PressableScale
       onPress={onPress}
-      style={[styles.row, { borderLeftColor: borderColor }, style]}
+      style={[
+        styles.row,
+        isFlat ? styles.rowFlat : styles.rowElevated,
+        { borderLeftColor: borderColor },
+        style,
+      ]}
       accessibilityLabel={`${entry.label} of ${formatCurrency(item.amount)}, ${item.status}`}
     >
       {/* Left: type + fund + description */}
@@ -58,18 +65,25 @@ export function TransactionRow({ item, onPress, style }: TransactionRowProps) {
 
 const styles = StyleSheet.create({
   row: {
-    backgroundColor: Colors.white,
-    borderRadius:    Radius.sm,
-    borderWidth:     Layout.BORDER_WIDTH,
-    borderColor:     Colors.borderInner,
     borderLeftWidth: Layout.STATUS_BAR_WIDTH,
     padding:         Layout.CARD_PADDING,
     flexDirection:   'row',
     alignItems:      'flex-start',
     justifyContent:  'space-between',
-    marginBottom:    Spacing.sm,
     gap:             Spacing.sm,
+  },
+  rowElevated: {
+    backgroundColor: Colors.white,
+    borderRadius:    Radius.sm,
+    borderWidth:     Layout.BORDER_WIDTH,
+    borderColor:     Colors.borderInner,
+    marginBottom:    Spacing.sm,
     ...Shadow.sm,
+  },
+  rowFlat: {
+    backgroundColor: Colors.subCard,
+    borderRadius:    Radius.sm,
+    marginBottom:    Spacing.xs,
   },
   left: {
     flex: 1,

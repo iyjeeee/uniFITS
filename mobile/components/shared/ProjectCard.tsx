@@ -12,18 +12,25 @@ import { Badge, StatusBadge, FundingProgress } from '@/components/ui';
 import { PressableScale } from '@/components/ui/PressableScale';
 
 interface ProjectCardProps {
-  item:    Project;
-  onPress: () => void;
-  style?:  ViewStyle;
+  item:     Project;
+  onPress:  () => void;
+  variant?: 'elevated' | 'flat';
+  style?:   ViewStyle;
 }
 
-export function ProjectCard({ item, onPress, style }: ProjectCardProps) {
+export function ProjectCard({ item, onPress, variant = 'elevated', style }: ProjectCardProps) {
   const accentColor = statusBorderColor(item.status);
+  const isFlat       = variant === 'flat';
 
   return (
     <PressableScale
       onPress={onPress}
-      style={[styles.card, { borderLeftColor: accentColor }, style]}
+      style={[
+        styles.card,
+        isFlat ? styles.cardFlat : styles.cardElevated,
+        { borderLeftColor: accentColor },
+        style,
+      ]}
       accessibilityLabel={`Project: ${item.title}, ${item.status}`}
     >
       {/* Header */}
@@ -57,15 +64,22 @@ export function ProjectCard({ item, onPress, style }: ProjectCardProps) {
 
 const styles = StyleSheet.create({
   card: {
+    borderLeftWidth: Layout.STATUS_BAR_WIDTH,
+    padding:         Layout.CARD_PADDING,
+    gap:             Spacing.sm,
+  },
+  cardElevated: {
     backgroundColor: Colors.white,
     borderRadius:    Radius.md,
     borderWidth:     Layout.BORDER_WIDTH,
     borderColor:     Colors.borderCard,
-    borderLeftWidth: Layout.STATUS_BAR_WIDTH,
-    padding:         Layout.CARD_PADDING,
     marginBottom:    Spacing.sm,
-    gap:             Spacing.sm,
     ...Shadow.sm,
+  },
+  cardFlat: {
+    backgroundColor: Colors.subCard,
+    borderRadius:    Radius.md,
+    marginBottom:    Spacing.xs,
   },
   header: {
     flexDirection:  'row',

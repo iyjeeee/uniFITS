@@ -35,12 +35,17 @@ export default function RootLayout() {
 
   useEffect(() => { restoreSession(); }, []);
 
-  // Android system nav bar defaults to white and isn't part of our component tree —
-  // sync it to the app's dark theme so there's no light strip below the tab bar
+  // SDK 54 enables edge-to-edge on Android by default: the system nav bar is transparent,
+  // so setBackgroundColorAsync is a no-op that only throws a warning — our own dark tab bar
+  // (sized with insets.bottom in app/(tabs)/_layout.tsx) already shows through it correctly.
+  // Button/icon style can still be set safely, wrapped in case a future SDK also deprecates it.
   useEffect(() => {
     if (Platform.OS === 'android') {
-      NavigationBar.setBackgroundColorAsync(Colors.primary);
-      NavigationBar.setButtonStyleAsync('light');
+      try {
+        NavigationBar.setButtonStyleAsync('light');
+      } catch {
+        // no-op — safe to ignore on devices/SDKs where this isn't supported
+      }
     }
   }, []);
 

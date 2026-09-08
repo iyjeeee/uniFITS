@@ -1,12 +1,13 @@
-// app/(tabs)/index.tsx — Home dashboard: KPI grid, recent announcements, recent transactions
-// Rebuilt after this file was accidentally overwritten with a duplicate of announcements/index.tsx
+// app/(tabs)/index.tsx — Home dashboard (2026 bento refresh)
+// HeroStatCard for the primary KPI (fund balance), 2 secondary StatCards below it,
+// Section panels with flat sub-card rows for Recent Announcements / Recent Transactions
 
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, Layout } from '@/constants/theme';
-import { AppHeader, StatCard, Section, ErrorState, EmptyState, SkeletonList } from '@/components/ui';
+import { AppHeader, StatCard, HeroStatCard, Section, ErrorState, EmptyState, SkeletonList, FadeInUp } from '@/components/ui';
 import { AnnouncementCard } from '@/components/shared/AnnouncementCard';
 import { TransactionRow }   from '@/components/shared/TransactionRow';
 import { reportsService }        from '@/services/reports.service';
@@ -68,26 +69,22 @@ export default function HomeScreen() {
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={false} onRefresh={refetchAll} tintColor={Colors.accent} />}
         >
-          {/* KPI grid — tap any card to jump to its detail tab */}
-          <View style={styles.kpiGrid}>
-            <View style={styles.kpiRow}>
-              <StatCard
-                label="Fund Balance"
-                value={formatCurrency(summary?.totalBalance ?? 0, true)}
-                color={Colors.accent}
-                icon={<Ionicons name="wallet-outline" size={18} color={Colors.accent} />}
-                onPress={() => router.push('/(tabs)/finances')}
-                style={styles.kpiCard}
-              />
-              <StatCard
-                label="Active Funds"
-                value={String(summary?.activeCount ?? 0)}
-                color={Colors.success}
-                icon={<Ionicons name="checkmark-done-outline" size={18} color={Colors.success} />}
-                onPress={() => router.push('/(tabs)/finances')}
-                style={styles.kpiCard}
-              />
-            </View>
+          {/* Hero KPI — fund balance gets visual priority instead of competing equally with the rest */}
+          <FadeInUp delay={0}>
+            <HeroStatCard
+              label="Total fund balance"
+              value={formatCurrency(summary?.totalBalance ?? 0, true)}
+              color={Colors.accent}
+              onPress={() => router.push('/(tabs)/finances')}
+              subStats={[
+                { label: 'Active funds', value: String(summary?.activeCount ?? 0) },
+                { label: 'My share',     value: formatCurrency(totalContributed, true) },
+              ]}
+            />
+          </FadeInUp>
+
+          {/* Secondary KPI grid */}
+          <FadeInUp delay={80}>
             <View style={styles.kpiRow}>
               <StatCard
                 label="My Contributions"
@@ -106,55 +103,61 @@ export default function HomeScreen() {
                 style={styles.kpiCard}
               />
             </View>
-          </View>
+          </FadeInUp>
 
           {/* Recent announcements */}
-          <Section
-            title="Recent Announcements"
-            actionLabel="View All"
-            onAction={() => router.push('/(tabs)/announcements')}
-          >
-            {recentAnnouncements.length === 0 ? (
-              <EmptyState
-                icon="megaphone-outline"
-                title="No announcements"
-                subtitle="Check back later for updates."
-                style={styles.emptyCompact}
-              />
-            ) : (
-              recentAnnouncements.map((item) => (
-                <AnnouncementCard
-                  key={item.id}
-                  item={item}
-                  onPress={() => router.push(`/(tabs)/announcements/${item.id}` as any)}
+          <FadeInUp delay={160}>
+            <Section
+              title="Recent Announcements"
+              actionLabel="View All"
+              onAction={() => router.push('/(tabs)/announcements')}
+            >
+              {recentAnnouncements.length === 0 ? (
+                <EmptyState
+                  icon="megaphone-outline"
+                  title="No announcements"
+                  subtitle="Check back later for updates."
+                  style={styles.emptyCompact}
                 />
-              ))
-            )}
-          </Section>
+              ) : (
+                recentAnnouncements.map((item) => (
+                  <AnnouncementCard
+                    key={item.id}
+                    item={item}
+                    variant="flat"
+                    onPress={() => router.push(`/(tabs)/announcements/${item.id}` as any)}
+                  />
+                ))
+              )}
+            </Section>
+          </FadeInUp>
 
           {/* Recent transactions */}
-          <Section
-            title="Recent Transactions"
-            actionLabel="View All"
-            onAction={() => router.push('/(tabs)/finances')}
-          >
-            {recentTransactions.length === 0 ? (
-              <EmptyState
-                icon="receipt-outline"
-                title="No transactions"
-                subtitle="Your transaction history will appear here."
-                style={styles.emptyCompact}
-              />
-            ) : (
-              recentTransactions.map((txn) => (
-                <TransactionRow
-                  key={txn.id}
-                  item={txn}
-                  onPress={() => router.push(`/(tabs)/finances/${txn.id}` as any)}
+          <FadeInUp delay={240}>
+            <Section
+              title="Recent Transactions"
+              actionLabel="View All"
+              onAction={() => router.push('/(tabs)/finances')}
+            >
+              {recentTransactions.length === 0 ? (
+                <EmptyState
+                  icon="receipt-outline"
+                  title="No transactions"
+                  subtitle="Your transaction history will appear here."
+                  style={styles.emptyCompact}
                 />
-              ))
-            )}
-          </Section>
+              ) : (
+                recentTransactions.map((txn) => (
+                  <TransactionRow
+                    key={txn.id}
+                    item={txn}
+                    variant="flat"
+                    onPress={() => router.push(`/(tabs)/finances/${txn.id}` as any)}
+                  />
+                ))
+              )}
+            </Section>
+          </FadeInUp>
         </ScrollView>
       )}
     </View>
@@ -163,9 +166,8 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   screen:  { flex: 1, backgroundColor: Colors.bgApp },
-  content: { padding: Layout.SCREEN_PADDING_H, paddingTop: Spacing.md, gap: Spacing.lg },
+  content: { padding: Layout.SCREEN_PADDING_H, paddingTop: Spacing.md, gap: Spacing.md },
 
-  kpiGrid: { gap: Spacing.sm },
   kpiRow:  { flexDirection: 'row', gap: Spacing.sm },
   kpiCard: { flex: 1 },
 

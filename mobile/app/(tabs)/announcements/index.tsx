@@ -5,7 +5,7 @@ import { ScrollView, View, StyleSheet, RefreshControl } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { Colors, Spacing, Layout } from '@/constants/theme';
-import { AppHeader, ErrorState, EmptyState, Section, SkeletonList } from '@/components/ui';
+import { AppHeader, ErrorState, EmptyState, Section, SkeletonList, FadeInUp } from '@/components/ui';
 import { AnnouncementCard }     from '@/components/shared/AnnouncementCard';
 import { announcementsService } from '@/services/announcements.service';
 import { useRefreshOnFocus }    from '@/hooks/useRefreshOnFocus';
@@ -48,27 +48,33 @@ export default function AnnouncementsScreen() {
           refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor={Colors.accent} />}
         >
           {pinned.length > 0 && (
-            <Section title="Pinned" count={pinned.length}>
-              {pinned.map((item) => (
-                <AnnouncementCard
-                  key={item.id}
-                  item={item}
-                  onPress={() => router.push(`/(tabs)/announcements/${item.id}` as any)}
-                />
-              ))}
-            </Section>
+            <FadeInUp delay={0}>
+              <Section title="Pinned" count={pinned.length}>
+                {pinned.map((item) => (
+                  <AnnouncementCard
+                    key={item.id}
+                    item={item}
+                    variant="flat"
+                    onPress={() => router.push(`/(tabs)/announcements/${item.id}` as any)}
+                  />
+                ))}
+              </Section>
+            </FadeInUp>
           )}
 
           {regular.length > 0 && (
-            <Section title="All Announcements" count={regular.length}>
-              {regular.map((item) => (
-                <AnnouncementCard
-                  key={item.id}
-                  item={item}
-                  onPress={() => router.push(`/(tabs)/announcements/${item.id}` as any)}
-                />
-              ))}
-            </Section>
+            <FadeInUp delay={pinned.length > 0 ? 100 : 0}>
+              <Section title="All Announcements" count={regular.length}>
+                {regular.map((item) => (
+                  <AnnouncementCard
+                    key={item.id}
+                    item={item}
+                    variant="flat"
+                    onPress={() => router.push(`/(tabs)/announcements/${item.id}` as any)}
+                  />
+                ))}
+              </Section>
+            </FadeInUp>
           )}
         </ScrollView>
       )}

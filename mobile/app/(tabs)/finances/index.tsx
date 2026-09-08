@@ -5,7 +5,7 @@ import { ScrollView, View, StyleSheet, RefreshControl } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { Colors, Spacing, Layout } from '@/constants/theme';
-import { AppHeader, ErrorState, EmptyState, SegmentedControl, SkeletonList } from '@/components/ui';
+import { AppHeader, ErrorState, EmptyState, SegmentedControl, SkeletonList, FadeInUp } from '@/components/ui';
 import { FundCard }       from '@/components/shared/FundCard';
 import { TransactionRow } from '@/components/shared/TransactionRow';
 import { fundsService }        from '@/services/funds.service';
@@ -69,15 +69,19 @@ export default function FinancesScreen() {
           refreshControl={<RefreshControl refreshing={false} onRefresh={() => { rF(); rT(); }} tintColor={Colors.accent} />}
         >
           {activeTab === 'funds' ? (
-            funds.length === 0
-              ? <EmptyState icon="wallet-outline" title="No funds" subtitle="No funds have been created yet." />
-              : funds.map((fund) => <FundCard key={fund.id} item={fund} />)
+            <FadeInUp key="funds">
+              {funds.length === 0
+                ? <EmptyState icon="wallet-outline" title="No funds" subtitle="No funds have been created yet." />
+                : funds.map((fund) => <FundCard key={fund.id} item={fund} />)}
+            </FadeInUp>
           ) : (
-            myTxns.length === 0
-              ? <EmptyState icon="receipt-outline" title="No transactions" subtitle="You have no transaction records yet." />
-              : myTxns.map((txn) => (
-                <TransactionRow key={txn.id} item={txn} onPress={() => router.push(`/(tabs)/finances/${txn.id}` as any)} />
-              ))
+            <FadeInUp key="transactions">
+              {myTxns.length === 0
+                ? <EmptyState icon="receipt-outline" title="No transactions" subtitle="You have no transaction records yet." />
+                : myTxns.map((txn) => (
+                  <TransactionRow key={txn.id} item={txn} onPress={() => router.push(`/(tabs)/finances/${txn.id}` as any)} />
+                ))}
+            </FadeInUp>
           )}
         </ScrollView>
       )}

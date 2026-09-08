@@ -8,6 +8,7 @@ import {
   StyleSheet, View, ViewStyle, TextStyle,
 } from 'react-native';
 import { Colors, Typography, FontSize, Radius, Spacing } from '@/constants/theme';
+import { hapticTap } from '@/utils/haptics';
 
 type BtnVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success';
 type BtnSize    = 'sm' | 'md' | 'lg';
@@ -47,9 +48,15 @@ export function Button({
   const s      = SIZE_STYLES[size];
   const isOff  = disabled || loading;
 
+  function handlePress() {
+    if (isOff || !onPress) return;
+    hapticTap();
+    onPress();
+  }
+
   return (
     <TouchableOpacity
-      onPress={onPress}
+      onPress={handlePress}
       disabled={isOff}
       activeOpacity={0.8}
       accessibilityRole="button"

@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/authStore';
 import { Colors, Layout, Radius } from '@/constants/theme';
+import { hapticSelect } from '@/utils/haptics';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -32,6 +33,9 @@ export default function TabsLayout() {
 
   return (
     <Tabs
+      screenListeners={{
+        tabPress: () => hapticSelect(),
+      }}
       screenOptions={{
         headerShown: false,
         tabBarStyle: {

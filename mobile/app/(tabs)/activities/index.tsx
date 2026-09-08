@@ -5,7 +5,7 @@ import { FlatList, View, StyleSheet, RefreshControl } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { Colors, Spacing, Layout } from '@/constants/theme';
-import { AppHeader, ErrorState, EmptyState, SegmentedControl, SkeletonList } from '@/components/ui';
+import { AppHeader, ErrorState, EmptyState, SegmentedControl, SkeletonList, FadeInUp } from '@/components/ui';
 import { ProjectCard }     from '@/components/shared/ProjectCard';
 import { EventCard }       from '@/components/shared/EventCard';
 import { projectsService } from '@/services/projects.service';
@@ -55,35 +55,40 @@ export default function ActivitiesScreen() {
       ) : error ? (
         <ErrorState onRetry={refetch} />
       ) : activeTab === 'projects' ? (
-        <FlatList
-          data={projects}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <ProjectCard item={item} onPress={() => router.push(`/(tabs)/activities/projects/${item.id}` as any)} />
-          )}
-          ListEmptyComponent={<EmptyState icon="folder-open-outline" title="No projects" subtitle="No projects have been added yet." />}
-          contentContainerStyle={[styles.list, { paddingBottom: bottomPad }]}
-          showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={false} onRefresh={rP} tintColor={Colors.accent} />}
-        />
+        <FadeInUp key="projects" style={styles.listWrap}>
+          <FlatList
+            data={projects}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <ProjectCard item={item} onPress={() => router.push(`/(tabs)/activities/projects/${item.id}` as any)} />
+            )}
+            ListEmptyComponent={<EmptyState icon="folder-open-outline" title="No projects" subtitle="No projects have been added yet." />}
+            contentContainerStyle={[styles.list, { paddingBottom: bottomPad }]}
+            showsVerticalScrollIndicator={false}
+            refreshControl={<RefreshControl refreshing={false} onRefresh={rP} tintColor={Colors.accent} />}
+          />
+        </FadeInUp>
       ) : (
-        <FlatList
-          data={events}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <EventCard item={item} onPress={() => router.push(`/(tabs)/activities/events/${item.id}` as any)} />
-          )}
-          ListEmptyComponent={<EmptyState icon="calendar-outline" title="No events" subtitle="No events scheduled yet." />}
-          contentContainerStyle={[styles.list, { paddingBottom: bottomPad }]}
-          showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={false} onRefresh={rE} tintColor={Colors.accent} />}
-        />
+        <FadeInUp key="events" style={styles.listWrap}>
+          <FlatList
+            data={events}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <EventCard item={item} onPress={() => router.push(`/(tabs)/activities/events/${item.id}` as any)} />
+            )}
+            ListEmptyComponent={<EmptyState icon="calendar-outline" title="No events" subtitle="No events scheduled yet." />}
+            contentContainerStyle={[styles.list, { paddingBottom: bottomPad }]}
+            showsVerticalScrollIndicator={false}
+            refreshControl={<RefreshControl refreshing={false} onRefresh={rE} tintColor={Colors.accent} />}
+          />
+        </FadeInUp>
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.bgApp },
-  list:   { padding: Layout.SCREEN_PADDING_H, paddingTop: Spacing.md },
+  screen:   { flex: 1, backgroundColor: Colors.bgApp },
+  list:     { padding: Layout.SCREEN_PADDING_H, paddingTop: Spacing.md },
+  listWrap: { flex: 1 },
 });

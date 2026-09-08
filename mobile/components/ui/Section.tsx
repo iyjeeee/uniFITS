@@ -28,7 +28,7 @@ export function Section({ title, count, actionLabel, onAction, children, style }
 const styles = StyleSheet.create({
   panel: {
     backgroundColor: Colors.white,
-    borderRadius:    Radius.lg,
+    borderRadius:    Radius.xl,
     borderWidth:     Layout.BORDER_WIDTH,
     borderColor:     Colors.borderCard,
     padding:         Layout.CARD_PADDING,

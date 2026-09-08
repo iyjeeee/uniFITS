@@ -1,7 +1,7 @@
-// components/ui/StatCard.tsx — Compact KPI stat tile
-// White card with 4px left color border, icon, label, value
-// Optional onPress: subtle color-tinted background + tap scale/elevation (via PressableScale) + chevron affordance
-// Used on Home dashboard screen for summary KPIs
+// components/ui/StatCard.tsx — Compact KPI stat tile (2026 refresh)
+// Plain white rounded card, colored icon chip, value, label — no left border stripe
+// (color now lives in the icon chip, not a stripe, matching the HeroStatCard/bento language)
+// Optional onPress: tap scale/elevation (via PressableScale) + chevron affordance
 
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
@@ -21,21 +21,15 @@ interface StatCardProps {
 export function StatCard({
   label, value, color = Colors.accent, icon, onPress, style,
 }: StatCardProps) {
-  const cardStyle = [
-    styles.card,
-    { borderLeftColor: color, backgroundColor: color + '0A' }, // faint color wash, not just the icon chip
-    style,
-  ];
+  const cardStyle = [styles.card, style];
 
   const inner = (
     <>
-      <View style={styles.top}>
-        {icon && (
-          <View style={[styles.iconWrap, { backgroundColor: color + '18' }]}>
-            {icon}
-          </View>
-        )}
-      </View>
+      {icon && (
+        <View style={[styles.iconWrap, { backgroundColor: color + '1F' }]}>
+          {icon}
+        </View>
+      )}
       <Text style={styles.value} numberOfLines={1}>{value}</Text>
       <View style={styles.labelRow}>
         <Text style={styles.label} numberOfLines={1}>{label}</Text>
@@ -57,27 +51,21 @@ export function StatCard({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius:    Radius.md,
-    borderWidth:     Layout.BORDER_WIDTH,
-    borderColor:     Colors.borderCard,
-    borderLeftWidth: Layout.STATUS_BAR_WIDTH,
+    backgroundColor: Colors.white,
+    borderRadius:    Radius.lg,
     padding:         Layout.CARD_PADDING,
     flex:            1,
-    minHeight:       108,   // guarantees all 4 KPI tiles match regardless of value/label text length
+    minHeight:       108,   // guarantees all tiles in a grid match regardless of value/label text length
     justifyContent:  'space-between',
     ...Shadow.sm,
   },
-  top: {
-    flexDirection:  'row',
-    justifyContent: 'flex-end',
-    marginBottom:   Spacing.xs,
-  },
   iconWrap: {
-    width:          34,
-    height:         34,
-    borderRadius:   Radius.sm,
+    width:          36,
+    height:         36,
+    borderRadius:   Radius.md,
     alignItems:     'center',
     justifyContent: 'center',
+    marginBottom:   Spacing.xs,
   },
   value: {
     fontFamily: Typography.fontBodyBold,

@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, FontSize, Spacing, Radius, Layout } from '@/constants/theme';
 import { authService } from '@/services/auth.service';
 import { useAuthStore } from '@/store/authStore';
+import { hapticError, hapticSuccess } from '@/utils/haptics';
 
 export default function LoginScreen() {
   const insets      = useSafeAreaInsets();
@@ -30,15 +31,18 @@ export default function LoginScreen() {
     setError('');
     if (!email.trim() || !password) {
       setError('Please enter your email and password.');
+      hapticError();
       return;
     }
     setLoading(true);
     try {
       const user = await authService.login(email.trim(), password);
       await login(user);
+      hapticSuccess();
       router.replace('/(tabs)');
     } catch (e: any) {
       setError(e.message || 'Login failed. Please try again.');
+      hapticError();
     } finally {
       setLoading(false);
     }

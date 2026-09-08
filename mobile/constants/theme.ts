@@ -26,6 +26,7 @@ export const Colors = {
   white:         '#FFFFFF',            // --white: cards, inputs, modals
   bgApp:         '#EEF2F8',            // --bg-app: main screen background (blue-gray)
   neutralLight:  '#F2F5FB',           // --neutral-light: list pressed state
+  subCard:       '#F7F9FC',           // flat nested row bg inside a Section panel (2026 refresh)
 
   // Borders (blue-tinted, weakest → strongest)
   border:        '#E5E9EF',            // --border: misc separators
@@ -98,10 +99,12 @@ export const Spacing = {
 } as const;
 
 // ── Border Radius ─────────────────────────────────────────────────────────────
+// Bumped softer/larger (2026 refresh) — this cascades to every card, button, badge, input in the app
 export const Radius = {
-  sm:   6,
-  md:   10,
-  lg:   16,
+  sm:   8,
+  md:   14,
+  lg:   18,
+  xl:   22,    // hero cards, section panels
   full: 999,   // For pill badges and circular avatars
 } as const;
 

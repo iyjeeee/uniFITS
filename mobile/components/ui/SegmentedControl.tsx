@@ -8,6 +8,7 @@ import {
   Animated, LayoutChangeEvent, ViewStyle,
 } from 'react-native';
 import { Colors, Typography, FontSize, Radius } from '@/constants/theme';
+import { hapticSelect } from '@/utils/haptics';
 
 interface SegmentOption {
   key:   string;
@@ -54,7 +55,10 @@ export function SegmentedControl({ options, activeKey, onChange, style }: Segmen
           <TouchableOpacity
             key={opt.key}
             style={styles.segBtn}
-            onPress={() => onChange(opt.key)}
+            onPress={() => {
+              if (opt.key !== activeKey) hapticSelect();
+              onChange(opt.key);
+            }}
             activeOpacity={0.8}
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}

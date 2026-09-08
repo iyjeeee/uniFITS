@@ -9,6 +9,12 @@
 > **Changelog (interactivity pass):** Added `expo-navigation-bar` to `package.json` (was missing — SDK 54-pinned `~5.0.10`). Added `components/ui/PressableScale.tsx` — shared scale-down + shadow-elevation tap feedback, now used by `Card`, `StatCard`, `AnnouncementCard`, `ProjectCard`, `EventCard`, `TransactionRow` instead of each duplicating `TouchableOpacity`/`Animated` logic. `StatCard` gained `onPress` (KPI tiles on Home now deep-link to Finances/Announcements), a subtle color-tinted background (not just the icon chip), and a chevron affordance when tappable. Home header now uses `getGreeting()` (new helper in `formatters.ts`) for a time-of-day greeting instead of a static "Hi". `AnnouncementCard` preview text switched to `Colors.textMuted` (was `textSecondary`) and title switched to bold, for stronger title/body contrast. Tab bar icons now show an accent-colored pill behind the active tab instead of relying on icon color alone. `ProjectCard`/`EventCard`/`TransactionRow` gained a `Shadow.sm` baseline (previously had none) so the press-elevation bump has something to bump from.
 >
 > **Changelog (KPI grid + Section panel pass):** `StatCard` now has `minHeight: 108` so all 4 Home KPI tiles are guaranteed the same size regardless of value/label text length. Home's KPI grid gap was inconsistent (horizontal `sm`, vertical inherited the outer `lg` section gap) — wrapped both rows in a `kpiGrid` container with a single consistent `sm` gap. Added `components/ui/Section.tsx` — a white bordered/shadowed panel (title header + padded content) that gives list sections their own visual block instead of a header floating on the screen background. Home's "Recent Announcements"/"Recent Transactions" and Announcements' "Pinned"/"All Announcements" now use `Section` instead of a bare `SectionHeader` + `View`. Announcements screen converted from `FlatList` to `ScrollView` (matches Finances' pattern) so both sections can each sit in their own panel — dataset is small, no virtualization loss.
+>
+> **Changelog (2026 bento/modern-UI refresh, approved direction):** Bumped the whole `Radius` scale softer/larger (`sm 6→8, md 10→14, lg 16→18`, new `xl: 22`) — cascades automatically to every card, button, badge, and input via the shared tokens. Added `Colors.subCard` (`#F7F9FC`) for flat nested rows. Added `components/ui/HeroStatCard.tsx` — large solid-accent-color card with a decorative offset circle (no gradient lib needed) for a single primary KPI + inline sub-stats; Home's Fund Balance is now a `HeroStatCard` instead of competing equally with the other 3 tiles in a uniform grid. `StatCard` redesigned to match — plain white rounded card, icon chip carries the color instead of a left border stripe, `Radius.lg`. `AnnouncementCard`/`ProjectCard`/`EventCard`/`TransactionRow` gained a `variant?: 'elevated' | 'flat'` prop — `'flat'` (subCard bg, no border/shadow, tighter margin) is used when nested inside a `Section` panel (Home + Announcements); `'elevated'` (unchanged bordered/shadowed look) stays the default for standalone use (Activities, Finances). `Section` panel bumped to `Radius.xl`. **Not yet extended:** Activities/Finances/Profile screens weren't restructured into `Section` panels — they don't have the same "multiple named sections shown together" shape (single active list via `SegmentedControl` tabs), so they only inherited the automatic token-level changes (softer radii, existing `PressableScale`/`Shadow.sm`). Ask if you want the same panel treatment forced there too.
+>
+> **Changelog (motion + haptics pass, chosen over a gradient/color-only refresh):** Added `expo-haptics` to `package.json` (SDK 54-pinned `~15.0.8` — **run `npx expo install` or `npm install`**). New `utils/haptics.ts` wraps it (`hapticTap`/`hapticSelect`/`hapticSuccess`/`hapticError`, platform-guarded so web doesn't throw). `PressableScale` now fires `hapticTap()` on every press (covers `Card`, `StatCard`, `HeroStatCard`, all 4 shared cards). `Button` fires `hapticTap()` too (separate wiring — it uses `TouchableOpacity`, not `PressableScale`). `SegmentedControl` fires `hapticSelect()` only on an actual tab change. Tab bar fires `hapticSelect()` on every tab press via `Tabs`' `screenListeners.tabPress` (centralized — no per-screen wiring needed). Login fires `hapticError()` on validation/auth failure and `hapticSuccess()` right before navigating in. New `components/ui/FadeInUp.tsx` — fade + slide-up entrance animation on mount, takes a `delay` prop for staggering; no `reanimated` dependency, uses the existing `Animated` API. Home's hero card/KPI row/2 sections now cascade in with staggered delays (0/80/160/240ms). Announcements' Pinned/All Announcements sections stagger similarly. Activities' and Finances' active-tab content is wrapped in `FadeInUp` **keyed by the active tab**, so switching segments re-triggers a fresh fade-in each time, not just on first screen load.
+>
+> **Changelog (edge-to-edge nav bar fix):** The `expo-navigation-bar` fix from the "follow-up pass" was throwing `WARN: setBackgroundColorAsync is not supported with edge-to-edge enabled` — SDK 54 enables edge-to-edge on Android by default, and in that mode the system nav bar is transparent, so setting its background color is a no-op the module now warns about instead of silently ignoring. Removed the `setBackgroundColorAsync` call from `app/_layout.tsx` entirely; kept `setButtonStyleAsync('light')` wrapped in `try/catch` for forward-safety. Also removed the now-dead `android.navigationBarColor` key from `app.json` (ignored under edge-to-edge). The original white-strip issue this was meant to fix doesn't need either of these under edge-to-edge — the tab bar's own dark background (sized with `insets.bottom` in `app/(tabs)/_layout.tsx`) shows through the transparent system bar correctly on its own.
 
 ---
 
@@ -257,6 +263,7 @@ All components use `StyleSheet.create()`. Import via barrel: `import { Badge, Ca
 | `Divider` | Thin `Colors.borderInner` horizontal line |
 | `InfoRow` | Label + value row pair — used in detail screens |
 | `StatCard` | KPI tile with left color border, icon, value, label. Optional `onPress` — adds `PressableScale` tap feedback, chevron affordance, and a subtle color-tinted card background (not just the icon chip). Used on Home dashboard KPI grid, all 4 tiles tappable (deep-link to Finances/Announcements) |
+| `HeroStatCard` | Large solid-accent-color KPI card with decorative offset circle + optional inline sub-stats row. Used for the single most important KPI (Home's Fund Balance) so it gets visual priority instead of matching 3 other tiles equally |
 | `FundingProgress` | `ProgressBar` + ₱ amount labels + percent |
 
 ---
@@ -410,6 +417,7 @@ unifits/mobile/
 │   │   ├── Avatar.tsx
 │   │   ├── Card.tsx
 │   │   ├── PressableScale.tsx
+│   │   ├── FadeInUp.tsx
 │   │   ├── Button.tsx
 │   │   ├── Input.tsx
 │   │   ├── SegmentedControl.tsx
@@ -455,6 +463,7 @@ unifits/mobile/
 ├── types/
 │   └── index.ts
 ├── utils/
+│   ├── haptics.ts
 │   ├── formatters.ts
 │   └── statusColors.ts
 ├── assets/
@@ -478,7 +487,7 @@ unifits/mobile/
 
 | File | Description |
 |---|---|
-| `app.json` | Expo config — app name `uniFITS`, slug, scheme `unifits`, splash bg `#1E2128`, `newArchEnabled: true`, bundle IDs, plugins, `android.navigationBarColor: #1E2128` (declarative fallback — see `expo-navigation-bar` note in `_layout.tsx`). Include when changing app identity or build config. |
+| `app.json` | Expo config — app name `uniFITS`, slug, scheme `unifits`, splash bg `#1E2128`, `newArchEnabled: true`, bundle IDs, plugins. No `android.navigationBarColor` — removed, it's ignored under SDK 54's default edge-to-edge Android mode (see `expo-navigation-bar` note in `_layout.tsx`). Include when changing app identity or build config. |
 | `package.json` | All deps pinned to SDK 54. `main: "expo-router/entry"`. `.npmrc` sets `legacy-peer-deps=true` permanently. Includes `expo-navigation-bar` (added for Android nav bar theming — run `npx expo install` if not yet installed). Include when adding packages. |
 | `tsconfig.json` | Strict TypeScript + `@` path alias mapped to project root. Include when adding path aliases. |
 | `babel.config.js` | `babel-preset-expo` + `module-resolver` for `@/` imports. Include when adding Babel plugins. |
@@ -495,6 +504,7 @@ unifits/mobile/
 | `constants/theme.ts` | **Single source of truth** for all design tokens — Colors, Typography, FontSize, Spacing, Radius, Shadow, Layout constants, AVATAR_COLORS. Include in EVERY prompt involving styling. |
 | `constants/config.ts` | App-level constants — `APP_NAME`, `CURRENCY_SYMBOL`, `LOCALE`, `ORG_NAME`. Include when changing app name or locale. |
 | `utils/statusColors.ts` | Maps status strings → border color, bg tint, badge variant. Mirrors `website/src/constants/tableColors.js`. Include when editing list rows or status-colored elements. |
+| `utils/haptics.ts` | Thin `expo-haptics` wrapper — `hapticTap()`, `hapticSelect()`, `hapticSuccess()`, `hapticError()`. Platform-guarded (no-ops on web). Include whenever adding a new interactive element that should give tactile feedback. |
 | `utils/formatters.ts` | All formatting functions — currency, dates, numbers, initials, 12hr time, relative time, `getGreeting()` (time-of-day greeting for Home header). Mirrors `website/src/utils/formatters.js`. Include whenever displaying formatted data. |
 
 ---
@@ -511,10 +521,10 @@ unifits/mobile/
 
 | File | Description |
 |---|---|
-| `app/_layout.tsx` | Root layout — loads fonts via `useFonts()`, calls `restoreSession()`, wraps app in `QueryClientProvider` + `SafeAreaProvider`. On Android, syncs the system navigation bar color/button style to `Colors.primary` via `expo-navigation-bar` (fixes the white strip below the tab bar that the OS nav bar isn't part of our component tree for). **Requires `npx expo install expo-navigation-bar`** if not already a dependency. No auth logic here. Include when changing providers, font loading, or nav bar theming. |
+| `app/_layout.tsx` | Root layout — loads fonts via `useFonts()`, calls `restoreSession()`, wraps app in `QueryClientProvider` + `SafeAreaProvider`. On Android, sets nav bar button style to `'light'` via `expo-navigation-bar` (wrapped in `try/catch`) — does NOT set background color, since that's a no-op under SDK 54's default edge-to-edge mode and just throws a warning; the tab bar's own dark background (sized with `insets.bottom`) shows through the transparent system bar on its own. No auth logic here. Include when changing providers, font loading, or nav bar theming. |
 | `app/index.tsx` | Entry point — `<Redirect>` to `/(tabs)` or `/(auth)/login` based on `isAuthenticated`. Include when changing initial redirect logic. |
 | `app/(auth)/_layout.tsx` | Auth stack — `<Redirect href="/(tabs)">` if already authenticated. Include when changing auth screen flow. |
-| `app/(tabs)/_layout.tsx` | Tab navigator — `<Redirect href="/(auth)/login">` if not authenticated. Defines 5 tabs with Ionicons; active tab shows an accent-colored pill behind the icon (`TabIcon` local component), not just a color change. Include when adding/removing tabs or changing tab bar style. |
+| `app/(tabs)/_layout.tsx` | Tab navigator — `<Redirect href="/(auth)/login">` if not authenticated. Defines 5 tabs with Ionicons; active tab shows an accent-colored pill behind the icon (`TabIcon` local component), not just a color change. `screenListeners.tabPress` fires `hapticSelect()` on every tab switch. Include when adding/removing tabs or changing tab bar style. |
 
 ---
 
@@ -522,10 +532,10 @@ unifits/mobile/
 
 | File | Description |
 |---|---|
-| `app/(auth)/login.tsx` | Login — `TextInput` fields (not `Input` component) inside single `inputRow` border. `KeyboardAvoidingView` wraps entire screen. `useRef` for password focus. Include when editing login UI or auth flow. |
+| `app/(auth)/login.tsx` | Login — `TextInput` fields (not `Input` component) inside single `inputRow` border. `KeyboardAvoidingView` wraps entire screen. `useRef` for password focus. Fires `hapticError()` on validation/auth failure, `hapticSuccess()` on successful login. Include when editing login UI or auth flow. |
 | `app/(auth)/forgot-password.tsx` | Forgot password — `AppHeader` (`showBack`), email field + mock submit. Include when editing forgot password flow. |
-| `app/(tabs)/index.tsx` | Home dashboard — `AppHeader` greeting (`getGreeting()`, e.g. "Good afternoon, {first_name}" / org name), 2×2 `StatCard` KPI grid (Fund Balance, Active Funds, My Contributions, Announcements) — all 4 tappable, deep-link to Finances/Announcements tabs, "Recent Announcements" + "Recent Transactions" sections (top 3 each, `AnnouncementCard`/`TransactionRow`, "View All" via `SectionHeader`'s built-in action). Uses `reportsService.getFundSummary`, `announcementsService.getAnnouncements`, `transactionsService.getMyTransactions`. `SkeletonList` while loading. Include when editing dashboard layout or KPIs. **Note:** this file was previously found duplicated with `announcements/index.tsx` content (accidental overwrite in an earlier export) and was rebuilt from scratch — verify against this description if anything looks off. |
-| `app/(tabs)/announcements/index.tsx` | Announcements feed — `AppHeader`, "Pinned" + "All Announcements" each in their own `Section` panel, `AnnouncementCard` list. Uses `ScrollView` (not `FlatList`) so each section can be its own bordered/padded panel. Include when editing announcements list. |
+| `app/(tabs)/index.tsx` | Home dashboard (2026 bento layout) — `AppHeader` greeting (`getGreeting()`), `HeroStatCard` for Fund Balance (primary KPI, with inline sub-stats), 2 secondary `StatCard` tiles (My Contributions, Announcements) below, "Recent Announcements" + "Recent Transactions" each in a `Section` panel with `variant="flat"` cards inside. Uses `reportsService.getFundSummary`, `announcementsService.getAnnouncements`, `transactionsService.getMyTransactions`. `SkeletonList` while loading. Include when editing dashboard layout or KPIs. **Note:** this file was previously found duplicated with `announcements/index.tsx` content (accidental overwrite in an earlier export) and was rebuilt from scratch — verify against this description if anything looks off. |
+| `app/(tabs)/announcements/index.tsx` | Announcements feed — `AppHeader`, "Pinned" + "All Announcements" each in their own `Section` panel, `AnnouncementCard variant="flat"` inside. Uses `ScrollView` (not `FlatList`) so each section can be its own bordered/padded panel. Include when editing announcements list. |
 | `app/(tabs)/announcements/[id].tsx` | Announcement detail — `AppHeader` with `showBack`, full content, meta footer. Include when editing announcement detail. |
 | `app/(tabs)/activities/index.tsx` | Activities — `AppHeader` with `SegmentedControl` (animated) in `bottomSlot`, Projects/Events toggle, respective card lists. Header persists during load; body shows `SkeletonList`. Include when editing activities layout. |
 | `app/(tabs)/activities/projects/[id].tsx` | Project detail — `AppHeader` with `showBack`, header card, funding card, info card. Include when editing project detail. |
@@ -547,10 +557,11 @@ unifits/mobile/
 | `components/ui/StatusBadge.tsx` | Auto-maps status string → Badge. Include for any status display. |
 | `components/ui/Avatar.tsx` | Circular avatar — photo or initials with deterministic color. Include on profile or member displays. |
 | `components/ui/Card.tsx` | White surface with border + shadow. Base content block. Tappable variant uses `PressableScale`. |
-| `components/ui/PressableScale.tsx` | Shared tap feedback — `Animated` scale-down on press + `Shadow.md` bump. Wraps `onPress`-able card content; used by `Card`, `StatCard`, `AnnouncementCard`, `ProjectCard`, `EventCard`, `TransactionRow` instead of each duplicating the same logic. |
-| `components/ui/Button.tsx` | Touchable button — 5 variants, 3 sizes, loading state. Default `accessibilityRole="button"` + `accessibilityLabel={title}` + `accessibilityState`. |
+| `components/ui/PressableScale.tsx` | Shared tap feedback — `Animated` scale-down on press + `Shadow.md` bump + `hapticTap()`. Wraps `onPress`-able card content; used by `Card`, `StatCard`, `AnnouncementCard`, `ProjectCard`, `EventCard`, `TransactionRow` instead of each duplicating the same logic. |
+| `components/ui/FadeInUp.tsx` | Fade + slide-up entrance animation on mount, `delay` prop for staggering. Wraps screen-level blocks (hero card, KPI row, `Section` panels, tab content) so pages cascade in instead of appearing instantly. Uses the existing `Animated` API — no `reanimated` dependency. |
+| `components/ui/Button.tsx` | Touchable button — 5 variants, 3 sizes, loading state. Default `accessibilityRole="button"` + `accessibilityLabel={title}` + `accessibilityState`. Fires `hapticTap()` on press (separate from `PressableScale` — uses `TouchableOpacity`). |
 | `components/ui/Input.tsx` | Labeled `TextInput` with error/hint. Note: login screen uses raw `TextInput` inside custom `inputRow` — do NOT use `Input` there (causes double border). |
-| `components/ui/SegmentedControl.tsx` | Two-way tab toggle, animated sliding highlight via `Animated` API. Props: `options: {key,label}[]`, `activeKey`, `onChange`. Used in `AppHeader`'s `bottomSlot` on Activities & Finances — do not reintroduce inline segmented markup in screens, use this instead. |
+| `components/ui/SegmentedControl.tsx` | Two-way tab toggle, animated sliding highlight via `Animated` API, fires `hapticSelect()` only on an actual selection change. Props: `options: {key,label}[]`, `activeKey`, `onChange`. Used in `AppHeader`'s `bottomSlot` on Activities & Finances — do not reintroduce inline segmented markup in screens, use this instead. |
 | `components/ui/SectionHeader.tsx` | Section title — left accent bar + bottom divider for visual separation, optional count pill, optional `actionLabel`/`onAction` (built-in "View All" link, replaces manually duplicating this pattern per screen). Used inside `Section`. |
 | `components/ui/Section.tsx` | Section panel — white bg, border, `Radius.lg`, `Shadow.sm`, padding, wraps a `SectionHeader` + `children`. Use for any named list section (Pinned, Recent X, All X) instead of a bare header floating on the screen bg. |
 | `components/ui/EmptyState.tsx` | Empty list placeholder — tinted `accentLight` icon circle (Ionicons `icon` prop, e.g. `"folder-open-outline"`, default `"file-tray-outline"`) + title + subtitle + action. |
@@ -560,7 +571,8 @@ unifits/mobile/
 | `components/ui/ProgressBar.tsx` | Horizontal fill bar — `progress` is 0–1. |
 | `components/ui/Divider.tsx` | Thin `Colors.borderInner` line. |
 | `components/ui/InfoRow.tsx` | Label + value pair row — used in detail screens. |
-| `components/ui/StatCard.tsx` | KPI tile with 4px left color border, icon, value, label. `minHeight: 108` so all tiles in a grid match regardless of value/label text length. Optional `onPress` adds `PressableScale` feedback, a subtle `color + '0A'` background tint, and a chevron next to the label. |
+| `components/ui/StatCard.tsx` | KPI tile — plain white card, `Radius.lg`, colored icon chip (no left border stripe). `minHeight: 108` so all tiles in a grid match regardless of value/label text length. Optional `onPress` adds `PressableScale` feedback + chevron next to the label. |
+| `components/ui/HeroStatCard.tsx` | Large solid-accent-color card, `Radius.xl`, decorative offset circle, optional `subStats` row. Use for one primary KPI that should stand out from a secondary `StatCard` grid. |
 | `components/ui/FundingProgress.tsx` | Progress bar + ₱ labels + percent. Used in project/event cards and detail screens. |
 
 ---
@@ -569,10 +581,10 @@ unifits/mobile/
 
 | File | Description |
 |---|---|
-| `components/shared/AnnouncementCard.tsx` | Compact card — left `Colors.info` border (accent if pinned), bold title, muted 2-line preview, author/time footer, chevron. `PressableScale` tap feedback. Matches `ProjectCard`/`EventCard` style. |
-| `components/shared/ProjectCard.tsx` | Card — status + type badges, location, dates, `FundingProgress`, left status border, `Shadow.sm` baseline, `PressableScale` tap feedback. |
-| `components/shared/EventCard.tsx` | Card — status badge, 12hr time, location, `FundingProgress`, left status border, `Shadow.sm` baseline, `PressableScale` tap feedback. |
-| `components/shared/TransactionRow.tsx` | Row — entry type label, fund name, amount, date, status badge, left status border, `Shadow.sm` baseline, `PressableScale` tap feedback. |
+| `components/shared/AnnouncementCard.tsx` | Compact card — left `Colors.info` border (accent if pinned), bold title, muted 2-line preview, author/time footer, chevron. `variant?: 'elevated' \| 'flat'` (default elevated). `PressableScale` tap feedback. Matches `ProjectCard`/`EventCard` style. |
+| `components/shared/ProjectCard.tsx` | Card — status + type badges, location, dates, `FundingProgress`, left status border. `variant?: 'elevated' \| 'flat'` (default elevated). `PressableScale` tap feedback. |
+| `components/shared/EventCard.tsx` | Card — status badge, 12hr time, location, `FundingProgress`, left status border. `variant?: 'elevated' \| 'flat'` (default elevated). `PressableScale` tap feedback. |
+| `components/shared/TransactionRow.tsx` | Row — entry type label, fund name, amount, date, status badge, left status border. `variant?: 'elevated' \| 'flat'` (default elevated). `PressableScale` tap feedback. |
 | `components/shared/FundCard.tsx` | Card — name, type badge, balance, status, description. Left `Colors.accent` border. |
 | `components/shared/MemberStatRow.tsx` | Icon + label + value row for profile stats. |
 

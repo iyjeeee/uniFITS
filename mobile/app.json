@@ -23,8 +23,7 @@
         "backgroundColor": "#1E2128"
       },
       "package": "com.unifits.mobile",
-      "softwareKeyboardLayoutMode": "pan",
-      "navigationBarColor": "#1E2128"
+      "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
       "bundler": "metro",

@@ -12,18 +12,25 @@ import { StatusBadge, FundingProgress } from '@/components/ui';
 import { PressableScale } from '@/components/ui/PressableScale';
 
 interface EventCardProps {
-  item:    Event;
-  onPress: () => void;
-  style?:  ViewStyle;
+  item:     Event;
+  onPress:  () => void;
+  variant?: 'elevated' | 'flat';
+  style?:   ViewStyle;
 }
 
-export function EventCard({ item, onPress, style }: EventCardProps) {
+export function EventCard({ item, onPress, variant = 'elevated', style }: EventCardProps) {
   const accentColor = statusBorderColor(item.status);
+  const isFlat       = variant === 'flat';
 
   return (
     <PressableScale
       onPress={onPress}
-      style={[styles.card, { borderLeftColor: accentColor }, style]}
+      style={[
+        styles.card,
+        isFlat ? styles.cardFlat : styles.cardElevated,
+        { borderLeftColor: accentColor },
+        style,
+      ]}
       accessibilityLabel={`Event: ${item.title}, ${item.status}`}
     >
       {/* Header */}
@@ -53,15 +60,22 @@ export function EventCard({ item, onPress, style }: EventCardProps) {
 
 const styles = StyleSheet.create({
   card: {
+    borderLeftWidth: Layout.STATUS_BAR_WIDTH,
+    padding:         Layout.CARD_PADDING,
+    gap:             Spacing.sm,
+  },
+  cardElevated: {
     backgroundColor: Colors.white,
     borderRadius:    Radius.md,
     borderWidth:     Layout.BORDER_WIDTH,
     borderColor:     Colors.borderCard,
-    borderLeftWidth: Layout.STATUS_BAR_WIDTH,
-    padding:         Layout.CARD_PADDING,
     marginBottom:    Spacing.sm,
-    gap:             Spacing.sm,
     ...Shadow.sm,
+  },
+  cardFlat: {
+    backgroundColor: Colors.subCard,
+    borderRadius:    Radius.md,
+    marginBottom:    Spacing.xs,
   },
   header: {
     flexDirection:  'row',
