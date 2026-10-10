@@ -1,7 +1,7 @@
 // AddProject.jsx — 3-col layout: StepWizard sidebar | Form | Preview
 // Validation: per-step validation blocks Continue; shows inline field errors
 import { useState } from 'react'
-import { Button, Card, Input, SectionDivider, Select, Textarea } from '../../components/ui'
+import { Button, Card, Input, SectionDivider, Select, Textarea, ResponseModal } from '../../components/ui'
 import { useOrg } from '../../context/OrgContext'
 import useBreakpoint from '../../hooks/useBreakpoint'
 import { required, isPositiveNumber, isValidDateRange, validateStep } from '../../utils/validation'
@@ -80,6 +80,7 @@ export default function AddProject() {
   })
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)  // preview URL for uploaded photo
   const [errors, setErrors] = useState<Record<string,string>>({})
+  const [feedback, setFeedback] = useState(false)  // success confirmation modal visibility
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => { setForm((f: any) => ({ ...f, [k]: e.target.value })); clearErr(k) }
   const clearErr = (k: string) => setErrors(p => { const n = { ...p }; delete n[k]; return n })
 
@@ -112,6 +113,7 @@ export default function AddProject() {
   }
 
   return (
+    <>
     <div style={{ display: 'grid' as const, gridTemplateColumns: isMobile ? '1fr' : '200px 1fr 240px', gap: 14, alignItems: 'stretch' }}>
 
       {/* LEFT — Step sidebar */}
@@ -218,7 +220,7 @@ export default function AddProject() {
           <Button variant="secondary" onClick={() => { setErrors({}); setStep(s => Math.max(0, s - 1)) }} disabled={step === 0}>← Back</Button>
           {step < STEPS.length - 1
             ? <Button onClick={handleContinue}>Continue →</Button>
-            : <Button variant="success" onClick={() => alert('Project created!')}>✓ Create {org.project_label}</Button>
+            : <Button variant="success" onClick={() => setFeedback(true)}>✓ Create {org.project_label}</Button>
           }
         </div>
       </Card>
@@ -236,5 +238,8 @@ export default function AddProject() {
         ))}
       </Card>
     </div>
+    <ResponseModal open={feedback} onClose={() => { setFeedback(false); window.location.hash = '/projects' }}
+      variant="success" title={`${org.project_label} Created!`} message="The project has been successfully created." confirmLabel="Go to Projects" />
+    </>
   )
 }

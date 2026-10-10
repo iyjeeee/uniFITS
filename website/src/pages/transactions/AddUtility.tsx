@@ -1,7 +1,7 @@
 // AddUtility.jsx — 3-col layout: StepSidebar | Form | Live Preview
 // Validation: per-step validation blocks Continue; shows inline field errors
 import { useState } from 'react'
-import { Button, Card, Input, SectionDivider, Select, Textarea } from '../../components/ui'
+import { Button, Card, Input, SectionDivider, Select, Textarea, ResponseModal } from '../../components/ui'
 import { MOCK_FUNDS } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 import useBreakpoint from '../../hooks/useBreakpoint'
@@ -128,6 +128,7 @@ export default function AddUtility() {
     status: 'unpaid', notes: '',
   })
   const [errors, setErrors] = useState<Record<string,string>>({})
+  const [feedback, setFeedback] = useState(false)  // success confirmation modal visibility
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => { setForm((f: any) => ({ ...f, [k]: e.target.value })); clearErr(k) }
   const clearErr = (k: string) => setErrors(p => { const n = { ...p }; delete n[k]; return n })
   const fundOptions = MOCK_FUNDS.map((f: any) => ({ value: f.id, label: f.name }))
@@ -181,6 +182,7 @@ export default function AddUtility() {
   }
 
   return (
+    <>
     <div style={{ display: 'grid' as const, gridTemplateColumns: isMobile ? '1fr' : '200px 1fr 240px', gap: 14, alignItems: 'stretch' }}>
 
       {/* LEFT — Step sidebar */}
@@ -284,7 +286,7 @@ export default function AddUtility() {
           <Button variant="secondary" onClick={() => { setErrors({}); setStep(s => Math.max(0, s - 1)) }} disabled={step === 0}>← Back</Button>
           {step < STEPS.length - 1
             ? <Button onClick={handleContinue}>Continue →</Button>
-            : <Button variant="success" onClick={() => alert(`${org.utility_label} recorded!`)}>✓ Record {org.utility_label}</Button>
+            : <Button variant="success" onClick={() => setFeedback(true)}>✓ Record {org.utility_label}</Button>
           }
         </div>
       </Card>
@@ -296,5 +298,8 @@ export default function AddUtility() {
         </Card>
       )}
     </div>
+    <ResponseModal open={feedback} onClose={() => { setFeedback(false); window.location.hash = '/transactions/utilities' }}
+      variant="success" title="Utility Recorded!" message="The utility expense has been successfully recorded." confirmLabel="Go to Utilities" />
+    </>
   )
 }

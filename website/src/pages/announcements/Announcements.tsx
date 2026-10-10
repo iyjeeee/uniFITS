@@ -1,4 +1,4 @@
-// Announcements.jsx — Hub with paginated View All modals, pinned/unpinned sections
+// Announcements.tsx — Hub with paginated View All modals, pinned/unpinned sections
 // Fully responsive via useBreakpoint — calendar/tiles layout collapses on mobile
 import React, { useState, useRef } from 'react'
 import { Badge, StatusBadge, Card, Button, Input, Textarea, InfoModal, ResponseModal } from '../../components/ui'
@@ -8,7 +8,11 @@ import {
 } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 import useBreakpoint from '../../hooks/useBreakpoint'
-import type { Announcement } from '../../types'
+import type { Announcement, Project, AppEvent } from '../../types'
+
+/* ── Merged project/event types — `kind` tells tiles, schedule rows and the detail modal which one an item is ── */
+type TileItem      = (Project | AppEvent) & { kind: 'project' | 'event' }
+type ScheduleEntry = TileItem & { name: string; date: string }   // ScheduleItem reads name/date/kind
 
 
 /* ── Convert 24-hr "HH:MM" to 12-hr "h:MM AM/PM" ─────────────────── */
@@ -214,7 +218,10 @@ export default function Announcements() {
 
   /* ── Activity tile strip + pagination ────────────────────────── */
   const TILES_PER_PAGE     = 8
-  const allTiles: any[]    = [...MOCK_PROJECTS, ...MOCK_EVENTS]
+  const allTiles: TileItem[] = [
+    ...MOCK_PROJECTS.map((p): TileItem => ({ ...p, kind: 'project' })),
+    ...MOCK_EVENTS.map((e): TileItem => ({ ...e, kind: 'event' })),
+  ]
   const [tilePage,    setTilePage]    = useState(1)
   const totalTilePages = Math.max(1, Math.ceil(allTiles.length / TILES_PER_PAGE))
   const pagedTiles     = allTiles.slice((tilePage - 1) * TILES_PER_PAGE, tilePage * TILES_PER_PAGE)
@@ -235,13 +242,10 @@ export default function Announcements() {
   const pinnedAnn    = allSorted.filter((a: any) => a.is_pinned)
   const regularAnn   = allSorted.filter((a: any) => !a.is_pinned)
   const pagedModalAnn = regularAnn.slice(0, ANN_MODAL_PER_PAGE)
-  const upcoming     = [...MOCK_PROJECTS, ...MOCK_EVENTS]
-    .filter((a: any) => a.status === 'upcoming' || a.status === 'ongoing')
-    .sort((a: any, b: any) => {
-      const da = a.start_date || a.event_date || ''
-      const db = b.start_date || b.event_date || ''
-      return new Date(da).getTime() - new Date(db).getTime()
-    })
+  const upcoming: ScheduleEntry[] = allTiles
+    .filter(a => a.status === 'upcoming' || a.status === 'ongoing')
+    .map((a): ScheduleEntry => ({ ...a, name: a.title, date: 'start_date' in a ? a.start_date : a.event_date }))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
   const schedModalPages  = Math.max(1, Math.ceil(upcoming.length / SCHED_MODAL_PER_PAGE))
   const pagedModalSched  = upcoming.slice((schedPage - 1) * SCHED_MODAL_PER_PAGE, schedPage * SCHED_MODAL_PER_PAGE)
 
@@ -295,7 +299,7 @@ export default function Announcements() {
             <div style={{ display:'flex', gap:4 }}>
               <PageBtn disabled={tilePage===1}              onClick={() => setTilePage(p=>p-1)}><Ico.ChevL /></PageBtn>
               {Array.from({ length: totalTilePages }, (_,i) => i+1).map((p: any) => (
-                <PageBtn key={p} active={p===tilePage} onClick={() => setTilePage((p: number) => p)}>{p}</PageBtn>
+                <PageBtn key={p} active={p===tilePage} onClick={() => setTilePage(p)}>{p}</PageBtn>
               ))}
               <PageBtn disabled={tilePage===totalTilePages} onClick={() => setTilePage(p=>p+1)}><Ico.ChevR /></PageBtn>
             </div>

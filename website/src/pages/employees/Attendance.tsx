@@ -1,4 +1,4 @@
-// Attendance.jsx — Project + Event tile cards. Clicking a tile opens an InfoModal
+// Attendance.tsx — Project + Event tile cards. Clicking a tile opens an InfoModal
 // with 3 interactive sections: No Record | Present | Absent.
 // Each member card has a dropdown to set Present/Absent.
 // Section headers have "Mark All Present" / "Mark All Absent" bulk-action buttons.
@@ -7,7 +7,17 @@ import { Card, InfoModal } from '../../components/ui'
 import { MOCK_ATTENDANCES, MOCK_PROJECTS, MOCK_EVENTS, MOCK_USERS, formatDate } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 import useBreakpoint from '../../hooks/useBreakpoint'
-import type { Attendance } from '../../types'
+import type { Attendance as AttendanceRecord, AttendanceStatus, Project, AppEvent } from '../../types'
+
+/* ── Local types ─────────────────────────────────────────────────── */
+type Activity     = Project | AppEvent
+type ActivityKind = 'project' | 'event'
+type MarkStatus   = Extract<AttendanceStatus, 'present' | 'absent'>   // simplified 2-option UI
+interface MemberRow { num: number; userId: string; name: string; role: string; status: MarkStatus | null }
+interface BulkAction { label: string; solidBg: string; icon: React.ReactNode; onClick: () => void }
+
+// Date shown on a tile — projects use start_date, events use event_date
+const activityDate = (a: Activity): string => ('start_date' in a ? a.start_date : a.event_date)
 
 /* ── SVG Icons ───────────────────────────────────────────────────── */
 function IcoProject()   { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg> }
@@ -20,14 +30,15 @@ function IcoX()         { return <svg width="13" height="13" viewBox="0 0 24 24"
 function IcoSave()      { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> }
 
 /* ── Status config ───────────────────────────────────────────────── */
-const STATUS_COLOR = { present: '#2E7D52', absent: '#C0392B', 'no-record': '#9CA3AF' }
-const STATUS_BG    = { present: '#f0faf4', absent: '#fdf3f2', 'no-record': '#F9FAFB' }
+const STATUS_COLOR: Record<string, string> = { present: '#2E7D52', absent: '#C0392B', 'no-record': '#9CA3AF' }
+const STATUS_BG: Record<string, string>    = { present: '#f0faf4', absent: '#fdf3f2', 'no-record': '#F9FAFB' }
 
 /* ── AttendanceTileCard — clickable activity summary card ────────── */
-function AttendanceTileCard({ activity, kind, records, onClick }: Record<string, any>) {
-  const actRecords = records.filter((r: any) => r.activity === (typeof activity === 'string' ? activity : (activity as any).title))
-  const present    = actRecords.filter((r: any) => r.status === 'present' || r.status === 'late').length
-  const absent     = actRecords.filter((r: any) => r.status === 'absent').length
+interface TileCardProps { activity: Activity; kind: ActivityKind; records: AttendanceRecord[]; onClick: () => void }
+function AttendanceTileCard({ activity, kind, records, onClick }: TileCardProps) {
+  const actRecords = records.filter(r => r.activity === activity.title)
+  const present    = actRecords.filter(r => r.status === 'present' || r.status === 'late').length
+  const absent     = actRecords.filter(r => r.status === 'absent' || r.status === 'excused').length   // excused shown as absent — matches the modal mapping
   const total      = MOCK_USERS.length
   const noRecord   = total - actRecords.length
   const accentHex  = kind === 'project' ? '#4B5EAA' : '#2E7D52'
@@ -42,13 +53,13 @@ function AttendanceTileCard({ activity, kind, records, onClick }: Record<string,
       <div style={{ padding: '14px 16px', flex: 1, display: 'flex' as const, flexDirection: 'column' as const, gap: 10 }}>
         {/* Title */}
         <div style={{ fontSize: 13.5, fontWeight: 700, lineHeight: 1.3, color: 'var(--text-primary)', overflow: 'hidden', display: '-webkit-box' as const, WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-          {typeof activity === "string" ? activity : activity.title}
+          {activity.title}
         </div>
         {/* Meta */}
         <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 4 }}>
-          {(activity.start_date || activity.event_date) && (
+          {activityDate(activity) && (
             <div style={{ display: 'flex' as const, alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--text-muted)' }}>
-              <IcoClock /> {formatDate(activity.start_date || activity.event_date)}
+              <IcoClock /> {formatDate(activityDate(activity))}
             </div>
           )}
           {activity.location && (
@@ -73,12 +84,13 @@ function AttendanceTileCard({ activity, kind, records, onClick }: Record<string,
 }
 
 /* ── MemberCard — individual member with dropdown + status ──────── */
-function MemberCard({ member, num, onStatusChange }: Record<string, any>) {
+interface MemberCardProps { member: MemberRow; num: number; onStatusChange: (userId: string, status: MarkStatus) => void }
+function MemberCard({ member, num, onStatusChange }: MemberCardProps) {
   const [open, setOpen] = useState(false)  // dropdown open state
   const status   = member.status          // 'present' | 'absent' | null (no record)
   const sKey     = status || 'no-record'
-  const color    = (STATUS_COLOR as Record<string,string>)[sKey]
-  const bg = (STATUS_BG as Record<string,string>)[sKey]
+  const color    = STATUS_COLOR[sKey]
+  const bg       = STATUS_BG[sKey]
   const label    = status ? (status.charAt(0).toUpperCase() + status.slice(1)) : 'No Record'
 
   return (
@@ -123,10 +135,10 @@ function MemberCard({ member, num, onStatusChange }: Record<string, any>) {
           borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,.12)',
           overflow: 'hidden', marginTop: 2,
         }}>
-          {[
+          {([
             { value: 'present', label: 'Present', color: '#2E7D52', bg: '#f0faf4' },
             { value: 'absent',  label: 'Absent',  color: '#C0392B', bg: '#fdf3f2' },
-          ].map(opt => (
+          ] as { value: MarkStatus; label: string; color: string; bg: string }[]).map(opt => (
             <button
               key={opt.value}
               onClick={() => { onStatusChange(member.userId, opt.value); setOpen(false) }}
@@ -150,7 +162,8 @@ function MemberCard({ member, num, onStatusChange }: Record<string, any>) {
 }
 
 /* ── Attendance Section — No Record / Present / Absent ───────────── */
-function AttendanceSection({ title, members, color, bg, icon, bulkActions, gridCols, onStatusChange }: Record<string, any>) {
+interface SectionProps { title: string; members: MemberRow[]; color: string; bg: string; icon: React.ReactNode; bulkActions: BulkAction[] | null; gridCols: string; onStatusChange: MemberCardProps['onStatusChange'] }
+function AttendanceSection({ title, members, color, bg, icon, bulkActions, gridCols, onStatusChange }: SectionProps) {
   if (members.length === 0) return null
 
   return (
@@ -171,7 +184,7 @@ function AttendanceSection({ title, members, color, bg, icon, bulkActions, gridC
         {/* Bulk-action buttons shown for the "No Record" section */}
         {bulkActions && (
           <div style={{ display: 'flex' as const, gap: 6 }}>
-            {bulkActions.map((btn: any) => (
+            {bulkActions.map(btn => (
               <button key={btn.label} onClick={btn.onClick}
                 style={{ display: 'inline-flex' as const, alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 7, border: 'none', background: btn.solidBg, color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' as const, fontFamily: 'var(--font-body)' }}>
                 {btn.icon} {btn.label}
@@ -182,7 +195,7 @@ function AttendanceSection({ title, members, color, bg, icon, bulkActions, gridC
       </div>
       {/* Member card grid */}
       <div style={{ display: 'grid' as const, gridTemplateColumns: gridCols, gap: 10 }}>
-        {members.map((m: any) => (
+        {members.map(m => (
           <MemberCard key={m.userId} member={m} num={m.num} onStatusChange={onStatusChange} />
         ))}
       </div>
@@ -191,13 +204,20 @@ function AttendanceSection({ title, members, color, bg, icon, bulkActions, gridC
 }
 
 /* ── Attendance Detail Modal content ────────────────────────────── */
-function AttendanceDetailContent({ activity, kind, localAttendance, onStatusChange, onMarkAllNoRecord, onResetAll, isMobile, isTablet }: Record<string, any>) {
+interface DetailProps {
+  activity: Activity; kind: ActivityKind; localAttendance: Record<string, MarkStatus>
+  onStatusChange: MemberCardProps['onStatusChange']
+  onMarkAllNoRecord: (members: MemberRow[], status: MarkStatus) => void
+  onResetAll: (members: MemberRow[]) => void
+  isMobile: boolean; isTablet: boolean
+}
+function AttendanceDetailContent({ activity, kind, localAttendance, onStatusChange, onMarkAllNoRecord, onResetAll, isMobile, isTablet }: DetailProps) {
   const accentC   = kind === 'project' ? 'var(--accent)' : 'var(--success)'
   const bgC       = kind === 'project' ? 'var(--accent-light)' : 'var(--success-light)'
   const gridCols  = isMobile ? 'repeat(2,1fr)' : isTablet ? 'repeat(3,1fr)' : 'repeat(4,1fr)'
 
   // Build full member list with numbered positions
-  const memberList = MOCK_USERS.map((user, idx) => ({
+  const memberList: MemberRow[] = MOCK_USERS.map((user, idx) => ({
     num:    idx + 1,
     userId: user.id,
     name:   user.full_name,
@@ -206,9 +226,9 @@ function AttendanceDetailContent({ activity, kind, localAttendance, onStatusChan
   }))
 
   // Split into the 3 sections
-  const noRecord = memberList.filter((m: any) => !m.status)
-  const present  = memberList.filter((m: any) => m.status === 'present')
-  const absent   = memberList.filter((m: any) => m.status === 'absent')
+  const noRecord = memberList.filter(m => !m.status)
+  const present  = memberList.filter(m => m.status === 'present')
+  const absent   = memberList.filter(m => m.status === 'absent')
 
   const presentCount = present.length
   const absentCount  = absent.length
@@ -225,16 +245,16 @@ function AttendanceDetailContent({ activity, kind, localAttendance, onStatusChan
             {kind === 'project' ? 'Project' : 'Event'}
           </span>
         </div>
-        <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)' }}>{typeof activity === "string" ? activity : activity.title}</div>
+        <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)' }}>{activity.title}</div>
       </div>
 
       {/* Summary stat row */}
       <div style={{ display: 'grid' as const, gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
-        {[
+        {([
           ['No Record', noRecCount,   '#9CA3AF', '#F9FAFB'],
           ['Present',   presentCount, '#2E7D52', '#f0faf4'],
           ['Absent',    absentCount,  '#C0392B', '#fdf3f2'],
-        ].map(([label, count, color, bg]: any[]) => (
+        ] as [string, number, string, string][]).map(([label, count, color, bg]) => (
           <div key={label} style={{ padding: '10px 12px', borderRadius: 10, background: bg, border: `1.5px solid ${color}30`, textAlign: 'center' as const }}>
             <div style={{ fontSize: 22, fontWeight: 800, color, lineHeight: 1 }}>{count}</div>
             <div style={{ fontSize: 11.5, color, fontWeight: 600, marginTop: 3 }}>{label}</div>
@@ -291,7 +311,8 @@ function AttendanceDetailContent({ activity, kind, localAttendance, onStatusChan
 }
 
 /* ── Section Header for the two tile-grid sections ───────────────── */
-function SectionHeader({ icon, label, count, color }: Record<string, any>) {
+interface SectionHeaderProps { icon: React.ReactNode; label: string; count: number; color: string }
+function SectionHeader({ icon, label, count, color }: SectionHeaderProps) {
   return (
     <div style={{ display: 'flex' as const, alignItems: 'center', gap: 10, marginBottom: 14 }}>
       <div style={{ width: 32, height: 32, borderRadius: 8, background: color + '20', display: 'flex' as const, alignItems: 'center', justifyContent: 'center', color, flexShrink: 0 }}>
@@ -311,23 +332,22 @@ function SectionHeader({ icon, label, count, color }: Record<string, any>) {
    MAIN COMPONENT
 ══════════════════════════════════════════════════════════════════ */
 export default function Attendance() {
-  const _orgAtt = useOrg()
+  const org = useOrg()
   const { isMobile, isTablet } = useBreakpoint()
   const tileCols = isMobile ? '1fr' : isTablet ? 'repeat(2,1fr)' : 'repeat(3,1fr)'
 
   // Global attendance records (would come from API — using mock as seed)
-  const [allRecords, setAllRecords] = useState(MOCK_ATTENDANCES)
+  const [allRecords, setAllRecords] = useState<AttendanceRecord[]>(MOCK_ATTENDANCES)
 
-  // Modal state
-  const [viewItem,       setViewItem]       = useState<{activity:string;kind:string} | null>(null)    // { activity, kind }
-  const [localAttendance, setLocalAttendance] = useState<Record<string,string>>({})    // { userId: 'present'|'absent' }
+  // Modal state — viewItem holds the full activity object (title is read via activity.title)
+  const [viewItem,        setViewItem]        = useState<{ activity: Activity; kind: ActivityKind } | null>(null)
+  const [localAttendance, setLocalAttendance] = useState<Record<string, MarkStatus>>({})   // { userId: 'present'|'absent' }
 
   // Open modal — pre-populate localAttendance from existing records for this activity
-  function openModal(activity: any, kind: any) {
-    const actRecords = allRecords.filter((r: any) => r.activity === (typeof activity === 'string' ? activity : (activity as any).title))
-    const init: Record<string,string> = {}
-    actRecords.forEach((r: any) => {
-      // Map late/excused to present for the simplified 2-option UI
+  function openModal(activity: Activity, kind: ActivityKind) {
+    const init: Record<string, MarkStatus> = {}
+    allRecords.filter(r => r.activity === activity.title).forEach(r => {
+      // Map late to present, excused to absent for the simplified 2-option UI
       init[r.user_id] = (r.status === 'present' || r.status === 'late') ? 'present' : 'absent'
     })
     setLocalAttendance(init)
@@ -335,24 +355,24 @@ export default function Attendance() {
   }
 
   // Update a single member's status
-  function handleStatusChange(userId: any, newStatus: any) {
-    setLocalAttendance((prev: any) => ({ ...prev, [userId]: newStatus }))
+  function handleStatusChange(userId: string, newStatus: MarkStatus) {
+    setLocalAttendance(prev => ({ ...prev, [userId]: newStatus }))
   }
 
-  // Bulk mark all "no record" members with a given status
-  function handleMarkAllNoRecord(members: any, status: any) {
-    setLocalAttendance((prev: any) => {
+  // Bulk-set the given members to a status
+  function handleMarkAllNoRecord(members: MemberRow[], status: MarkStatus) {
+    setLocalAttendance(prev => {
       const updated = { ...prev }
-      members.forEach((m: any) => { updated[m.userId] = status })
+      members.forEach(m => { updated[m.userId] = status })
       return updated
     })
   }
 
   // Reset members back to "no record" — removes their status key entirely
-  function handleResetAll(members: any) {
-    setLocalAttendance((prev: any) => {
+  function handleResetAll(members: MemberRow[]) {
+    setLocalAttendance(prev => {
       const updated = { ...prev }
-      members.forEach((m: any) => { delete updated[m.userId] })
+      members.forEach(m => { delete updated[m.userId] })
       return updated
     })
   }
@@ -360,26 +380,25 @@ export default function Attendance() {
   // Save attendance — merge localAttendance back into allRecords
   function handleSave() {
     if (!viewItem) return
-    const activityTitle = (viewItem as any).activity
-    const kind          = viewItem.kind
+    const activityTitle = viewItem.activity.title
 
     // Remove existing records for this activity then add updated ones
-    const base = allRecords.filter((r: any) => r.activity !== activityTitle)
-    const newRecords = Object.entries(localAttendance).map(([userId, status]) => {
-      const user = MOCK_USERS.find((u: any) => u.id === userId)
+    const base = allRecords.filter(r => r.activity !== activityTitle)
+    const newRecords: AttendanceRecord[] = Object.entries(localAttendance).map(([userId, status]) => {
+      const user = MOCK_USERS.find(u => u.id === userId)
       return {
         id:              `${activityTitle}-${userId}`,
-        user_id:          userId,
-        user_name:        user?.full_name || '',
-        activity_type:    kind,
-        activity:         activityTitle,
-        attendance_date:  new Date().toISOString().split('T')[0],
+        user_id:         userId,
+        user_name:       user?.full_name || '',
+        activity_type:   viewItem.kind,
+        activity:        activityTitle,
+        attendance_date: new Date().toISOString().split('T')[0],
         status,
-        remarks:          null,
-        recorded_by:      'Current User',
+        remarks:         null,
+        recorded_by:     'Current User',
       }
     })
-    setAllRecords([...base, ...newRecords] as any)
+    setAllRecords([...base, ...newRecords])
     setViewItem(null)
   }
 
@@ -388,7 +407,7 @@ export default function Attendance() {
 
       {/* ── Projects Section ──────────────────────────────────── */}
       <Card style={{ padding: '18px 20px' }}>
-        <SectionHeader icon={<IcoProject />} label={`${_orgAtt.project_label} Attendance`} count={MOCK_PROJECTS.length} color="var(--accent)" />
+        <SectionHeader icon={<IcoProject />} label={`${org.project_label} Attendance`} count={MOCK_PROJECTS.length} color="var(--accent)" />
         <div style={{ display: 'grid' as const, gridTemplateColumns: tileCols, gap: 14 }}>
           {MOCK_PROJECTS.map(project => (
             <AttendanceTileCard
@@ -396,7 +415,6 @@ export default function Attendance() {
               activity={project}
               kind="project"
               records={allRecords}
-              org={_orgAtt}
               onClick={() => openModal(project, 'project')}
             />
           ))}
@@ -405,7 +423,7 @@ export default function Attendance() {
 
       {/* ── Events Section ────────────────────────────────────── */}
       <Card style={{ padding: '18px 20px' }}>
-        <SectionHeader icon={<IcoEvent />} label={`${_orgAtt.event_label} Attendance`} count={MOCK_EVENTS.length} color="var(--success)" />
+        <SectionHeader icon={<IcoEvent />} label={`${org.event_label} Attendance`} count={MOCK_EVENTS.length} color="var(--success)" />
         <div style={{ display: 'grid' as const, gridTemplateColumns: tileCols, gap: 14 }}>
           {MOCK_EVENTS.map(event => (
             <AttendanceTileCard
@@ -413,7 +431,6 @@ export default function Attendance() {
               activity={event}
               kind="event"
               records={allRecords}
-              org={_orgAtt}
               onClick={() => openModal(event, 'event')}
             />
           ))}
@@ -424,7 +441,7 @@ export default function Attendance() {
       <InfoModal
         open={!!viewItem}
         onClose={() => setViewItem(null)}
-        title={(viewItem as any)?.activity || ''}
+        title={viewItem?.activity.title ?? ''}
         subtitle={viewItem ? `${viewItem.kind === 'project' ? 'Project' : 'Event'} · Mark Attendance` : ''}
         accentColor={viewItem?.kind === 'project' ? 'var(--accent)' : 'var(--success)'}
         footer={
@@ -447,7 +464,6 @@ export default function Attendance() {
             onStatusChange={handleStatusChange}
             onMarkAllNoRecord={handleMarkAllNoRecord}
             onResetAll={handleResetAll}
-            org={_orgAtt}
             isMobile={isMobile}
             isTablet={isTablet}
           />

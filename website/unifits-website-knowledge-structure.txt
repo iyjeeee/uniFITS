@@ -1,9 +1,50 @@
 ================================================================
   UNIFITS WEBSITE — FULL PROJECT KNOWLEDGE & CODEBASE STRUCTURE
-  File: unifits-knowledge-&-structure.txt
+  File: unifits-website-knowledge-structure.md
   Monorepo path: unifits/website/
   Stack: React 18 · Vite 5 · TypeScript · Zero external UI libs · Hash router
-  Status: TYPESCRIPT MIGRATION COMPLETE — all 41 pages + all components converted
+  Status: TYPESCRIPT MIGRATION COMPLETE & VERIFIED (2026-09-10)
+  Latest session (2026-10-09) — bug-fix pass, verified with tsc -b (clean),
+    vite build (clean), eslint (0 errors) and a jsdom click-through of every
+    page (Login/Forgot included). Changed files: Attendance.tsx,
+    Announcements.tsx, Header.tsx.
+    · Fixed: Attendance page went BLANK when a tile was clicked —
+      InfoModal title received the whole project/event OBJECT instead of
+      its title string ("Objects are not valid as a React child").
+      Root cause: props typed Record<string, any> hid the mismatch from tsc.
+      viewItem.activity is now a typed Project | AppEvent object; use
+      activity.title for text. handleSave also stored the object in
+      record.activity / record.id — now stores the title string.
+    · Fixed: Attendance tile chips ignored 'excused' records (shown nowhere);
+      excused is now counted as Absent, matching the modal mapping.
+    · Fixed: Announcements schedule rows rendered "??" date, blank name and
+      blank badge — list items had no date/name/kind. allTiles/upcoming now
+      carry kind; upcoming also carries name + date (types TileItem,
+      ScheduleEntry). Also removed duplicate React keys ("undefined-N"),
+      and the project detail modal now shows Project (was always Event).
+    · Fixed: Announcements tile pagination — numbered buttons were no-ops
+      (setTilePage((p) => p) shadowed the clicked page).
+    · Fixed: Header profile pill now shows currentUser (initials, full_name,
+      role) instead of hardcoded "JD / Juan Dela Cruz / Admin".
+    · index.html entry point is src/main.tsx — all legacy .jsx/.js files
+      deleted (61 files removed, zero orphans, confirmed via clean
+      tsc -b + eslint + vite build + dev-server smoke test)
+    · Fixed: InfoModal accentColor prop was inert (accepted by ~25 call
+      sites, never rendered) — now applied as a top border accent
+    · Fixed: 12 of 13 Add*/Edit* form pages had lost their ResponseModal
+      success-confirmation flow during the original TSX conversion
+      (silently replaced with browser alert()) — restored
+    · Fixed: Utilities.tsx "Add Utility" button was a dead "coming soon"
+      placeholder even though the real AddUtility.tsx page fully works —
+      restored real navigation
+    · Fixed: ItemDetailContent.tsx called useBreakpoint() after an early
+      return — violated React's rules of hooks, real risk of state bugs
+    · Fixed: Backup.tsx Restore/Download buttons referenced an undefined
+      variable (bug present in the original pre-migration source too)
+    · Restored: useToast()/ToastContainer (was dropped from ui/index.tsx
+      during conversion; currently unused by any page, available for use)
+    · eslint.config.js: added underscore-prefix ignore pattern for
+      intentionally-unused vars/args (matches existing codebase convention)
 ================================================================
 
 
@@ -313,6 +354,9 @@ InfoModal
   Body: 26px 32px padding, overflow-y auto.
   Footer: right-aligned slot, 18px 32px padding, --border-inner top.
   editMode=true → purple header (#7C3AED) + "Editing" badge.
+  accentColor renders as a 4px top border stripe on the modal card
+    (fixed — was accepted as a prop but never applied; ~25 call sites
+    across the app pass a status color expecting this visible effect).
   Animation: CSS opacity+transform transitions ONLY — no keyframes.
     Open: scale(1) opacity 1. Close: scale(.98) translateY(6px) opacity 0, 240ms.
   Scroll lock: compensates scrollbar width to prevent layout shift.
@@ -332,6 +376,8 @@ ResponseModal
   z-index: 400 (renders above InfoModal).
   Variants: success=green, danger=red, warning=amber, info=blue.
   Use for: delete confirms, success/error feedback, logout confirm.
+  Used by all Add*/Edit* form pages for the success-confirmation step
+    (setFeedback(true) on submit → modal → redirect on close).
 
 StepWizard
   Props: steps (string[]), current (number, 0-indexed)
@@ -364,6 +410,16 @@ SectionDivider
 Modal (legacy alias)
   Maps open/onClose/title/subtitle/children/footer → InfoModal.
   Exists so old Manage* pages using <Modal> still work unchanged.
+
+useToast() / ToastContainer
+  useToast() → { toasts, toast }. Call toast({ message, variant, duration }).
+  variant: 'success'|'error'|'warning'|'info' (default 'success').
+  duration: ms before auto-dismiss (default 3000).
+  ToastContainer({ toasts }) renders active toasts fixed bottom-right.
+  Types: Toast, ToastVariant in src/types/ui.ts.
+  Currently unused by any page — available for lightweight, non-blocking
+  notifications as an alternative to ResponseModal where a full modal
+  interruption isn't warranted.
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -422,8 +478,8 @@ Header (src/components/Header.tsx)
   Notifications: 12 MOCK_NOTIFICATIONS, 5 shown in dropdown,
     "View All" opens InfoModal with paginated list. Unread count on bell.
     markAllRead() → sets all read:true locally.
-  Profile pill: hardcoded "JD / Juan Dela Cruz / Admin" initials.
-    NOTE: should eventually read from currentUser prop.
+  Profile pill: reads currentUser (getInitials(full_name), full_name, role);
+    falls back to "Guest" when currentUser is null. photo_url not used yet.
   Profile dropdown links: My Profile, Personal Transactions, Settings.
   Logout: ResponseModal (warning, confirm) → calls onLogout() from App.tsx.
   All dropdown items: hover lift + dark border ring + neutral-light bg.
@@ -674,7 +730,7 @@ Standard authenticated page structure:
   5. InfoModal(s) for detail/edit
   6. ResponseModal(s) for feedback/confirmation
 
-All 40 routes in App.tsx (unchanged from JS version):
+All 35 routes in App.tsx (verified against ROUTES map, 2026-10-09):
   /login                         Login              (auth: false)
   /forgot-password               ForgotPassword     (auth: false)
   /dashboard                     Dashboard
@@ -761,10 +817,14 @@ CloseButton in InfoModal:
 17. All 3 report pages (Employee, Fund, Club) support window.print().
 18. ManageEmployees, ManageProjects, ManageEvents, ManageFunds use
     KpiGrid + shared/Modal (legacy) not ui/InfoModal directly.
+    STATUS: ORPHANED — not imported by App.tsx or any file, not in ROUTES
+    (the live pages are Employees/Projects/Events/Funds). They also use
+    CSS classes defined nowhere (page-wrapper, form-input, ...), so they
+    would render unstyled if routed. Keep or delete = owner's decision.
 19. Employees.tsx and Transactions.tsx use their own local IconBtn
     (not from TableUtils) — same visual pattern, locally defined.
-20. Header profile initials are hardcoded "JD" — not yet wired to
-    currentUser.photo_url or getInitials(currentUser.full_name).
+20. Header profile pill reads currentUser (name, role, initials via
+    getInitials). photo_url / avatar image is not wired yet.
 21. TypeScript: never use 'any' without a TODO comment explaining why.
 22. TypeScript: all component props have explicit interfaces.
 23. TypeScript: useModal<T>() — always pass generic when modal data type is known.
@@ -810,6 +870,29 @@ Icons in buttons or tables:
 
 TypeScript types:
   src/types/index.ts + relevant domain type file
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1.16  KNOWN ISSUES & TECH DEBT (verified 2026-10-09)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Baseline: tsc -b clean · vite build clean · eslint 0 errors,
+550 warnings (548 no-explicit-any, 2 react-refresh).
+  · `any` is the root cause class of the Attendance blank-page bug —
+    tsc cannot catch prop/shape mismatches behind Record<string, any>.
+    Worst files: Announcements (48), RolesPage, ClubReport, AddTransaction,
+    Dashboard, PersonalTransactions, Events, Projects, Profile.
+    Fix gradually: type props per file, one file at a time.
+  · Orphaned: ManageEmployees/Projects/Events/Funds + components/shared
+    (see rule 18). Decision pending: revive or delete.
+  · Attendance Save: late/excused collapse to present/absent, remarks
+    cleared, recorded_by = 'Current User' (mock behavior).
+  · Production bundle ~647 kB (single chunk) — vite warns >500 kB;
+    consider lazy-loading routes if it matters.
+  · Header "My Profile" avatar ignores photo_url.
+  · App.tsx comments still say "40 routes" (actual: 35).
+  · Not verified: real browser rendering/visual layout (checked via jsdom
+    behavior tests only), mobile/tablet visuals, backend integration.
 
 
 ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
@@ -978,6 +1061,7 @@ eslint.config.js
   Include when adding lint rules or fixing ESLint config errors.
 
 .env.example
+  NOT PRESENT in the provided zip (2026-10-09) — recreate if needed.
   Template for env vars. Defines VITE_API_URL=http://localhost:5000/api.
   Copy to .env when connecting real backend. Access in code via
   import.meta.env.VITE_API_URL. Include when wiring up real API.
@@ -1023,7 +1107,7 @@ src/main.tsx
 
 src/App.tsx
   Root component and entire routing system. The most central file.
-  Contains: 40-route ROUTES map (hash → Component + page title + sub),
+  Contains: 35-route ROUTES map (hash → Component + page title + sub),
   auth guard logic, handleLogin(user: User) / handleLogout(),
   DEFAULT_ORG config object, currentUser: User | null state,
   navigate() helper passed as prop, OrgProvider wrapper, AppLayout wrapper.
@@ -1060,13 +1144,14 @@ src/components/Icons.tsx
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 src/components/ui/index.tsx
-  The entire custom design system — 18 exported components in one file.
+  The entire custom design system — 20 exported components/hooks in one file
+  (18 UI components + useToast + ToastContainer, restored).
   All fully typed with explicit prop interfaces.
   Include in EVERY prompt touching any UI component or building a page.
 
 src/components/shared/index.tsx
   Backward-compatibility shim. Re-exports Button. Exports Modal wrapper.
-  Used by ManageEmployees, ManageProjects, ManageEvents, ManageFunds.
+  Used only by the orphaned ManageEmployees/Projects/Events/Funds pages.
   Include when editing any Manage* page that uses shared/Button or Modal.
 
 src/components/KPI/index.tsx
@@ -1090,6 +1175,9 @@ src/components/EditItemModal.tsx
 src/components/ItemDetailContent.tsx
   Shared rich detail panel for Project/Event manage modals.
   Props: item (Project | Event), org (OrgConfig), kind.
+  useBreakpoint() is called before the `if (!item) return null` early
+  return — must stay in that order (rules of hooks; was previously
+  reversed and fixed).
   Include when editing project or event detail content panels.
 
 
@@ -1178,7 +1266,8 @@ src/types/ui.ts
   Shared UI prop types reused across components:
   BadgeVariant, ButtonVariant, ButtonSize, ModalVariant,
   KpiMetric, Column (DataTable column definition),
-  BreakpointResult (useBreakpoint return), ModalState<T>.
+  BreakpointResult (useBreakpoint return), ModalState<T>,
+  Toast, ToastVariant (for useToast/ToastContainer).
   Include when building new UI components or updating existing ones.
 
 
@@ -1239,14 +1328,21 @@ src/pages/employees/Employees.tsx
   Include when editing the main employee table or row interactions.
 
 src/pages/employees/ManageEmployees.tsx
-  KpiGrid + DataTable manage view. No currentUser prop needed.
-  Include when editing the manage employees page with KPI tiles.
+  ORPHANED (not routed, not imported). KpiGrid + DataTable manage view.
+  Include only if reviving/deleting the Manage* pages.
 
 src/pages/employees/AddEmployee.tsx — Props: { currentUser?: User | null }
 src/pages/employees/EditEmployee.tsx — Props: { currentUser?: User | null }
 src/pages/employees/EmployeeDetails.tsx — Props: { currentUser?: User | null }
 src/pages/employees/RolesPage.tsx — Props: {}
-src/pages/employees/Attendance.tsx — Props: { currentUser?: User | null }
+src/pages/employees/Attendance.tsx — Props: none (ignores currentUser)
+  Project + Event tile cards; clicking opens InfoModal to mark
+  Present/Absent per member (bulk actions per section). Fully typed
+  (Activity = Project | AppEvent; MarkStatus; MemberRow) — no `any`.
+  viewItem.activity is the full object — always use activity.title for
+  text. Known limits: Save collapses late/excused into present/absent and
+  clears remarks; recorded_by is the placeholder 'Current User'.
+  Include when editing attendance tiles, marking modal, or save logic.
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1288,6 +1384,7 @@ src/pages/funds/EditFund.tsx    Props: { currentUser?: User | null }
 src/pages/transactions/Transactions.tsx  Props: { currentUser?: User | null }
 src/pages/transactions/AddTransaction.tsx
 src/pages/transactions/Utilities.tsx     Props: { currentUser?: User | null }
+  "Add Utility" button navigates to /transactions/utilities/add.
 src/pages/transactions/AddUtility.tsx
 
 
@@ -1295,7 +1392,12 @@ src/pages/transactions/AddUtility.tsx
   CATEGORY 17 — PAGES / ANNOUNCEMENTS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-src/pages/announcements/Announcements.tsx  Props: { currentUser?: User | null }
+src/pages/announcements/Announcements.tsx  Props: none (ignores currentUser)
+  Announcement list/pin/delete, activity tile strip (paginated), calendar,
+  upcoming schedule, detail modals. TileItem/ScheduleEntry types add
+  kind ('project'|'event') (+ name/date for schedule rows) — required by
+  TileCard, ScheduleItem and the detail modal. Still has ~48 `any` warnings
+  and a local fmt12 duplicate of mockData.fmt12.
 src/pages/announcements/Calendar.tsx       Props: {}
 
 
@@ -1328,7 +1430,9 @@ src/pages/settings/Settings.tsx    Props: { currentUser?: User | null }
   3-col desktop layout, useOrg() for current label values.
 
 src/pages/settings/Backup.tsx      Props: {}
-  Mock only backup/restore UI.
+  Mock only backup/restore UI. Uses a single generic feedback state
+  ({ open, title, message } via notify(title, message)) feeding one
+  shared ResponseModal — not per-action modals.
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1360,7 +1464,8 @@ node_modules/       Third-party packages — irrelevant to prompts
 package-lock.json   Auto-generated lock file — never edit manually
 .gitignore          Version control config — not runtime relevant
 README.md           Project documentation — not runtime relevant
-src/assets/         Empty folder in this build — nothing to include
+src/assets/         Not present in the provided zip — nothing to include
+dist/               Build output (stale copy ships in the zip) — never include
 
 ================================================================
   END OF UNIFITS KNOWLEDGE & STRUCTURE REFERENCE

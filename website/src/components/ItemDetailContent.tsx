@@ -87,8 +87,8 @@ interface ItemDetailContentProps {
 }
 
 export default function ItemDetailContent({ item, org, kind }: ItemDetailContentProps) {
+  const { isMobile } = useBreakpoint()  // must run before any early return — rules of hooks
   if (!item) return null
-  const { isMobile } = useBreakpoint()
   const isProject = kind === 'project'
   const accentC   = KIND_COLOR[kind] ?? KIND_COLOR.project
   const bgC       = KIND_BG[kind]    ?? KIND_BG.project

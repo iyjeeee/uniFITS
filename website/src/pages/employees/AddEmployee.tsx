@@ -2,7 +2,7 @@
 // Responsive: 3-panel layout collapses to 1-col on mobile via useBreakpoint
 // Validation: per-step validation blocks Continue; shows inline field errors
 import { useState } from 'react'
-import { Avatar, Button, Card, Input, SectionDivider, Select } from '../../components/ui'
+import { Avatar, Button, Card, Input, SectionDivider, Select, ResponseModal } from '../../components/ui'
 import { useOrg } from '../../context/OrgContext'
 import useBreakpoint from '../../hooks/useBreakpoint'
 import {
@@ -82,6 +82,7 @@ export default function AddEmployee() {
     occupation: '', department: '',
   })
   const [errors, setErrors] = useState<Record<string,string>>({})  // current visible field errors
+  const [feedback, setFeedback] = useState(false)  // success confirmation modal visibility
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => { setForm((f: any) => ({ ...f, [k]: e.target.value })); clearErr(k) }
   const clearErr = (k: string) => setErrors(p => { const n = { ...p }; delete n[k]; return n })
   const fullName = [form.first_name, form.middle_name, form.last_name].filter(Boolean).join(' ')
@@ -118,10 +119,11 @@ export default function AddEmployee() {
 
   // handleSubmit — final validation then save
   function handleSubmit() {
-    alert('Employee registered!')  // replace with real API call
+    setFeedback(true)  // replace with real API call
   }
 
   return (
+    <>
     <div style={{ display: 'grid' as const, gridTemplateColumns: isMobile ? '1fr' : '200px 1fr 240px', gap: 14, alignItems: 'stretch' }}>
 
       {/* LEFT — Step sidebar */}
@@ -231,5 +233,8 @@ export default function AddEmployee() {
         ))}
       </Card>
     </div>
+    <ResponseModal open={feedback} onClose={() => { setFeedback(false); window.location.hash = '/employees' }}
+      variant="success" title="Employee Registered!" message="The new employee has been successfully added to the system." confirmLabel="Go to Employees" />
+    </>
   )
 }

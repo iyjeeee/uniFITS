@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { InfoModal, ResponseModal } from './ui'
 import { useOrg } from '../context/OrgContext'
+import { getInitials } from '../utils/formatters'
 import type { User, NavigateFn } from '../types'
 
 // Notification record shape
@@ -48,9 +49,9 @@ interface HeaderProps {
   currentUser: User | null
 }
 
-export default function Header({ page, sub, onMenuClick, navigate, onLogout, currentUser: _currentUser }: HeaderProps) {
-  // _currentUser reserved for future use — will wire to initials/avatar when auth is real
-  void _currentUser
+export default function Header({ page, sub, onMenuClick, navigate, onLogout, currentUser }: HeaderProps) {
+  const userName = currentUser?.full_name ?? 'Guest'   // profile pill — falls back if no session user
+  const userRole = currentUser?.role ?? ''
   useOrg() // org available for future label use
 
   const [notifOpen,       setNotifOpen      ] = useState(false)
@@ -192,11 +193,10 @@ export default function Header({ page, sub, onMenuClick, navigate, onLogout, cur
           <button
             onClick={() => { setProfileOpen(o => !o); setNotifOpen(false) }}
             style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 10px 4px 6px', borderRadius: 8, border: '1.5px solid var(--border-card)', background: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
-            {/* NOTE: initials/avatar hardcoded as 'JD' until real auth is wired — tracked in TODO */}
-            <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0 }}>JD</div>
+            <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0 }}>{getInitials(userName)}</div>
             <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.2 }}>Juan Dela Cruz</div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.2 }}>Admin</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.2 }}>{userName}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.2 }}>{userRole}</div>
             </div>
             <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth={2}><polyline points="6 9 12 15 18 9" /></svg>
           </button>

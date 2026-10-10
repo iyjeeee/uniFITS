@@ -1,6 +1,6 @@
 // EditProfile.jsx — User self-service profile edit page
 import { useState } from 'react'
-import { Avatar, Button, Card, Input, PageHeader, SectionDivider, Select } from '../../components/ui'
+import { Avatar, Button, Card, Input, PageHeader, SectionDivider, Select, ResponseModal } from '../../components/ui'
 import { MOCK_USERS } from '../../api/mockData'
 import useBreakpoint from '../../hooks/useBreakpoint'
 
@@ -18,11 +18,13 @@ export default function EditProfile({ userId = '1' }: Record<string, any>) {
     has_partner: false, showPwSection: false,
   })
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setForm((f: any) => ({ ...f, [k]: e.target.value }))
+  const [feedback, setFeedback] = useState(false)  // success confirmation modal visibility
 
   return (
+    <>
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 20 }}>
       <PageHeader title="Edit Profile" subtitle="Update your personal information" actions={
-        <><Button variant="secondary">Cancel</Button><Button onClick={() => alert('Saved!')}>Save Changes</Button></>
+        <><Button variant="secondary" onClick={() => window.history.back()}>Cancel</Button><Button onClick={() => setFeedback(true)}>Save Changes</Button></>
       } />
 
       <div style={{ display: 'grid' as const, gridTemplateColumns: isMobile ? '1fr' : '1fr 260px', gap: 20, alignItems: 'flex-start' }}>
@@ -91,5 +93,8 @@ export default function EditProfile({ userId = '1' }: Record<string, any>) {
         </Card>
       </div>
     </div>
+    <ResponseModal open={feedback} onClose={() => { setFeedback(false); window.history.back() }}
+      variant="success" title="Profile Updated!" message="Your profile has been successfully saved." confirmLabel="Done" />
+    </>
   )
 }

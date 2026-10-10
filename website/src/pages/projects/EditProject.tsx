@@ -1,7 +1,7 @@
 // EditProject.tsx — Edit an existing project; includes photo upload drag zone
 import { useState, useRef } from 'react'
 import type { ChangeEvent } from 'react'
-import { Button, Card, Input, PageHeader, SectionDivider, Select, Textarea } from '../../components/ui'
+import { Button, Card, Input, PageHeader, SectionDivider, Select, Textarea, ResponseModal } from '../../components/ui'
 import { MOCK_PROJECTS } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 
@@ -30,6 +30,7 @@ export default function EditProject({ projectId = '1', navigate }: Record<string
   const [photo, setPhoto]   = useState<string | null>((proj as any).photo_url || null)
   const fileRef = useRef<HTMLInputElement | null>(null)
   const [dragging, setDrag] = useState(false)
+  const [feedback, setFeedback] = useState(false)  // success confirmation modal visibility
 
   // set — curried field setter
   const set = (k: string) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
@@ -42,10 +43,11 @@ export default function EditProject({ projectId = '1', navigate }: Record<string
   }
 
   function handleSave() {
-    navigate?.('/projects')
+    setFeedback(true)
   }
 
   return (
+    <>
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 780 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
         <PageHeader title={`Edit ${org.project_label}`} subtitle={`Editing: ${proj.title}`} />
@@ -110,5 +112,8 @@ export default function EditProject({ projectId = '1', navigate }: Record<string
         </div>
       </Card>
     </div>
+    <ResponseModal open={feedback} onClose={() => { setFeedback(false); navigate?.('/projects') }}
+      variant="success" title="Changes Saved!" message="The project has been successfully updated." confirmLabel="Done" />
+    </>
   )
 }

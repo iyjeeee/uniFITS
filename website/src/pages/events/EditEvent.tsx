@@ -1,7 +1,7 @@
 // EditEvent.tsx — Edit an existing event; includes photo upload drag zone
 import { useState, useRef } from 'react'
 import type { ChangeEvent } from 'react'
-import { Button, Card, Input, PageHeader, SectionDivider, Select, Textarea } from '../../components/ui'
+import { Button, Card, Input, PageHeader, SectionDivider, Select, Textarea, ResponseModal } from '../../components/ui'
 import { MOCK_EVENTS } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 
@@ -23,6 +23,7 @@ export default function EditEvent({ eventId = '1', navigate }: Record<string, an
   const [photo, setPhoto]   = useState<string | null>((event as any).photo_url || null)
   const fileRef = useRef<HTMLInputElement | null>(null)
   const [dragging, setDrag] = useState(false)
+  const [feedback, setFeedback] = useState(false)  // success confirmation modal visibility
 
   // set — curried field setter
   const set = (k: string) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
@@ -35,10 +36,11 @@ export default function EditEvent({ eventId = '1', navigate }: Record<string, an
   }
 
   function handleSave() {
-    navigate?.('/events')
+    setFeedback(true)
   }
 
   return (
+    <>
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 780 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
         <PageHeader title={`Edit ${org.event_label}`} subtitle={`Editing: ${event.title}`} />
@@ -102,5 +104,8 @@ export default function EditEvent({ eventId = '1', navigate }: Record<string, an
         </div>
       </Card>
     </div>
+    <ResponseModal open={feedback} onClose={() => { setFeedback(false); navigate?.('/events') }}
+      variant="success" title="Changes Saved!" message="The event has been successfully updated." confirmLabel="Done" />
+    </>
   )
 }

@@ -25,6 +25,8 @@ export default tseslint.config(
       ],
       // Allow explicit any with a comment — must be justified with TODO
       '@typescript-eslint/no-explicit-any': 'warn',
+      // Underscore-prefixed vars/args are intentionally unused (existing project convention)
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
   },
 )

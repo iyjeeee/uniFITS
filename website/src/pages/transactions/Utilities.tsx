@@ -269,7 +269,7 @@ export default function Utilities() {
                 onBlur={e  => e.target.style.borderColor = 'var(--border-card)'} />
             </div>
             {/* Add button */}
-            <button onClick={() => alert('Add Utility — coming soon')}
+            <button onClick={() => window.location.hash = '/transactions/utilities/add'}
               style={{ display: 'inline-flex' as const, alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' as const, fontFamily: 'var(--font-body)', whiteSpace: 'nowrap' as const }}>
               <BtnIco.Plus /> Add {org.utility_label}
             </button>

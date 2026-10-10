@@ -61,6 +61,17 @@ export interface ModalState<T> {
   toggle: () => void
 }
 
+// ── Toast ─────────────────────────────────────────────────────────────────────
+
+export type ToastVariant = 'success' | 'error' | 'warning' | 'info'
+
+// Toast — a single active toast entry, returned by useToast() and rendered by ToastContainer
+export interface Toast {
+  id: number
+  message: string
+  variant: ToastVariant
+}
+
 // ── Navigation ────────────────────────────────────────────────────────────────
 
 // NavigateFn — type of the navigate() prop passed from App.tsx to all pages

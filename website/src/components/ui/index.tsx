@@ -1,10 +1,10 @@
 // components/ui/index.tsx — Complete reusable UI component library
 // Exports: Badge, StatusBadge, Avatar, Card, CardHeader, Button, Input, Select, Textarea,
 //          DataTable, InfoModal, ResponseModal, Modal, StepWizard, KpiCard,
-//          EmptyState, PageHeader, SectionDivider
+//          EmptyState, PageHeader, SectionDivider, useToast, ToastContainer
 import { useState, useEffect } from 'react'
 import type { ReactNode, CSSProperties, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react'
-import type { BadgeVariant, ButtonVariant, ButtonSize, ModalVariant, Column } from '../../types'
+import type { BadgeVariant, ButtonVariant, ButtonSize, ModalVariant, Column, Toast, ToastVariant } from '../../types'
 
 // ── Badge ─────────────────────────────────────────────────────────────────────
 const BADGE_STYLES: Record<BadgeVariant, { bg: string; color: string; border: string }> = {
@@ -396,7 +396,7 @@ export function InfoModal({ open, onClose, title, subtitle, accentColor = 'var(-
       }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div style={{
-        background: 'var(--white)', borderRadius: 16,
+        background: 'var(--white)', borderRadius: 16, borderTop: `4px solid ${accentColor}`, // accent stripe — status color passed by caller
         boxShadow: '0 12px 48px rgba(0,0,0,.22), 0 36px 96px rgba(0,0,0,.20)',
         width: '100%', maxWidth: 920, maxHeight: '92vh',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
@@ -636,6 +636,44 @@ export function SectionDivider({ label }: { label: string }) {
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0 12px' }}>
       <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '.08em', whiteSpace: 'nowrap' }}>{label}</div>
       <div style={{ flex: 1, height: 1, background: 'var(--border-inner)' }} />
+    </div>
+  )
+}
+
+// ── Toast / ToastContainer ──────────────────────────────────────────────────────
+// useToast() returns { toasts, toast } — toast({ message, variant, duration })
+// ToastContainer renders all active toasts fixed bottom-right, auto-dismisses.
+interface ToastOptions { message: string; variant?: ToastVariant; duration?: number }
+const TOAST_VARIANTS: Record<ToastVariant, { bg: string; icon: string }> = {
+  success: { bg: '#2E7D52', icon: '✓' },
+  error:   { bg: '#C0392B', icon: '✕' },
+  warning: { bg: '#D4860A', icon: '⚠' },
+  info:    { bg: '#4B5EAA', icon: 'i' },
+}
+
+export function useToast() {
+  const [toasts, setToasts] = useState<Toast[]>([])
+  const toast = ({ message, variant = 'success', duration = 3000 }: ToastOptions) => {
+    const id = Date.now() + Math.random()
+    setToasts(prev => [...prev, { id, message, variant }])
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), duration)
+  }
+  return { toasts, toast }
+}
+
+export function ToastContainer({ toasts }: { toasts: Toast[] }) {
+  if (!toasts.length) return null
+  return (
+    <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999, display: 'flex', flexDirection: 'column', gap: 8, pointerEvents: 'none' }}>
+      {toasts.map(t => {
+        const v = TOAST_VARIANTS[t.variant] || TOAST_VARIANTS.info
+        return (
+          <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 16px', borderRadius: 10, backgroundColor: v.bg, color: '#fff', fontSize: 13.5, fontWeight: 500, fontFamily: 'var(--font-body)', boxShadow: '0 4px 20px rgba(0,0,0,.22)', minWidth: 220, maxWidth: 340, lineHeight: 1.4 }}>
+            <span style={{ fontSize: 14, fontWeight: 700, flexShrink: 0 }}>{v.icon}</span>
+            <span>{t.message}</span>
+          </div>
+        )
+      })}
     </div>
   )
 }
