@@ -35,19 +35,19 @@ function SaveBtn({ onClick, label }: { onClick: () => void; label: string }) {
 }
 
 // EditItemModal accepts either a Project or AppEvent — kind prop narrows the form fields shown
-interface EditItemModalProps {
+interface EditItemModalProps<T extends Project | AppEvent> {
   open:    boolean
   onClose: () => void
-  item:    Project | AppEvent | null
+  item:    T | null
   kind:    'project' | 'event'
   org:     OrgConfig
-  onSave:  (updated: Project | AppEvent) => void
+  onSave:  (updated: T) => void
 }
 
 // EditFormState — mutable working copy (all fields optional during editing)
 type EditFormState = Partial<Project & AppEvent>
 
-export default function EditItemModal({ open, onClose, item, kind, org, onSave }: EditItemModalProps) {
+export default function EditItemModal<T extends Project | AppEvent>({ open, onClose, item, kind, org, onSave }: EditItemModalProps<T>) {
   const isProject = kind === 'project'
   const [form, setForm] = useState<EditFormState>({})
 
@@ -63,7 +63,7 @@ export default function EditItemModal({ open, onClose, item, kind, org, onSave }
   const accent = modalAccentColor(form.status ?? item.status)
 
   function handleSave() {
-    onSave(form as Project | AppEvent)
+    onSave(form as T)
     onClose()
   }
 

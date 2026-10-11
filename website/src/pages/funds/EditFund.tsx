@@ -4,20 +4,23 @@ import { Button, Card, Input, PageHeader, SectionDivider, Select, Textarea, Resp
 import { MOCK_FUNDS } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 
+// Edit form — annual_fee stays string|number because the input yields strings while the stored value is a number
+interface FundForm { name: string; description: string; status: string; is_required: boolean; payment_frequency: string; annual_fee: string | number }
+
 const STATUS_OPTIONS = [{ value: 'active', label: 'Active' },{ value: 'inactive', label: 'Inactive' }]
 const FREQ_OPTIONS   = [{ value: 'monthly', label: 'Monthly' },{ value: 'quarterly', label: 'Quarterly' },{ value: 'annually', label: 'Annually' }]
 
-export default function EditFund({ fundId = '1' }: Record<string, any>) {
+export default function EditFund({ fundId = '1' }: { fundId?: string }) {
   const org  = useOrg()
-  const fund = MOCK_FUNDS.find((f: any) => f.id === fundId) || MOCK_FUNDS[0]
-  const [form, setForm] = useState<Record<string,any>>({ name: fund.name, description: fund.description || '', status: fund.status, is_required: fund.is_required, payment_frequency: fund.payment_frequency || '', annual_fee: fund.annual_fee || '' })
+  const fund = MOCK_FUNDS.find((f) => f.id === fundId) || MOCK_FUNDS[0]
+  const [form, setForm] = useState<FundForm>({ name: fund.name, description: fund.description || '', status: fund.status, is_required: fund.is_required, payment_frequency: fund.payment_frequency || '', annual_fee: fund.annual_fee || '' })
   const [feedback, setFeedback] = useState(false)  // success confirmation modal visibility
-  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setForm((f: any) => ({ ...f, [k]: e.target.value }))
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
   // Computed: required amount per period based on annual fee / frequency
   const computedRequired = form.annual_fee
-    ? (form.payment_frequency === 'monthly'   ? form.annual_fee / 12
-       : form.payment_frequency === 'quarterly' ? form.annual_fee / 4 : form.annual_fee)
+    ? (form.payment_frequency === 'monthly'   ? Number(form.annual_fee) / 12
+       : form.payment_frequency === 'quarterly' ? Number(form.annual_fee) / 4 : Number(form.annual_fee))
     : 0
 
   return (

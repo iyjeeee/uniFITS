@@ -3,7 +3,11 @@ import { Badge, StatusBadge, Card, CardHeader, Button, DataTable, InfoModal } fr
 import { MOCK_TRANSACTIONS, MOCK_FUNDS, formatCurrency, formatDate } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 import useBreakpoint from '../../hooks/useBreakpoint'
-import type { Transaction, Fund, Column } from '../../types'
+import type { ReactNode } from 'react'
+import type { Transaction, Fund, Column, EntryType, OrgConfig } from '../../types'
+
+// Fund plus the (future, backend) per-member due status — demo statuses are derived when absent
+type DueFund = Fund & { due_status?: 'paid' | 'partial' | 'unpaid' }
 
 /* ── SVG icons ────────────────────────────────────────────────── */
 // function IcoMoney() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> }
@@ -12,7 +16,7 @@ function IcoChevL() { return <svg width="13" height="13" viewBox="0 0 24 24" fil
 function IcoChevR() { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg> }
 
 /* ── TypeBadge — Income / Expense / Contribution pill ────────── */
-function TypeBadge({ type }: Record<string, any>) {
+function TypeBadge({ type }: { type: EntryType }) {
   const map = {
     income:       { bg: 'var(--success-light)', color: 'var(--success)', label: 'Income'       },
     expense:      { bg: 'var(--danger-light)',  color: 'var(--danger)',  label: 'Expense'      },
@@ -27,18 +31,18 @@ function TypeBadge({ type }: Record<string, any>) {
 }
 
 /* ── Pagination ───────────────────────────────────────────────── */
-function Pagination({ page, total, onChange }: Record<string, any>) {
+function Pagination({ page, total, onChange }: { page: number; total: number; onChange: (page: number) => void }) {
   return (
     <div style={{ display: 'flex' as const, alignItems: 'center', justifyContent: 'center', gap: 4 }}>
       <PBtn disabled={page === 1}     onClick={() => onChange(page - 1)}><IcoChevL /></PBtn>
-      {Array.from({ length: total }, (_: any, i: number) => i + 1).map((p: any) => (
+      {Array.from({ length: total }, (_, i) => i + 1).map((p) => (
         <PBtn key={p} active={p === page} onClick={() => onChange(p)}>{p}</PBtn>
       ))}
       <PBtn disabled={page === total} onClick={() => onChange(page + 1)}><IcoChevR /></PBtn>
     </div>
   )
 }
-function PBtn({ children, active, disabled, onClick }: Record<string, any>) {
+function PBtn({ children, active, disabled, onClick }: { children: ReactNode; active?: boolean; disabled?: boolean; onClick: () => void }) {
   return (
     <button onClick={onClick} disabled={disabled} style={{
       display: 'flex' as const, alignItems: 'center', justifyContent: 'center',
@@ -51,17 +55,17 @@ function PBtn({ children, active, disabled, onClick }: Record<string, any>) {
   )
 }
 
-export default function PersonalTransactions({ userId = '1' }: Record<string, any>) {
+export default function PersonalTransactions({ userId = '1' }: { userId?: string }) {
   const org = useOrg()
   const { isMobile } = useBreakpoint() // responsive grid control
 
   /* Data */
-  const myTx          = MOCK_TRANSACTIONS.filter((t: any) => t.user_id === userId)
-  const requiredFunds = MOCK_FUNDS.filter((f: any) => f.is_required)
+  const myTx          = MOCK_TRANSACTIONS.filter((t) => t.user_id === userId)
+  const requiredFunds = MOCK_FUNDS.filter((f) => f.is_required)
 
   /* Contribution totals */
   const totals = { total: 0, project: 0, event: 0, fund: 0, other: 0 }
-  myTx.filter((t: any) => t.entry_type !== 'expense').forEach((t: any) => {
+  myTx.filter((t) => t.entry_type !== 'expense').forEach((t) => {
     totals.total += t.amount
     if ((totals as Record<string,number>)[t.category] !== undefined) (totals as Record<string,number>)[t.category] += t.amount
     else totals.other += t.amount
@@ -84,16 +88,16 @@ export default function PersonalTransactions({ userId = '1' }: Record<string, an
   const panelDues   = requiredFunds.slice(0, PANEL_LIMIT)
 
   /* Table columns */
-  const columns: Column<any>[] = [
-    { label: '#',           key: 'num',  render: (_: any, i: number) => <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{i + 1}</span> },
-    { label: 'Date',        key: 'date', render: (r: any) => <span style={{ fontSize: 13 }}>{formatDate(r.transaction_date)}</span> },
-    { label: 'Type',        key: 'type', render: (r: any) => <Badge variant={r.entry_type === 'expense' ? 'danger' : 'success'}>{r.entry_type.charAt(0).toUpperCase() + r.entry_type.slice(1)}</Badge> },
-    { label: 'Amount',      key: 'amt',  render: (r: any) => <span style={{ fontWeight: 700, color: r.entry_type === 'expense' ? 'var(--danger)' : 'var(--success)' }}>{formatCurrency(r.amount, org.currency_symbol)}</span> },
-    { label: 'Category',    key: 'cat', accessor: 'category', render: (r: any) => <Badge variant="neutral">{r.category.charAt(0).toUpperCase() + r.category.slice(1)}</Badge> },
-    { label: 'Description', key: String(Math.random()), accessor: 'description', render: (r: any) => <span style={{ fontSize: 13 }}>{r.description || '—'}</span> },
-    { label: 'Method',      key: 'mth', accessor: 'payment_method', render: (r: any) => <span style={{ fontSize: 13 }}>{r.payment_method}</span> },
-    { label: 'Reference',   key: 'ref',  render: (r: any) => <code style={{ fontSize: 11, color: 'var(--text-primary)', fontFamily: 'monospace' }}>{r.reference_number}</code> },
-    { label: 'Status',      key: 'st',   render: (r: any) => <StatusBadge status={r.status} /> },
+  const columns: Column<Transaction>[] = [
+    { label: '#',           key: 'num',  render: (_, i) => <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{i + 1}</span> },
+    { label: 'Date',        key: 'date', render: (r) => <span style={{ fontSize: 13 }}>{formatDate(r.transaction_date)}</span> },
+    { label: 'Type',        key: 'type', render: (r) => <Badge variant={r.entry_type === 'expense' ? 'danger' : 'success'}>{r.entry_type.charAt(0).toUpperCase() + r.entry_type.slice(1)}</Badge> },
+    { label: 'Amount',      key: 'amt',  render: (r) => <span style={{ fontWeight: 700, color: r.entry_type === 'expense' ? 'var(--danger)' : 'var(--success)' }}>{formatCurrency(r.amount, org.currency_symbol)}</span> },
+    { label: 'Category',    key: 'cat', accessor: 'category', render: (r) => <Badge variant="neutral">{r.category.charAt(0).toUpperCase() + r.category.slice(1)}</Badge> },
+    { label: 'Description', key: String(Math.random()), accessor: 'description', render: (r) => <span style={{ fontSize: 13 }}>{r.description || '—'}</span> },
+    { label: 'Method',      key: 'mth', accessor: 'payment_method', render: (r) => <span style={{ fontSize: 13 }}>{r.payment_method}</span> },
+    { label: 'Reference',   key: 'ref',  render: (r) => <code style={{ fontSize: 11, color: 'var(--text-primary)', fontFamily: 'monospace' }}>{r.reference_number}</code> },
+    { label: 'Status',      key: 'st',   render: (r) => <StatusBadge status={r.status} /> },
   ]
 
   return (
@@ -112,7 +116,7 @@ export default function PersonalTransactions({ userId = '1' }: Record<string, an
               { label: 'Events',              value: totals.event,   color: 'var(--info)',    bg: 'var(--info-light)',    border: 'rgba(36,113,163,.2)' },
               { label: 'Funds',               value: totals.fund,    color: 'var(--warning)', bg: 'var(--warning-light)', border: 'rgba(212,134,10,.2)' },
               { label: 'Other',               value: totals.other,   color: 'var(--text-secondary)', bg: 'var(--neutral-light)', border: 'var(--border-card)' },
-            ].map((k: any) => (
+            ].map((k) => (
               <div key={k.label} style={{ padding: '12px 14px', background: '#FFFFFF', borderRadius: 10, border: '1px solid ' + k.color + '25', borderLeft: '4px solid ' + k.color, transition: 'transform .18s ease, box-shadow .18s ease' }}
                 onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(75,94,170,.18)' }}
                 onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
@@ -131,7 +135,7 @@ export default function PersonalTransactions({ userId = '1' }: Record<string, an
               ? <div style={{ textAlign: 'center' as const, padding: '24px', color: 'var(--text-muted)', fontSize: 13 }}>No required dues found.</div>
               : (
                 <div style={{ display: 'grid' as const, gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(3, 1fr)', gap: 12 }}>
-                  {panelDues.map((f: any) => (
+                  {panelDues.map((f) => (
                     <DueTileCard
                       key={f.id}
                       fund={f}
@@ -238,10 +242,10 @@ export default function PersonalTransactions({ userId = '1' }: Record<string, an
               ))}
             </div>
             {/* Notes */}
-            {(viewTx as any)?.notes && (
+            {viewTx?.notes && (
               <div style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--neutral-light)', border: '1px solid var(--border-card)' }}>
                 <div style={{ fontSize: 10.5, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '.07em', marginBottom: 6 }}>Notes</div>
-                <div style={{ fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{(viewTx as any).notes}</div>
+                <div style={{ fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{viewTx.notes}</div>
               </div>
             )}
           </div>
@@ -274,7 +278,7 @@ export default function PersonalTransactions({ userId = '1' }: Record<string, an
         <div>
           {/* Tile grid in modal */}
           <div style={{ display: 'grid' as const, gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(3, 1fr)', gap: 14, marginBottom: 20 }}>
-            {pagedDues.map((f: any) => (
+            {pagedDues.map((f) => (
               <DueTileCard
                 key={f.id}
                 fund={f}
@@ -296,19 +300,19 @@ export default function PersonalTransactions({ userId = '1' }: Record<string, an
 // paid: annual_fee fully covered → green
 // partial: some amount paid but not full → amber
 // unpaid: no payment recorded → red
-function DueTileCard({ fund, org, onClick }: Record<string, any>) {
+function DueTileCard({ fund, org, onClick }: { fund: DueFund; org: OrgConfig; onClick: () => void }) {
   // Derive payment status from mock data (in real app, would come from member_dues table)
   // For demo: use fund.id to assign varied statuses
   const idNum = parseInt(fund.id, 10) || 1
   const demoStatus = idNum % 3 === 0 ? 'partial' : idNum % 2 === 0 ? 'paid' : 'unpaid'
   const payStatus   = fund.due_status || demoStatus  // real field or demo
 
-  const statusMap = {
+  const statusMap: Record<'paid' | 'partial' | 'unpaid', { color: string; bg: string; label: string; strip: string }> = {
     paid:    { color: '#2E7D52', bg: '#e8f7ef', label: 'Paid',        strip: '#2E7D52' },
     partial: { color: '#D4860A', bg: '#fff8ec', label: 'Partial',     strip: '#D4860A' },
     unpaid:  { color: '#C0392B', bg: '#fdecea', label: 'Unpaid',      strip: '#C0392B' },
   }
-  const st = (statusMap as Record<string,any>)[payStatus] || statusMap.unpaid
+  const st = statusMap[payStatus] || statusMap.unpaid
   // Border accent is always the status color so it's immediately clear
   const borderC = st.color
 
@@ -372,7 +376,7 @@ function DueTileCard({ fund, org, onClick }: Record<string, any>) {
 /* ── DueDetailContent — body of the Due InfoModal ─────────────────── */
 // IMPORTANT: useBreakpoint() must be called inside this sub-component directly
 // — sub-components cannot access variables from a parent component's scope.
-function DueDetailContent({ fund, org }: Record<string, any>) {
+function DueDetailContent({ fund, org }: { fund: DueFund; org: OrgConfig }) {
   const { isMobile } = useBreakpoint()                   // own hook call — fixes ReferenceError
   const accentC = fund.is_required ? 'var(--accent)' : 'var(--success)'
   const bgC     = fund.is_required ? 'var(--accent-light)' : 'var(--success-light)'

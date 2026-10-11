@@ -1,8 +1,9 @@
-// Calendar.jsx — Monthly calendar with project/event markers + upcoming schedule list
+// Calendar.tsx — Monthly calendar with project/event markers + upcoming schedule list
 import { useState } from 'react'
 import { Badge, Button, Card, CardHeader, PageHeader } from '../../components/ui'
 import { MOCK_PROJECTS, MOCK_EVENTS } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
+import { parseDate } from '../../utils/formatters'
 
 function getDaysInMonth(year: number, month: number): number { return new Date(year, month + 1, 0).getDate() }
 function getFirstDay(year: number, month: number): number { return new Date(year, month, 1).getDay() }
@@ -22,8 +23,8 @@ export default function Calendar() {
   // Build a set of dates that have activities
   function getActivitiesOnDay(day: number) {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-    const projects = MOCK_PROJECTS.filter((p: any) => p.start_date === dateStr)
-    const events   = MOCK_EVENTS.filter((e: any) => e.event_date === dateStr)
+    const projects = MOCK_PROJECTS.filter((p) => p.start_date === dateStr)
+    const events   = MOCK_EVENTS.filter((e) => e.event_date === dateStr)
     return { projects, events }
   }
 
@@ -39,9 +40,9 @@ export default function Calendar() {
 
   // Upcoming activities in the next 30 days
   const upcoming = [
-    ...MOCK_PROJECTS.filter((p: any) => p.status !== 'completed').map((p: any) => ({ ...p, kind: 'project', date: p.start_date, name: p.title })),
-    ...MOCK_EVENTS.filter((e: any) => e.status !== 'completed').map((e: any) => ({ ...e, kind: 'event', date: e.event_date, name: e.title })),
-  ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    ...MOCK_PROJECTS.filter((p) => p.status !== 'completed').map((p) => ({ ...p, kind: 'project', date: p.start_date, name: p.title })),
+    ...MOCK_EVENTS.filter((e) => e.status !== 'completed').map((e) => ({ ...e, kind: 'event', date: e.event_date, name: e.title })),
+  ].sort((a, b) => parseDate(a.date).getTime() - parseDate(b.date).getTime())
 
   return (
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 20 }}>
@@ -59,7 +60,7 @@ export default function Calendar() {
           <div style={{ padding: '16px' }}>
             {/* Day headers */}
             <div style={{ display: 'grid' as const, gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: 8 }}>
-              {DAY_NAMES.map((d: any) => (
+              {DAY_NAMES.map((d) => (
                 <div key={d} style={{ textAlign: 'center' as const, fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', padding: '4px 0' }}>{d}</div>
               ))}
             </div>
@@ -77,8 +78,8 @@ export default function Calendar() {
                 return (
                   <div key={day} style={{ minHeight: 52, padding: '6px 4px', borderRadius: 6, background: isToday ? 'var(--accent-light)' : hasActivity ? 'var(--neutral-light)' : 'transparent', border: isToday ? '1px solid rgba(75,94,170,.3)' : '1px solid transparent', position: 'relative' as const }}>
                     <div style={{ fontSize: 12.5, fontWeight: isToday ? 700 : 400, color: isToday ? 'var(--accent)' : 'var(--text-primary)', marginBottom: 3, textAlign: 'center' as const }}>{day}</div>
-                    {projects.map((p: any) => <div key={p.id} style={{ fontSize: 9, background: 'var(--accent)', color: '#fff', borderRadius: 3, padding: '1px 3px', marginBottom: 1, whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.title}</div>)}
-                    {events.map((e: any) => <div key={e.id} style={{ fontSize: 9, background: 'var(--success)', color: '#fff', borderRadius: 3, padding: '1px 3px', whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.title}</div>)}
+                    {projects.map((p) => <div key={p.id} style={{ fontSize: 9, background: 'var(--accent)', color: '#fff', borderRadius: 3, padding: '1px 3px', marginBottom: 1, whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.title}</div>)}
+                    {events.map((e) => <div key={e.id} style={{ fontSize: 9, background: 'var(--success)', color: '#fff', borderRadius: 3, padding: '1px 3px', whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.title}</div>)}
                   </div>
                 )
               })}
@@ -102,11 +103,11 @@ export default function Calendar() {
           <div style={{ padding: '8px 0' }}>
             {upcoming.length === 0
               ? <div style={{ padding: '24px', textAlign: 'center' as const, color: 'var(--text-muted)', fontSize: 13.5 }}>No upcoming activities.</div>
-              : upcoming.slice(0, 8).map((a: any) => (
+              : upcoming.slice(0, 8).map((a) => (
                   <div key={`${a.kind}-${a.id}`} style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex' as const, gap: 12, alignItems: 'flex-start' }}>
                     <div style={{ width: 36, height: 36, borderRadius: 8, background: a.kind === 'event' ? 'var(--success-light)' : 'var(--accent-light)', display: 'flex' as const, flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: a.kind === 'event' ? 'var(--success)' : 'var(--accent)', lineHeight: 1 }}>{new Date(a.date).getDate()}</div>
-                      <div style={{ fontSize: 9, color: a.kind === 'event' ? 'var(--success)' : 'var(--accent)', lineHeight: 1 }}>{MONTH_NAMES[new Date(a.date).getMonth()].slice(0, 3)}</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: a.kind === 'event' ? 'var(--success)' : 'var(--accent)', lineHeight: 1 }}>{parseDate(a.date).getDate()}</div>
+                      <div style={{ fontSize: 9, color: a.kind === 'event' ? 'var(--success)' : 'var(--accent)', lineHeight: 1 }}>{MONTH_NAMES[parseDate(a.date).getMonth()].slice(0, 3)}</div>
                     </div>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.name}</div>

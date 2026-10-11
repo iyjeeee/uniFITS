@@ -4,11 +4,15 @@
 // "Manage Defaults" button removed.
 // Default Permissions section is now a title header with the Add Role button.
 import { useState } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
 import { Badge, Card, InfoModal, ResponseModal } from '../../components/ui'
 import { MOCK_ROLES, MOCK_USERS } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
-import type { Role } from '../../types'
+import type { Role, Permission, OrgConfig, ModalVariant } from '../../types'
 
+interface PermissionDef { key: Permission; label: string; module: string }
+interface RoleForm { name: string; description: string; permissions: Permission[] }
+import { IconBtn } from '../../components/TableUtils'
 
 /* ── Shared SVG button icons ──────────────────────────────────────── */
 const BtnIco = {
@@ -28,9 +32,8 @@ const BtnIco = {
   Back:   () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>,
 }
 
-
 /* ── All available permissions grouped by module ─────────────────── */
-const ALL_PERMISSIONS = [
+const ALL_PERMISSIONS: PermissionDef[] = [
   /* Members */
   { key: 'view_members',        label: 'View Members',          module: 'Members'      },
   { key: 'add_user',            label: 'Add Member',            module: 'Members'      },
@@ -73,34 +76,14 @@ const ALL_PERMISSIONS = [
   { key: 'backup_restore',      label: 'Backup & Restore',      module: 'Settings'     },
   { key: 'manage_org_profile',  label: 'Edit Org Profile',      module: 'Settings'     },
 ]
-const MODULES = [...new Set(ALL_PERMISSIONS.map((p: any) => p.module))]
+const MODULES = [...new Set(ALL_PERMISSIONS.map((p) => p.module))]
 
 /* ── SVG Icons ───────────────────────────────────────────────────── */
 function IcoDelete() { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg> }
 function IcoShield() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> }
 
-/* ── IconBtn — solid-color action button ─────────────────────────── */
-function IconBtn({ children, solidBg, title, onClick }: Record<string, any>) {
-  return (
-    <button
-      onClick={e => { e.stopPropagation(); onClick() }}
-      title={title}
-      style={{ width: 32, height: 32, borderRadius: 7, border: 'none', background: solidBg, color: '#fff', cursor: 'pointer' as const, display: 'flex' as const, alignItems: 'center', justifyContent: 'center', transition: 'transform .18s ease, box-shadow .18s ease', flexShrink: 0 }}
-      onMouseEnter={e => {
-        e.currentTarget.style.transform = 'translateY(-2px)'
-        e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)'
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.transform = ''
-        e.currentTarget.style.boxShadow = ''
-      }}>
-      {children}
-    </button>
-  )
-}
-
 /* ── Permission toggle pill ──────────────────────────────────────── */
-function PermPill({ perm, active, onToggle, disabled }: Record<string, any>) {
+function PermPill({ perm, active, onToggle, disabled }: { perm: PermissionDef; active: boolean; onToggle: () => void; disabled?: boolean }) {
   return (
     <label style={{
       display: 'flex' as const, alignItems: 'center', gap: 6, fontSize: 13, cursor: disabled ? 'not-allowed' : 'pointer',
@@ -123,10 +106,10 @@ function PermPill({ perm, active, onToggle, disabled }: Record<string, any>) {
 }
 
 /* ── Role detail + permission editor content inside InfoModal ────── */
-function RoleModalContent({ role: _role, editPerms, onToggle, assignedIds, onToggleMember, org: _org }: Record<string, any>) {
+function RoleModalContent({ role: _role, editPerms, onToggle, assignedIds, onToggleMember, org: _org }: { role: Role | null; editPerms: Permission[]; onToggle: (key: Permission) => void; assignedIds: string[]; onToggleMember: (uid: string) => void; org: OrgConfig }) {
   const allUsers    = MOCK_USERS
-  const assigned    = allUsers.filter((u: any) => assignedIds.includes(u.id))
-  const unassigned  = allUsers.filter((u: any) => !assignedIds.includes(u.id))
+  const assigned    = allUsers.filter((u) => assignedIds.includes(u.id))
+  const unassigned  = allUsers.filter((u) => !assignedIds.includes(u.id))
   const [showAdd, setShowAdd] = useState(false)
 
   return (
@@ -149,7 +132,7 @@ function RoleModalContent({ role: _role, editPerms, onToggle, assignedIds, onTog
         <div style={{ display: 'flex' as const, flexWrap: 'wrap', gap: 6, marginBottom: showAdd ? 10 : 0 }}>
           {assigned.length === 0
             ? <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>No members assigned yet.</span>
-            : assigned.map((u: any) => (
+            : assigned.map((u) => (
               <button key={u.id}
                 onClick={() => onToggleMember(u.id)}
                 title="Click to remove"
@@ -173,7 +156,7 @@ function RoleModalContent({ role: _role, editPerms, onToggle, assignedIds, onTog
         {showAdd && unassigned.length > 0 && (
           <div style={{ padding: '10px 14px', borderRadius: 10, border: '1.5px solid var(--border-card)', background: 'var(--neutral-light)', display: 'flex' as const, flexWrap: 'wrap', gap: 6 }}>
             <div style={{ width: '100%', fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 600, marginBottom: 4 }}>Click to add:</div>
-            {unassigned.map((u: any) => (
+            {unassigned.map((u) => (
               <button key={u.id}
                 onClick={() => onToggleMember(u.id)}
                 style={{
@@ -205,7 +188,7 @@ function RoleModalContent({ role: _role, editPerms, onToggle, assignedIds, onTog
               {mod}
             </div>
             <div style={{ display: 'flex' as const, flexWrap: 'wrap', gap: 8 }}>
-              {ALL_PERMISSIONS.filter((p: any) => p.module === mod).map((p: any) => (
+              {ALL_PERMISSIONS.filter((p) => p.module === mod).map((p) => (
                 <PermPill
                   key={p.key}
                   perm={p}
@@ -223,11 +206,12 @@ function RoleModalContent({ role: _role, editPerms, onToggle, assignedIds, onTog
 }
 
 /* ── Add Role form inside InfoModal ──────────────────────────────── */
-function AddRoleContent({ form, setForm }: Record<string, any>) {
-  const [newPerms, setNewPerms] = [form.permissions, (p: any) => setForm((f: any) => ({ ...f, permissions: p }))]
+function AddRoleContent({ form, setForm }: { form: RoleForm; setForm: Dispatch<SetStateAction<RoleForm>> }) {
+  const newPerms = form.permissions
+  const setNewPerms = (p: Permission[]) => setForm(f => ({ ...f, permissions: p }))
 
-  function toggle(key: any) {
-    setNewPerms(newPerms.includes(key) ? newPerms.filter((p: any) => p !== key) : [...newPerms, key])
+  function toggle(key: Permission) {
+    setNewPerms(newPerms.includes(key) ? newPerms.filter((p) => p !== key) : [...newPerms, key])
   }
 
   return (
@@ -236,7 +220,7 @@ function AddRoleContent({ form, setForm }: Record<string, any>) {
         <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '.04em' }}>Role Name *</label>
         <input
           value={form.name}
-          onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setForm((f: any) => ({ ...f, name: e.target.value }))}
+          onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setForm((f) => ({ ...f, name: e.target.value }))}
           placeholder="e.g. Treasurer, Project Lead"
           style={{ padding: '8px 12px', borderRadius: 8, border: '1.5px solid var(--border-card)', fontSize: 13.5, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: '#fff', outline: 'none' }}
           onFocus={e => { e.target.style.borderColor = 'var(--accent)' }}
@@ -247,7 +231,7 @@ function AddRoleContent({ form, setForm }: Record<string, any>) {
         <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '.04em' }}>Description</label>
         <textarea
           value={form.description}
-          onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setForm((f: any) => ({ ...f, description: e.target.value }))}
+          onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setForm((f) => ({ ...f, description: e.target.value }))}
           placeholder="Briefly describe what this role can do"
           rows={2}
           style={{ padding: '8px 12px', borderRadius: 8, border: '1.5px solid var(--border-card)', fontSize: 13.5, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: '#fff', outline: 'none', resize: 'vertical' }}
@@ -263,7 +247,7 @@ function AddRoleContent({ form, setForm }: Record<string, any>) {
               {mod}
             </div>
             <div style={{ display: 'flex' as const, flexWrap: 'wrap', gap: 8 }}>
-              {ALL_PERMISSIONS.filter((p: any) => p.module === mod).map((p: any) => (
+              {ALL_PERMISSIONS.filter((p) => p.module === mod).map((p) => (
                 <PermPill key={p.key} perm={p} active={form.permissions.includes(p.key)} onToggle={() => toggle(p.key)} disabled={false} />
               ))}
             </div>
@@ -275,8 +259,8 @@ function AddRoleContent({ form, setForm }: Record<string, any>) {
 }
 
 /* ── Delete confirmation body ────────────────────────────────────── */
-function DeleteBody({ role, org: _org }: Record<string, any>) {
-  const assigned = MOCK_USERS.filter((u: any) => u.role === role.name)
+function DeleteBody({ role, org: _org }: { role: Role; org: OrgConfig }) {
+  const assigned = MOCK_USERS.filter((u) => u.role === role.name)
   return (
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 16 }}>
       <div style={{ padding: '14px 16px', borderRadius: 10, background: '#fdecea', border: '1.5px solid rgba(192,57,43,.30)', display: 'flex' as const, gap: 10, alignItems: 'flex-start' }}>
@@ -307,34 +291,34 @@ export default function RolesPage() {
 
   const [roles,        setRoles]        = useState(MOCK_ROLES)
   const [viewRole,     setViewRole]     = useState<Role | null>(null)    // role open in detail modal
-  const [editPerms,    setEditPerms]    = useState<any[]>([])
+  const [editPerms,    setEditPerms]    = useState<Permission[]>([])
   const [showAdd,      setShowAdd]      = useState(false)
-    const [assignedIds, setAssignedIds] = useState<any[]>([])
-  const [deleteItem, setDeleteItem] = useState<any>(null)
-  const [actionResult, setActionResult] = useState<{variant:string;title:string;message:string} | null>(null)    // feedback
-  const [addForm,      setAddForm]      = useState({ name: '', description: '', permissions: [] })
+    const [assignedIds, setAssignedIds] = useState<string[]>([])
+  const [deleteItem, setDeleteItem] = useState<Role | null>(null)
+  const [actionResult, setActionResult] = useState<{variant:ModalVariant;title:string;message:string} | null>(null)    // feedback
+  const [addForm,      setAddForm]      = useState<RoleForm>({ name: '', description: '', permissions: [] })
 
   /* Open detail modal — load role's current permissions + assigned members */
-  function openDetail(role: any) {
+  function openDetail(role: Role) {
     setViewRole(role)
     setEditPerms([...role.permissions])
     // Derive assigned member ids from MOCK_USERS where role name matches
-    setAssignedIds(MOCK_USERS.filter((u: any) => u.role === role.name).map((u: any) => u.id))
+    setAssignedIds(MOCK_USERS.filter((u) => u.role === role.name).map((u) => u.id))
   }
 
   /* Toggle a permission inside the detail modal */
-  function togglePerm(key: any) {
-    setEditPerms(prev => prev.includes(key) ? prev.filter((p: any) => p !== key) : [...prev, key])
+  function togglePerm(key: Permission) {
+    setEditPerms(prev => prev.includes(key) ? prev.filter((p) => p !== key) : [...prev, key])
   }
 
   /* Toggle a member assignment inside the detail modal */
-  function toggleMember(uid: any) {
-    setAssignedIds((prev: any[]) => prev.includes(uid) ? prev.filter((id: any) => id !== uid) : [...prev, uid])
+  function toggleMember(uid: string) {
+    setAssignedIds(prev => prev.includes(uid) ? prev.filter((id) => id !== uid) : [...prev, uid])
   }
 
   /* Save permission changes */
   function handleSavePerms() {
-    setRoles(prev => prev.map((r: any) => r.id === viewRole?.id ? { ...r, permissions: editPerms } : r))
+    setRoles(prev => prev.map((r) => r.id === viewRole?.id ? { ...r, permissions: editPerms } : r))
     setViewRole(null)
     setActionResult({ variant: 'success', title: 'Permissions Updated', message: `"${viewRole?.name}" permissions have been saved successfully.` })
   }
@@ -351,7 +335,7 @@ export default function RolesPage() {
   /* Delete role */
   function handleDelete() {
     const name = deleteItem?.name
-    setRoles(prev => prev.filter((r: any) => r.id !== deleteItem?.id))
+    setRoles(prev => prev.filter((r) => r.id !== deleteItem?.id))
     setDeleteItem(null)
     setTimeout(() => setActionResult({ variant: 'danger', title: 'Role Deleted', message: `"${name}" has been permanently removed.` }), 260)
   }
@@ -396,14 +380,14 @@ export default function RolesPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: 'var(--table-head-bg)' }}>
-                {['Role Name', 'Assigned To', 'Permissions', 'Type', 'Actions'].map((h: any) => (
+                {['Role Name', 'Assigned To', 'Permissions', 'Type', 'Actions'].map((h) => (
                   <th key={h} style={{ padding: '10px 16px', textAlign: 'left' as const, fontSize: 11, fontWeight: 600, color: 'var(--table-head-fg)', textTransform: 'uppercase' as const, letterSpacing: '.06em', borderBottom: '2px solid var(--border-table)', whiteSpace: 'nowrap' as const }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {roles.map(role => {
-                const assigned = MOCK_USERS.filter((u: any) => u.role === role.name)
+                const assigned = MOCK_USERS.filter((u) => u.role === role.name)
                 return (
                   <tr key={role.id}
                     style={{ borderBottom: '1px solid var(--border-inner)', cursor: 'pointer' as const, transition: 'background .12s' }}
@@ -418,15 +402,15 @@ export default function RolesPage() {
                       {assigned.length === 0
                         ? <span style={{ color: 'var(--text-muted)', fontSize: 12.5 }}>Unassigned</span>
                         : <div style={{ display: 'flex' as const, flexWrap: 'wrap', gap: 4 }}>
-                            {assigned.slice(0, 3).map((u: any) => <Badge key={u.id} variant="neutral">{u.full_name}</Badge>)}
+                            {assigned.slice(0, 3).map((u) => <Badge key={u.id} variant="neutral">{u.full_name}</Badge>)}
                             {assigned.length > 3 && <Badge variant="neutral">+{assigned.length - 3}</Badge>}
                           </div>
                       }
                     </td>
                     <td style={{ padding: '12px 16px' }}>
                       <div style={{ display: 'flex' as const, flexWrap: 'wrap', gap: 4 }}>
-                        {role.permissions.slice(0, 3).map((p: any) => {
-                          const def = ALL_PERMISSIONS.find((d: any) => d.key === p)
+                        {role.permissions.slice(0, 3).map((p) => {
+                          const def = ALL_PERMISSIONS.find((d) => d.key === p)
                           return <Badge key={p} variant="accent" style={{ fontSize: 10 }}>{def?.label || p}</Badge>
                         })}
                         {role.permissions.length > 3 && <Badge variant="neutral" style={{ fontSize: 10 }}>+{role.permissions.length - 3}</Badge>}
@@ -531,9 +515,9 @@ export default function RolesPage() {
       <ResponseModal
         open={!!actionResult}
         onClose={() => setActionResult(null)}
-        variant={((actionResult as any)?.variant || 'success') as import('../../types').ModalVariant || 'success'}
-        title={(actionResult as any)?.title   || ''}
-        message={(actionResult as any)?.message || ''}
+        variant={actionResult?.variant || 'success'}
+        title={actionResult?.title   || ''}
+        message={actionResult?.message || ''}
         confirmLabel="Got it"
       />
     </div>

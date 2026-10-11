@@ -1,11 +1,15 @@
 // AddUtility.jsx — 3-col layout: StepSidebar | Form | Live Preview
 // Validation: per-step validation blocks Continue; shows inline field errors
 import { useState } from 'react'
+import type { ReactNode } from 'react'
 import { Button, Card, Input, SectionDivider, Select, Textarea, ResponseModal } from '../../components/ui'
 import { MOCK_FUNDS } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 import useBreakpoint from '../../hooks/useBreakpoint'
 import { required, isNonZeroAmount, isPositiveNumber, isAmountPaidValid, isPastOrTodayDate, validateStep } from '../../utils/validation'
+import { StepSidebar, FieldError, StepBanner } from '../../components/FormWizard'
+import { capitalize } from '../../utils/formatters'
+import type { OrgConfig } from '../../types'
 
 const STEPS = ['Category', 'Payment Info', 'Amount', 'Review']
 
@@ -23,27 +27,8 @@ function IcoRent()  { return <svg width="18" height="18" viewBox="0 0 24 24" fil
 function IcoVenue() { return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><line x1="12" y1="2" x2="12" y2="9"/></svg> }
 function IcoOther() { return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> }
 
-/* ── StepSidebar ─────────────────────────────────────────────────── */
-function StepSidebar({ steps, current }: Record<string, any>) {
-  return (
-    <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 4 }}>
-      {steps.map((label: string, i: number) => {
-        const done = i < current, active = i === current
-        return (
-          <div key={i} style={{ display: 'flex' as const, alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 9, background: active ? 'var(--accent-light)' : done ? 'var(--success-light)' : 'transparent', border: '1.5px solid ' + (active ? 'rgba(75,94,170,.3)' : done ? 'rgba(46,125,82,.2)' : 'var(--border-card)') }}>
-            <div style={{ width: 26, height: 26, borderRadius: '50%', background: done ? '#2E7D52' : active ? 'var(--accent)' : 'var(--border-card)', color: done || active ? '#fff' : 'var(--text-muted)', display: 'flex' as const, alignItems: 'center', justifyContent: 'center', fontSize: 11.5, fontWeight: 700, flexShrink: 0 }}>
-              {done ? '✓' : i + 1}
-            </div>
-            <span style={{ fontSize: 13, fontWeight: active ? 700 : done ? 600 : 400, color: active ? 'var(--accent)' : done ? 'var(--success)' : 'var(--text-muted)' }}>{label}</span>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
 /* ── ToggleCard — category card with error state support ─────────── */
-function ToggleCard({ icon, label, value, current, onClick, hasError }: Record<string, any>) {
+function ToggleCard({ icon, label, value, current, onClick, hasError }: { icon: ReactNode; label: string; value: string; current: string; onClick: (value: string) => void; hasError?: boolean }) {
   const active = current === value
   return (
     <button onClick={() => onClick(value)} style={{
@@ -58,41 +43,9 @@ function ToggleCard({ icon, label, value, current, onClick, hasError }: Record<s
   )
 }
 
-/* ── FieldError — inline error message ───────────────────────────── */
-function FieldError({ msg }: Record<string, any>) {
-  if (!msg) return null
-  return (
-    <div style={{ display: 'flex' as const, alignItems: 'center', gap: 5, marginTop: 3, fontSize: 12, color: 'var(--danger)', fontWeight: 500 }} role="alert">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-      </svg>
-      {msg}
-    </div>
-  )
-}
-
-/* ── StepBanner — error summary banner ───────────────────────────── */
-function StepBanner({ errors }: Record<string, any>) {
-  const msgs = Object.values(errors as Record<string,string>).filter(Boolean)
-  if (!msgs.length) return null
-  return (
-    <div style={{ display: 'flex' as const, alignItems: 'flex-start', gap: 10, padding: '12px 14px', borderRadius: 9, background: '#fff5f5', border: '1.5px solid rgba(192,57,43,.3)', marginBottom: 16 }} role="alert">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
-        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-      </svg>
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--danger)', marginBottom: 4 }}>Please fix the following before continuing:</div>
-        {msgs.map((m, i) => <div key={i} style={{ fontSize: 12.5, color: 'var(--danger)', lineHeight: 1.5 }}>• {m}</div>)}
-      </div>
-    </div>
-  )
-}
-
 /* ── LivePreview ──────────────────────────────────────────────────── */
-function LivePreview({ form, org }: Record<string, any>) {
-  const cap = (s: any): string => s ? s.charAt(0).toUpperCase() + s.slice(1) : '—'
-  const selectedFund = MOCK_FUNDS.find((f: any) => f.id === form.fund_id)
+function LivePreview({ form, org }: { form: Record<string, string>; org: OrgConfig }) {
+  const selectedFund = MOCK_FUNDS.find((f) => f.id === form.fund_id)
   return (
     <div>
       <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '.07em', marginBottom: 14 }}>Live Preview</div>
@@ -103,7 +56,7 @@ function LivePreview({ form, org }: Record<string, any>) {
         ['Payment Date', form.payment_date || '—'],
         ['Total Amount', form.total_amount ? `${org.currency_symbol}${form.total_amount}` : '—'],
         ['Amount Paid',  form.amount_paid  ? `${org.currency_symbol}${form.amount_paid}`  : '—'],
-        ['Status',       cap(form.status)],
+        ['Status',       capitalize(form.status)],
         ['Notes',        form.notes || '—'],
       ].map(([k, v]) => (
         <div key={k} style={{ display: 'flex' as const, justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid var(--border-inner)', fontSize: 12.5, gap: 8 }}>
@@ -122,16 +75,16 @@ export default function AddUtility() {
   const org = useOrg()
   const { isMobile } = useBreakpoint()
   const [step, setStep] = useState(0)
-  const [form, setForm] = useState<Record<string,any>>({
+  const [form, setForm] = useState<Record<string, string>>({
     expense_type: '', custom_type: '', paid_to: '', fund_id: '',
     payment_date: '', total_amount: '', amount_paid: '',
     status: 'unpaid', notes: '',
   })
   const [errors, setErrors] = useState<Record<string,string>>({})
   const [feedback, setFeedback] = useState(false)  // success confirmation modal visibility
-  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => { setForm((f: any) => ({ ...f, [k]: e.target.value })); clearErr(k) }
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => { setForm((f) => ({ ...f, [k]: e.target.value })); clearErr(k) }
   const clearErr = (k: string) => setErrors(p => { const n = { ...p }; delete n[k]; return n })
-  const fundOptions = MOCK_FUNDS.map((f: any) => ({ value: f.id, label: f.name }))
+  const fundOptions = MOCK_FUNDS.map((f) => ({ value: f.id, label: f.name }))
 
   const categoryCards = [
     { value: 'Electricity Bill', icon: <IcoElec  />, label: 'Electricity Bill' },
@@ -201,8 +154,8 @@ export default function AddUtility() {
             <SectionDivider label="Expense Category" />
             <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-muted)' }}>What type of utility or operational expense is this?</p>
             <div style={{ display: 'grid' as const, gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
-              {categoryCards.map((c: any) => (
-                <ToggleCard key={c.value} icon={c.icon} label={c.label} value={c.value} current={form.expense_type} hasError={!!errors.expense_type} onClick={(v: any) => { setForm(f => ({ ...f, expense_type: v, custom_type: '' })); clearErr('expense_type') }} />
+              {categoryCards.map((c) => (
+                <ToggleCard key={c.value} icon={c.icon} label={c.label} value={c.value} current={form.expense_type} hasError={!!errors.expense_type} onClick={(v) => { setForm(f => ({ ...f, expense_type: v, custom_type: '' })); clearErr('expense_type') }} />
               ))}
             </div>
             <FieldError msg={errors.expense_type} />
@@ -257,8 +210,7 @@ export default function AddUtility() {
           <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 10 }}>
             <SectionDivider label={`Review ${org.utility_label}`} />
             {(() => {
-              const cap = (s: any): string => s ? s.charAt(0).toUpperCase() + s.slice(1) : '—'
-              const selectedFund = MOCK_FUNDS.find((f: any) => f.id === form.fund_id)
+              const selectedFund = MOCK_FUNDS.find((f) => f.id === form.fund_id)
               const displayCategory = form.expense_type === 'Other' && form.custom_type
                 ? form.custom_type
                 : form.expense_type || '—'
@@ -269,7 +221,7 @@ export default function AddUtility() {
                 ['Payment Date', form.payment_date || '—'],
                 ['Total Amount', form.total_amount ? `${org.currency_symbol}${form.total_amount}` : '—'],
                 ['Amount Paid',  form.amount_paid  ? `${org.currency_symbol}${form.amount_paid}`  : '—'],
-                ['Status',       cap(form.status)],
+                ['Status',       capitalize(form.status)],
                 ['Notes',        form.notes || '—'],
               ].map(([k, v]) => (
                 <div key={k} style={{ display: 'flex' as const, gap: 16, padding: '9px 0', borderBottom: '1px solid var(--border-inner)', fontSize: 13.5 }}>

@@ -6,6 +6,8 @@ import { MOCK_USERS, MOCK_ATTENDANCES, MOCK_TRANSACTIONS, formatDate, formatCurr
 import { useOrg } from '../../context/OrgContext'
 import useBreakpoint from '../../hooks/useBreakpoint'
 
+interface ProfileForm { first_name: string; last_name: string; gender: string; contact_number: string; email: string; address_city: string; address_province: string; occupation: string; has_partner: boolean }
+
 const GENDER_OPTIONS = [
   { value: 'Male',              label: 'Male' },
   { value: 'Female',            label: 'Female' },
@@ -23,29 +25,29 @@ const IcoMoney  = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="no
 const IcoLock   = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
 const IcoUser   = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
 
-export default function Profile({ userId = '1' }: Record<string, any>) {
+export default function Profile({ userId = '1' }: { userId?: string }) {
   const org  = useOrg()
   const { isMobile, isTablet } = useBreakpoint()
   const statCols = isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)' // responsive stat grid
-  const user = MOCK_USERS.find((u: any) => u.id === userId) || MOCK_USERS[0]
+  const user = MOCK_USERS.find((u) => u.id === userId) || MOCK_USERS[0]
 
   // Attendance records for this user
-  const userAttendance = (MOCK_ATTENDANCES || []).filter((a: any) => a.user_name === user.full_name)
+  const userAttendance = (MOCK_ATTENDANCES || []).filter((a) => a.user_name === user.full_name)
 
   // Personal transactions
-  const userTransactions = MOCK_TRANSACTIONS.filter((t: any) => t.user_id === user.id).slice(0, 3)
+  const userTransactions = MOCK_TRANSACTIONS.filter((t) => t.user_id === user.id).slice(0, 3)
 
   // Contribution total
   const totalContributed = MOCK_TRANSACTIONS
-    .filter((t: any) => t.user_id === user.id && t.entry_type !== 'expense')
+    .filter((t) => t.user_id === user.id && t.entry_type !== 'expense')
     .reduce((s, t) => s + t.amount, 0)
 
   // Attendance stats
   const attStats = {
-    present: userAttendance.filter((a: any) => a.status === 'present').length,
-    late:    userAttendance.filter((a: any) => a.status === 'late').length,
-    absent:  userAttendance.filter((a: any) => a.status === 'absent').length,
-    excused: userAttendance.filter((a: any) => a.status === 'excused').length,
+    present: userAttendance.filter((a) => a.status === 'present').length,
+    late:    userAttendance.filter((a) => a.status === 'late').length,
+    absent:  userAttendance.filter((a) => a.status === 'absent').length,
+    excused: userAttendance.filter((a) => a.status === 'excused').length,
   }
   const attTotal = userAttendance.length
 
@@ -54,7 +56,7 @@ export default function Profile({ userId = '1' }: Record<string, any>) {
   const [saveResponse,     setSaveResponse]     = useState<{variant:string;title:string;message:string} | null>(null)
   const [showAllAttend,    setShowAllAttend]    = useState(false)
   const [showAllTxn,       setShowAllTxn]       = useState(false)
-  const [form, setForm] = useState<Record<string,any>>({
+  const [form, setForm] = useState<ProfileForm>({
     first_name:       user.first_name,
     last_name:        user.last_name,
     gender:           user.gender,
@@ -65,7 +67,7 @@ export default function Profile({ userId = '1' }: Record<string, any>) {
     occupation:       user.occupation       || '',
     has_partner:      false,
   })
-  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setForm((f: any) => ({ ...f, [k]: e.target.value }))
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
   function handleSave() {
     setShowEditModal(false)
@@ -111,7 +113,7 @@ export default function Profile({ userId = '1' }: Record<string, any>) {
           { label: 'Transactions',        value: userTransactions.length,                               color: 'var(--accent)',  icon: <IcoMoney /> },
           { label: 'Attendance Records',  value: attTotal,                                              color: 'var(--info)',    icon: <IcoCal /> },
           { label: 'Attendance Rate',     value: attTotal ? `${Math.round((attStats.present / attTotal) * 100)}%` : '—', color: 'var(--warning)', icon: <IcoUser /> },
-        ].map((k: any) => (
+        ].map((k) => (
           <Card key={k.label} style={{ padding: '14px 18px', background: '#FFFFFF', borderLeft: '4px solid ' + k.color, border: '1px solid ' + k.color + '25', transition: 'transform .18s ease, box-shadow .18s ease' }}
             onMouseEnter={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(75,94,170,.18)' }}
             onMouseLeave={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
@@ -203,7 +205,7 @@ export default function Profile({ userId = '1' }: Record<string, any>) {
               { label: 'Late',    value: attStats.late,    color: '#D4860A', bg: '#fffbf0' },
               { label: 'Absent',  value: attStats.absent,  color: '#C0392B', bg: '#fdf3f2' },
               { label: 'Excused', value: attStats.excused, color: '#2471A3', bg: '#f0f7fd' },
-            ].map((s: any) => (
+            ].map((s) => (
               <div key={s.label} style={{ padding: '12px 0', textAlign: 'center' as const, background: s.bg, borderRight: '1px solid var(--border-inner)' }}>
                 <div style={{ fontSize: 20, fontWeight: 800, color: s.color }}>{s.value}</div>
                 <div style={{ fontSize: 11, color: s.color, fontWeight: 600, marginTop: 2 }}>{s.label}</div>
@@ -214,7 +216,7 @@ export default function Profile({ userId = '1' }: Record<string, any>) {
           <div style={{ padding: '6px 0', flex: 1 }}>
             {userAttendance.length === 0
               ? <div style={{ padding: '20px', textAlign: 'center' as const, color: 'var(--text-muted)', fontSize: 13 }}>No attendance records found.</div>
-              : userAttendance.slice(0, 3).map((a: any) => (
+              : userAttendance.slice(0, 3).map((a) => (
                   <div key={a.id} style={{ display: 'flex' as const, alignItems: 'center', justifyContent: 'space-between', padding: '8px 18px', borderBottom: '1px solid var(--border-inner)', fontSize: 13 }}>
                     <div>
                       <div style={{ fontWeight: 500 }}>{a.activity}</div>
@@ -242,7 +244,7 @@ export default function Profile({ userId = '1' }: Record<string, any>) {
           <div style={{ padding: '6px 0', flex: 1 }}>
             {userTransactions.length === 0
               ? <div style={{ padding: '20px', textAlign: 'center' as const, color: 'var(--text-muted)', fontSize: 13 }}>No transactions found.</div>
-              : userTransactions.map((t: any) => (
+              : userTransactions.map((t) => (
                   <div key={t.id} style={{ display: 'flex' as const, alignItems: 'center', gap: 12, padding: '10px 18px', borderBottom: '1px solid var(--border-inner)' }}>
                     {/* Type icon */}
                     <div style={{ width: 32, height: 32, borderRadius: 8, background: t.entry_type === 'expense' ? 'var(--danger-light)' : 'var(--success-light)', display: 'flex' as const, alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: t.entry_type === 'expense' ? 'var(--danger)' : 'var(--success)' }}>
@@ -262,12 +264,12 @@ export default function Profile({ userId = '1' }: Record<string, any>) {
                 ))
             }
           </div>
-          {MOCK_TRANSACTIONS.filter((t: any) => t.user_id === user.id).length > 0 && (
+          {MOCK_TRANSACTIONS.filter((t) => t.user_id === user.id).length > 0 && (
             <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border-inner)', textAlign: 'center' as const }}>
               <button
                 onClick={() => setShowAllTxn(true)}
                 style={{ padding: '7px 22px', borderRadius: 8, border: '1.5px solid var(--success)', background: 'var(--success)', color: '#fff', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' as const, fontFamily: 'var(--font-body)' }}>
-                View All Transactions ({MOCK_TRANSACTIONS.filter((t: any) => t.user_id === user.id).length})
+                View All Transactions ({MOCK_TRANSACTIONS.filter((t) => t.user_id === user.id).length})
               </button>
             </div>
           )}
@@ -294,7 +296,7 @@ export default function Profile({ userId = '1' }: Record<string, any>) {
               { label: 'Late',    value: attStats.late,    color: '#D4860A', bg: '#fffbf0' },
               { label: 'Absent',  value: attStats.absent,  color: '#C0392B', bg: '#fdf3f2' },
               { label: 'Excused', value: attStats.excused, color: '#2471A3', bg: '#f0f7fd' },
-            ].map((s: any) => (
+            ].map((s) => (
               <div key={s.label} style={{ padding: '12px', textAlign: 'center' as const, background: s.bg, borderRadius: 10, border: '1px solid ' + s.color + '30' }}>
                 <div style={{ fontSize: 22, fontWeight: 800, color: s.color }}>{s.value}</div>
                 <div style={{ fontSize: 12, color: s.color, fontWeight: 600, marginTop: 2 }}>{s.label}</div>
@@ -305,7 +307,7 @@ export default function Profile({ userId = '1' }: Record<string, any>) {
           <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 2 }}>
             {userAttendance.length === 0
               ? <div style={{ textAlign: 'center' as const, padding: '32px', color: 'var(--text-muted)', fontSize: 13 }}>No attendance records found.</div>
-              : userAttendance.map((a: any) => (
+              : userAttendance.map((a) => (
                   <div key={a.id} style={{ display: 'flex' as const, alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: 10, background: 'var(--neutral-light)', border: '1px solid var(--border-card)', marginBottom: 4 }}>
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 13.5 }}>{a.activity}</div>
@@ -327,7 +329,7 @@ export default function Profile({ userId = '1' }: Record<string, any>) {
         open={showAllTxn}
         onClose={() => setShowAllTxn(false)}
         title="All Personal Transactions"
-        subtitle={`${MOCK_TRANSACTIONS.filter((t: any) => t.user_id === user.id).length} total transactions for ${user.full_name}`}
+        subtitle={`${MOCK_TRANSACTIONS.filter((t) => t.user_id === user.id).length} total transactions for ${user.full_name}`}
         accentColor="var(--success)"
         footer={
           <div style={{ display: 'flex' as const, gap: 10, justifyContent: 'flex-end' }}>
@@ -341,9 +343,9 @@ export default function Profile({ userId = '1' }: Record<string, any>) {
           </div>
         }>
         <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 6 }}>
-          {MOCK_TRANSACTIONS.filter((t: any) => t.user_id === user.id).length === 0
+          {MOCK_TRANSACTIONS.filter((t) => t.user_id === user.id).length === 0
             ? <div style={{ textAlign: 'center' as const, padding: '32px', color: 'var(--text-muted)', fontSize: 13 }}>No transactions found.</div>
-            : MOCK_TRANSACTIONS.filter((t: any) => t.user_id === user.id).map((t: any) => (
+            : MOCK_TRANSACTIONS.filter((t) => t.user_id === user.id).map((t) => (
                 <div key={t.id} style={{ display: 'flex' as const, alignItems: 'center', gap: 14, padding: '12px 16px', borderRadius: 10, background: 'var(--neutral-light)', border: '1px solid var(--border-card)' }}>
                   <div style={{ width: 36, height: 36, borderRadius: 9, background: t.entry_type === 'expense' ? 'var(--danger-light)' : 'var(--success-light)', display: 'flex' as const, alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: t.entry_type === 'expense' ? 'var(--danger)' : 'var(--success)' }}>
                     <IcoMoney />

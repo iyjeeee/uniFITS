@@ -18,6 +18,13 @@ export const formatCurrency = (amount: number | null | undefined, compact = fals
   }).format(amount)
 }
 
+/** parseDate — parse 'YYYY-MM-DD' as a LOCAL date (new Date(str) parses it as UTC and can show the previous day) */
+export const parseDate = (value: string | Date): Date => {
+  if (value instanceof Date) return value
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(value)
+}
+
 /** formatDate — Format a date string or Date object */
 export const formatDate = (date: string | Date | null | undefined, style: DateStyle = 'medium'): string => {
   if (!date) return '—'
@@ -26,7 +33,7 @@ export const formatDate = (date: string | Date | null | undefined, style: DateSt
     medium: { month: 'short', day: 'numeric', year: 'numeric' },
     long:   { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' },
   }
-  return new Intl.DateTimeFormat('en-PH', options[style] ?? options.medium).format(new Date(date))
+  return new Intl.DateTimeFormat('en-PH', options[style] ?? options.medium).format(parseDate(date))
 }
 
 /** formatNumber — Format a number with thousands separator */
@@ -57,3 +64,6 @@ export const getInitials = (name = ''): string => {
     .map((n) => n[0].toUpperCase())
     .join('')
 }
+
+/** capitalize — uppercase the first letter; returns '—' for empty values */
+export const capitalize = (s?: string | null): string => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '—')

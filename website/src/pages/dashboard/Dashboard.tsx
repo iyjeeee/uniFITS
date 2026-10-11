@@ -8,6 +8,7 @@ import {
 } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 import useBreakpoint from '../../hooks/useBreakpoint'
+import type { Attendance } from '../../types'
 
 /* ── SVG icon helpers (no emoji) ──────────────────────────────────────────────── */
 const Ico: Record<string, (c: string) => React.ReactElement> = {
@@ -47,8 +48,9 @@ const STATUS_BREAKDOWN = [
 ]
 
 /* ── Bar chart — monthly income vs expense ───────────────────────────────────── */
-function BarChart({ data }: Record<string, any>) {
-  const maxVal = Math.max(...data.flatMap((d: any) => [d.income, d.expense]), 1)
+type MonthlyPoint = (typeof MONTHLY_DATA)[number]
+function BarChart({ data }: { data: MonthlyPoint[] }) {
+  const maxVal = Math.max(...data.flatMap((d) => [d.income, d.expense]), 1)
   const barW   = 20
   const gap    = 5
   const groupW = barW * 2 + gap + 20
@@ -70,7 +72,7 @@ function BarChart({ data }: Record<string, any>) {
           </g>
         )
       })}
-      {data.map((d: any, i: any) => {
+      {data.map((d, i) => {
         const x    = padL + 4 + i * groupW
         const incH = ((d.income  / maxVal) * (svgH - padB - 10)) || 0
         const expH = ((d.expense / maxVal) * (svgH - padB - 10)) || 0
@@ -92,13 +94,14 @@ function BarChart({ data }: Record<string, any>) {
 }
 
 /* ── Horizontal bar chart — fund balances ──────────────────────────────────── */
-function FundBarChart({ data }: Record<string, any>) {
-  const maxVal = Math.max(...data.map((d: any) => d.balance), 1)
+type FundPoint = (typeof FUND_DATA)[number]
+function FundBarChart({ data }: { data: FundPoint[] }) {
+  const maxVal = Math.max(...data.map((d) => d.balance), 1)
   const COLORS = ['#4B5EAA', '#2E7D52', '#2471A3', '#D4860A', '#7D3C98']
 
   return (
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 10 }}>
-      {data.map((d: any, i: any) => {
+      {data.map((d, i) => {
         const pct = (d.balance / maxVal) * 100
         return (
           <div key={d.name}>
@@ -117,12 +120,13 @@ function FundBarChart({ data }: Record<string, any>) {
 }
 
 /* ── Donut chart — project status breakdown ────────────────────────────────── */
-function DonutChart({ data }: Record<string, any>) {
-  const total = data.reduce((s: any, d: any) => s + d.count, 0) || 1
+type StatusPoint = (typeof STATUS_BREAKDOWN)[number]
+function DonutChart({ data }: { data: StatusPoint[] }) {
+  const total = data.reduce((s, d) => s + d.count, 0) || 1
   let cumAngle = -90
   const cx = 60, cy = 60, r = 48, inner = 28
 
-  const slices = data.map((d: any) => {
+  const slices = data.map((d) => {
     const angle  = (d.count / total) * 360
     const startA = cumAngle
     cumAngle    += angle
@@ -143,14 +147,14 @@ function DonutChart({ data }: Record<string, any>) {
   return (
     <div style={{ display: 'flex' as const, alignItems: 'center', gap: 18 }}>
       <svg viewBox="0 0 120 120" width={110} height={110} style={{ flexShrink: 0 }}>
-        {slices.map((s: any, i: number) => s.path ? (
+        {slices.map((s, i) => s.path ? (
           <path key={i} d={s.path} fill={s.color} />
         ) : null)}
         <text x={cx} y={cy + 4} textAnchor="middle" fontSize={14} fontWeight={700} fill="var(--text-primary)">{total}</text>
         <text x={cx} y={cy + 17} textAnchor="middle" fontSize={8} fill="var(--text-muted)">TOTAL</text>
       </svg>
       <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 8 }}>
-        {data.map((d: any) => (
+        {data.map((d) => (
           <div key={d.label} style={{ display: 'flex' as const, alignItems: 'center', gap: 8, fontSize: 12.5 }}>
             <div style={{ width: 10, height: 10, borderRadius: 3, background: d.color, flexShrink: 0 }} />
             <span style={{ color: 'var(--text-secondary)' }}>{d.label}</span>
@@ -163,18 +167,18 @@ function DonutChart({ data }: Record<string, any>) {
 }
 
 /* ── Attendance status bars ────────────────────────────────────────────────── */
-function AttendanceChart({ data }: Record<string, any>) {
+function AttendanceChart({ data }: { data: Attendance[] }) {
   const statuses = ['present', 'late', 'absent', 'excused']
   const colors   = { present: '#2E7D52', late: '#D4860A', absent: '#C0392B', excused: '#2471A3' }
   const counts   = statuses.reduce((acc: Record<string,number>, s) => {
-    acc[s] = data.filter((a: any) => a.status === s).length
+    acc[s] = data.filter((a) => a.status === s).length
     return acc
   }, {} as Record<string,number>)
   const total = data.length || 1
 
   return (
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 10 }}>
-      {statuses.map((s: any) => {
+      {statuses.map((s) => {
         const pct = Math.round((counts[s] / total) * 100)
         return (
           <div key={s}>
@@ -206,25 +210,26 @@ export default function Dashboard() {
 
   /* ── Computed KPIs ─────────────────────────────────────────────── */
   const totalBalance     = MOCK_FUNDS.reduce((s, f) => s + f.balance, 0)
-  const activeMembers    = MOCK_USERS.filter((u: any) => u.status === 'active').length
-  const ongoingProjects  = MOCK_PROJECTS.filter((p: any) => p.status !== 'completed' && p.status !== 'cancelled').length
-  const upcomingEvents   = MOCK_EVENTS.filter((e: any) => e.status === 'upcoming').length
-  const totalIncome      = MOCK_TRANSACTIONS.filter((t: any) => t.entry_type !== 'expense').reduce((s, t) => s + t.amount, 0)
-  const totalExpense     = MOCK_TRANSACTIONS.filter((t: any) => t.entry_type === 'expense').reduce((s, t) => s + t.amount, 0)
-  const completedProjects = MOCK_PROJECTS.filter((p: any) => p.status === 'completed').length
+  const activeMembers    = MOCK_USERS.filter((u) => u.status === 'active').length
+  const ongoingProjects  = MOCK_PROJECTS.filter((p) => p.status !== 'completed' && p.status !== 'cancelled').length
+  const upcomingEvents   = MOCK_EVENTS.filter((e) => e.status === 'upcoming').length
+  const totalIncome      = MOCK_TRANSACTIONS.filter((t) => t.entry_type !== 'expense').reduce((s, t) => s + t.amount, 0)
+  const totalExpense     = MOCK_TRANSACTIONS.filter((t) => t.entry_type === 'expense').reduce((s, t) => s + t.amount, 0)
+  const completedProjects = MOCK_PROJECTS.filter((p) => p.status === 'completed').length
   const totalTransactions = MOCK_TRANSACTIONS.length
 
   /* ── Top contributors ──────────────────────────────────────────── */
   const topContributors = Object.values(
     MOCK_TRANSACTIONS
-      .filter((t: any) => t.user_name && t.entry_type !== 'expense')
-      .reduce((acc: Record<string,{name:string;total:number;count:number}>, t: any) => {
+      .filter((t) => t.user_name && t.entry_type !== 'expense')
+      .reduce((acc: Record<string,{name:string;total:number;count:number}>, t) => {
+        if (!t.user_name) return acc   // already filtered above — narrows user_name to string
         if (!acc[t.user_name]) acc[t.user_name] = { name: t.user_name, total: 0, count: 0 }
         acc[t.user_name].total += t.amount
         acc[t.user_name].count += 1
         return acc
       }, {} as Record<string,{name:string;total:number;count:number}>)
-  ).sort((a: any, b: any) => b.total - a.total).slice(0, 5)
+  ).sort((a, b) => b.total - a.total).slice(0, 5)
 
   const recentTransactions = MOCK_TRANSACTIONS.slice(0, 6)
 
@@ -288,7 +293,7 @@ export default function Dashboard() {
         <Card>
           <CardHeader title="Fund Balances" subtitle="Current balance per fund" />
           <div style={{ padding: '16px 18px' }}>
-            <FundBarChart data={FUND_DATA} currency={org.currency_symbol} />
+            <FundBarChart data={FUND_DATA} />
             <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border-inner)' }}>
               <div style={{ display: 'flex' as const, justifyContent: 'space-between', fontSize: 12.5 }}>
                 <span style={{ color: 'var(--text-muted)' }}>Total across all funds</span>
@@ -306,13 +311,13 @@ export default function Dashboard() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: 'var(--table-head-bg)' }}>
-                {['Reference','Member','Amount','Type','Category','Date','Status'].map((h: any) => (
+                {['Reference','Member','Amount','Type','Category','Date','Status'].map((h) => (
                   <th key={h} style={{ padding: '9px 14px', textAlign: 'left' as const, fontSize: 11, fontWeight: 600, color: 'var(--table-head-fg)', textTransform: 'uppercase' as const, letterSpacing: '.06em', borderBottom: '2px solid var(--border-table)', whiteSpace: 'nowrap' as const }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {recentTransactions.map((t: any) => (
+              {recentTransactions.map((t) => (
                 <tr key={t.id} style={{ borderBottom: '1px solid var(--border-inner)' }}>
                   <td style={{ padding: '10px 14px' }}><code style={{ fontSize: 11 }}>{t.reference_number}</code></td>
                   <td style={{ padding: '10px 14px' }}>{t.user_name || '—'}</td>
@@ -342,7 +347,7 @@ export default function Dashboard() {
         <Card>
           <CardHeader title="Monthly Income vs Expense" subtitle="6-month financial trend" />
           <div style={{ padding: '14px 18px 16px' }}>
-            <BarChart data={MONTHLY_DATA} currency={org.currency_symbol} />
+            <BarChart data={MONTHLY_DATA} />
           </div>
         </Card>
 

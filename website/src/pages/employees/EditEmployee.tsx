@@ -9,10 +9,10 @@ const GENDER_OPTIONS = [
   { value: 'Non-binary', label: 'Non-binary' },{ value: 'Prefer not to say', label: 'Prefer not to say' },
 ]
 
-export default function EditEmployee({ userId = '1' }: Record<string, any>) {
+export default function EditEmployee({ userId = '1' }: { userId?: string }) {
   const { isMobile } = useBreakpoint()
-  const user = MOCK_USERS.find((u: any) => u.id === userId) || MOCK_USERS[0]
-  const [form, setForm] = useState<Record<string,any>>({
+  const user = MOCK_USERS.find((u) => u.id === userId) || MOCK_USERS[0]
+  const [form, setForm] = useState<Record<string, string>>({
     first_name: user.first_name, last_name: user.last_name,
     gender: user.gender, email: user.email,
     contact_number: user.contact_number, occupation: user.occupation || '',
@@ -21,7 +21,7 @@ export default function EditEmployee({ userId = '1' }: Record<string, any>) {
   })
   const [feedback, setFeedback] = useState(false)  // success confirmation modal visibility
 
-  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setForm((f: any) => ({ ...f, [k]: e.target.value }))
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setForm((f) => ({ ...f, [k]: e.target.value }))
   const fullName = `${form.first_name} ${form.last_name}`
 
   function handleSave() { setFeedback(true) }

@@ -23,8 +23,8 @@ export default tseslint.config(
         'warn',
         { allowConstantExport: true },
       ],
-      // Allow explicit any with a comment — must be justified with TODO
-      '@typescript-eslint/no-explicit-any': 'warn',
+      // `any` is banned — use a real type or `unknown`. The only exception (App.tsx route table) has an inline disable + reason
+      '@typescript-eslint/no-explicit-any': 'error',
       // Underscore-prefixed vars/args are intentionally unused (existing project convention)
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },

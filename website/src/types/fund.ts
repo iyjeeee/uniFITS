@@ -2,7 +2,7 @@
 
 export type FundType = 'internal' | 'external'
 export type FundStatus = 'active' | 'inactive'
-export type PaymentFrequency = 'monthly' | 'annually' | null
+export type PaymentFrequency = 'monthly' | 'quarterly' | 'annually' | null
 
 // Fund — matches MOCK_FUNDS + backend funds table
 export interface Fund {

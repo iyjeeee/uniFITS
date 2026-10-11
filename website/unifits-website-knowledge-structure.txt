@@ -4,10 +4,44 @@
   Monorepo path: unifits/website/
   Stack: React 18 · Vite 5 · TypeScript · Zero external UI libs · Hash router
   Status: TYPESCRIPT MIGRATION COMPLETE & VERIFIED (2026-09-10)
-  Latest session (2026-10-09) — bug-fix pass, verified with tsc -b (clean),
+  Session 2026-10-10 (b) — ZERO `any` cleanup (tsc/build clean, eslint 0 errors,
+    47 tests pass). All 540 explicit `any` removed from src/pages by real typing.
+    · eslint rule @typescript-eslint/no-explicit-any is now 'error' (was warn).
+      One intentional, documented exception: the route table type in App.tsx.
+    · Rule for new code: never use `any` — use a real type, a generic, or
+      `unknown`. Page props/forms get an interface next to the component.
+    · NEW src/components/FormWizard.tsx (StepSidebar, FieldError, StepBanner) —
+      replaced 6 copy-pasted sets in the Add* pages.
+    · utils/formatters.ts: NEW capitalize() replaced 19 local `cap` copies.
+    · Existing components/TableUtils (IconBtn, PaginationRow) are now used by
+      Employees, Events, Projects, RolesPage, Transactions, Utilities.
+    · EditItemModal is generic (<T extends Project | AppEvent>) — onSave gets
+      back the same type it was given.
+    · Types corrected to match real usage: Permission (now 34 keys, was 14),
+      PaymentFrequency (+'quarterly'), Project/AppEvent (+photo_url?),
+      Transaction (+notes?).
+    · Real issues surfaced by typing: FundReport/Funds annual_fee null check;
+      Funds save now stores annual_fee as number|null (input gave a string);
+      Utilities edit form amounts typed string|number, converted on save;
+      Transactions page uses a 3-state row type (approved/rejected/pending).
+    · NEW src/test/pages.flows.test.tsx — edit/save flow tests.
+  Session 2026-10-10 (a) — robustness pass (tsc/build/eslint clean, 40 tests pass):
+    · NEW src/components/ErrorBoundary.tsx — a crashing page shows a friendly
+      panel (Try again / Go to Dashboard); sidebar + header keep working.
+      App.tsx wraps each page in <ErrorBoundary key={hash}> (resets per route).
+    · App.tsx: all 33 authenticated pages are React.lazy code-split
+      (Login/ForgotPassword stay eager) inside <Suspense>. vite.config.ts adds
+      manualChunks {react}. Entry JS 647 kB -> 89 kB (23 kB gz), react chunk
+      141 kB; the >500 kB build warning is gone.
+    · NEW automated tests (Vitest + Testing Library + jsdom) — see 1.17.
+      Verified the smoke test FAILS on the old buggy Attendance/Announcements.
+    · package.json: scripts test / test:watch; new devDependencies vitest,
+      jsdom, @testing-library/react, @testing-library/dom. Run `npm install`.
+  Earlier session (2026-10-09) — bug-fix pass, verified with tsc -b (clean),
     vite build (clean), eslint (0 errors) and a jsdom click-through of every
     page (Login/Forgot included). Changed files: Attendance.tsx,
-    Announcements.tsx, Header.tsx.
+    Announcements.tsx, Header.tsx. Deleted (unused): 4 Manage* pages,
+    components/shared/, components/KPI/.
     · Fixed: Attendance page went BLANK when a tile was clicked —
       InfoModal title received the whole project/event OBJECT instead of
       its title string ("Objects are not valid as a React child").
@@ -24,6 +58,11 @@
       and the project detail modal now shows Project (was always Event).
     · Fixed: Announcements tile pagination — numbered buttons were no-ops
       (setTilePage((p) => p) shadowed the clicked page).
+    · Cleanups: date-only strings now parsed as local dates via
+      utils/formatters parseDate (mockData.formatDate, formatters.formatDate,
+      validation, Calendar, Announcements); duplicate fmt12 removed from
+      Announcements; stale "40 routes" comments fixed; App.tsx now redirects
+      a signed-in user from /login or /forgot-password to /dashboard.
     · Fixed: Header profile pill now shows currentUser (initials, full_name,
       role) instead of hardcoded "JD / Juan Dela Cruz / Admin".
     · index.html entry point is src/main.tsx — all legacy .jsx/.js files
@@ -97,7 +136,7 @@ Monorepo structure (website lives at unifits/website/):
 MIGRATION STRATEGY
   · Gradual, file-by-file — never break working code mid-migration
   · Order: config → types → utils → hooks → constants → context
-           → api/mock → components (ui, shared, KPI, TableUtils, Icons)
+           → api/mock → components (ui, TableUtils, Icons)
            → layout/shell → pages (bottom-up)
   · "allowJs: true" during migration so unconverted files still compile
   · Strict mode enabled (strict: true in tsconfig.app.json)
@@ -194,7 +233,8 @@ DATA
   · Pages import MOCK_* arrays directly, no fetch() calls yet
   · When connecting real backend: replace MOCK_* with API calls;
     page components should not need changes if shapes are kept
-  · Backend base URL: VITE_API_URL in .env (default localhost:5000)
+  · Backend base URL: not configured yet — no .env / .env.example exists
+    in the project; add one (VITE_API_URL) when wiring a real backend
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -390,7 +430,7 @@ KpiCard
          delta (number), bg, onClick
   Always white (#FFFFFF) bg, 3px left border in color prop.
   Hover: translateY(-3px) + shadow. delta shows ↑↓ % trend.
-  Used on Dashboard page only. Manage pages use KPI/index.tsx.
+  Used on Dashboard page only.
 
 EmptyState
   Props: icon (emoji, default '📭'), title, subtitle, action (ReactNode)
@@ -409,7 +449,7 @@ SectionDivider
 
 Modal (legacy alias)
   Maps open/onClose/title/subtitle/children/footer → InfoModal.
-  Exists so old Manage* pages using <Modal> still work unchanged.
+  Kept as a compatibility alias; maps to InfoModal.
 
 useToast() / ToastContainer
   useToast() → { toasts, toast }. Call toast({ message, variant, duration }).
@@ -492,21 +532,6 @@ TableUtils (src/components/TableUtils.tsx)
     numbered buttons right. Props: page, totalPages, onPageChange, total.
   DeleteWarning: delete confirmation wrapping ResponseModal (danger).
 
-KPI/index.tsx (src/components/KPI/index.tsx)
-  KpiGrid component for all Manage* pages.
-  White (#fff) tiles, 4px left colored border, hover lift +3px.
-  Color name → hex map:
-    blue   → #2471A3  (var(--info))    for ongoing
-    green  → #2E7D52  (var(--success))
-    amber  → #D4860A  (var(--warning)) for upcoming
-    teal   → #2471A3
-    violet → #4B5EAA  (var(--accent))
-    rose   → #C0392B  (var(--danger))
-    sky    → #2471A3
-    slate  → #4B5EAA
-  metric.showBadge=true → urgency pulse dot in top-right corner.
-  metric.trend: positive=green ↑, negative=red ↓ label.
-
 Icons.tsx (src/components/Icons.tsx)
   BtnIco (14px) — toolbar/modal button icons:
     Save, Edit, Delete, Cancel, Close, Plus, Check, PDF,
@@ -537,11 +562,6 @@ ItemDetailContent.tsx
   Imports MOCK_TRANSACTIONS, MOCK_ATTENDANCES, MOCK_USERS, fmt12.
   Kind-specific colors: project=#4B5EAA, event=#2E7D52.
   Props: item (Project | Event), org (OrgConfig), kind ('project'|'event').
-
-shared/index.tsx
-  Compatibility shim for legacy Manage* pages.
-  Re-exports: Button from ui/index.tsx.
-  Exports: Modal (wraps InfoModal, maps isOpen→open prop).
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -594,6 +614,9 @@ useModal (src/hooks/useModal.ts)
 src/utils/formatters.ts
   formatCurrency(amount, compact=false)
     → '₱ 12,345.00' or compact '₱ 12.3K' / '₱ 4.8M'
+  parseDate(value)           → 'YYYY-MM-DD' parsed as LOCAL date (never use
+                               new Date('YYYY-MM-DD') — UTC parse can show the
+                               previous day outside the Philippines)
   formatDate(date, style='medium')
     'short'  → "Mar 15, '26"
     'medium' → "Mar 15, 2026"
@@ -612,7 +635,7 @@ src/utils/validation.ts
   isPhilippinePhone(value)   → 09XXXXXXXXX (11 digits)
   isPositiveNumber(value, label)
   isNonZeroAmount(value, label)
-  isPastOrTodayDate(value, label)
+  isPastOrTodayDate(value, label)   (uses parseDate)
   isValidDateRange(startDate, endDate)
   isAmountPaidValid(totalAmount, amountPaid)
   passwordStrength(value)
@@ -643,10 +666,9 @@ MOCK_USERS → User[] (6 records)
 MOCK_ROLES → Role[] (5 records)
   id, name, description, is_system (bool),
   permissions (Permission[])
-  Permission strings: add_user, edit_user, delete_user, manage_funds,
-  add_transaction, view_reports, view_audit_logs, manage_settings,
-  backup_restore, add_project, edit_project, add_event, edit_event,
-  manage_attendance
+  Permission strings: 34 keys, defined by the Permission type in types/user.ts
+  and listed with labels/modules in pages/employees/RolesPage.tsx
+  (ALL_PERMISSIONS). Keep both in sync when adding a permission.
 
 MOCK_ANNOUNCEMENTS → Announcement[] (4 records)
   id, title, content, is_pinned (bool),
@@ -685,7 +707,8 @@ Login flow (mock):
   On page refresh: sessionStorage restored → auto-login.
 
 Auth guard in App.tsx:
-  auth:false routes (/login, /forgot-password) → always visible.
+  auth:false routes (/login, /forgot-password) → visible when signed out;
+    a signed-in user is redirected to /dashboard.
   All other routes → require authed=true.
   Unauthenticated → redirect to /login.
 
@@ -724,7 +747,7 @@ Responsive behavior (via useBreakpoint):
 
 Standard authenticated page structure:
   1. PageHeader (title + subtitle + Add button)
-  2. KpiGrid (3–6 tiles)
+  2. KpiCard row (3–6 tiles, as on Dashboard)
   3. Filter/search controls row
   4. DataTable or card grid
   5. InfoModal(s) for detail/edit
@@ -815,12 +838,9 @@ CloseButton in InfoModal:
 15. OrgContext labels used in nav/forms — not hardcoded entity strings.
 16. Print styles: add class="no-print" to hide elements when printing.
 17. All 3 report pages (Employee, Fund, Club) support window.print().
-18. ManageEmployees, ManageProjects, ManageEvents, ManageFunds use
-    KpiGrid + shared/Modal (legacy) not ui/InfoModal directly.
-    STATUS: ORPHANED — not imported by App.tsx or any file, not in ROUTES
-    (the live pages are Employees/Projects/Events/Funds). They also use
-    CSS classes defined nowhere (page-wrapper, form-input, ...), so they
-    would render unstyled if routed. Keep or delete = owner's decision.
+18. Manage* pages (ManageEmployees/Projects/Events/Funds) and
+    components/shared were unused and DELETED (2026-10-09). The live pages
+    are Employees/Projects/Events/Funds. Do not recreate them.
 19. Employees.tsx and Transactions.tsx use their own local IconBtn
     (not from TableUtils) — same visual pattern, locally defined.
 20. Header profile pill reads currentUser (name, role, initials via
@@ -844,8 +864,8 @@ Styling / color changes:
   index.css, ui/index.tsx, tableColors.ts, target file
 
 New table or manage view:
-  ui/index.tsx, tableColors.ts, TableUtils.tsx, KPI/index.tsx,
-  shared/index.tsx, relevant types, target page file
+  ui/index.tsx, tableColors.ts, TableUtils.tsx,
+  relevant types, target page file
 
 New modal:
   ui/index.tsx, useModal.ts, relevant types, target page file
@@ -857,7 +877,7 @@ Changing entity labels globally:
   OrgContext.tsx, App.tsx (DEFAULT_ORG), Sidebar.tsx, types/org.ts
 
 Connecting real API:
-  mockData.ts, App.tsx (handleLogin, handleLogout, DEFAULT_ORG), .env
+  mockData.ts, App.tsx (handleLogin, handleLogout, DEFAULT_ORG)
 
 Responsive behavior:
   AppLayout.tsx, useBreakpoint.ts, target component
@@ -876,23 +896,37 @@ TypeScript types:
   1.16  KNOWN ISSUES & TECH DEBT (verified 2026-10-09)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Baseline: tsc -b clean · vite build clean · eslint 0 errors,
-550 warnings (548 no-explicit-any, 2 react-refresh).
-  · `any` is the root cause class of the Attendance blank-page bug —
+Baseline: tsc -b clean · vite build clean · npm test 47/47 · eslint 0 errors,
+2 warnings (react-refresh/only-export-components, OrgContext + one more).
+  · `any` is banned (lint error). Reason: it hid the Attendance blank-page bug —
     tsc cannot catch prop/shape mismatches behind Record<string, any>.
-    Worst files: Announcements (48), RolesPage, ClubReport, AddTransaction,
-    Dashboard, PersonalTransactions, Events, Projects, Profile.
-    Fix gradually: type props per file, one file at a time.
-  · Orphaned: ManageEmployees/Projects/Events/Funds + components/shared
-    (see rule 18). Decision pending: revive or delete.
+    Only exception: route-table type in App.tsx (pages have different props).
+  · KpiMetric type (types/ui.ts) is now unused after KPI/ was deleted.
   · Attendance Save: late/excused collapse to present/absent, remarks
     cleared, recorded_by = 'Current User' (mock behavior).
-  · Production bundle ~647 kB (single chunk) — vite warns >500 kB;
-    consider lazy-loading routes if it matters.
   · Header "My Profile" avatar ignores photo_url.
-  · App.tsx comments still say "40 routes" (actual: 35).
+  · Detail/Edit pages (EmployeeDetails, EditEmployee, EditFund, EventDetail,
+    ProjectDetail, Profile, EditProfile, PersonalTransactions) default their id
+    prop to '1' — App.tsx never passes it, so they always show record 1.
+    Fix when wiring real routing/data.
   · Not verified: real browser rendering/visual layout (checked via jsdom
     behavior tests only), mobile/tablet visuals, backend integration.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1.17  TESTING & QUALITY GATES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Commands (run from website/):
+  npm run lint        eslint (0 errors required)
+  npx tsc -b          type-check (must be clean)
+  npm run build       tsc -b + vite build
+  npm test            vitest run — 47 tests, ~20 s (33 page sweeps + 14 others)
+  npm run test:watch  vitest watch mode
+Before delivering any change: tsc -b, lint, build and npm test must all pass.
+A new page needs NO new test — pages.smoke.test.tsx picks it up. If a page
+needs props beyond currentUser/navigate, extend the mount() helper there.
+Tests are not covered by the Vite bundle (not imported by the app).
 
 
 ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
@@ -909,7 +943,6 @@ unifits/website/
 ├── tsconfig.node.json
 ├── vite.config.ts
 ├── eslint.config.js
-├── .env.example
 ├── .gitignore
 ├── README.md
 ├── public/
@@ -921,14 +954,11 @@ unifits/website/
     ├── index.css
     ├── api/
     │   └── mockData.ts
-    ├── assets/
     ├── components/
     │   ├── ui/
     │   │   └── index.tsx
-    │   ├── shared/
-    │   │   └── index.tsx
-    │   ├── KPI/
-    │   │   └── index.tsx
+    │   ├── ErrorBoundary.tsx
+    │   ├── FormWizard.tsx
     │   ├── Header.tsx
     │   ├── Sidebar.tsx
     │   ├── Icons.tsx
@@ -959,19 +989,16 @@ unifits/website/
     │   │   ├── EditEmployee.tsx
     │   │   ├── EmployeeDetails.tsx
     │   │   ├── Employees.tsx
-    │   │   ├── ManageEmployees.tsx
     │   │   └── RolesPage.tsx
     │   ├── events/
     │   │   ├── AddEvent.tsx
     │   │   ├── EditEvent.tsx
     │   │   ├── EventDetail.tsx
-    │   │   ├── Events.tsx
-    │   │   └── ManageEvents.tsx
+    │   │   └── Events.tsx
     │   ├── funds/
     │   │   ├── AddFund.tsx
     │   │   ├── EditFund.tsx
-    │   │   ├── Funds.tsx
-    │   │   └── ManageFunds.tsx
+    │   │   └── Funds.tsx
     │   ├── login/
     │   │   ├── ForgotPassword.tsx
     │   │   ├── Login.tsx
@@ -985,7 +1012,6 @@ unifits/website/
     │   ├── projects/
     │   │   ├── AddProject.tsx
     │   │   ├── EditProject.tsx
-    │   │   ├── ManageProjects.tsx
     │   │   ├── ProjectDetail.tsx
     │   │   └── Projects.tsx
     │   ├── reports/
@@ -1012,8 +1038,15 @@ unifits/website/
     │   ├── transaction.ts
     │   ├── ui.ts
     │   └── user.ts
+    ├── test/
+    │   ├── setup.ts
+    │   ├── pages.smoke.test.tsx
+    │   ├── ErrorBoundary.test.tsx
+    │   ├── App.routing.test.tsx
+    │   └── pages.flows.test.tsx
     └── utils/
         ├── formatters.ts
+        ├── formatters.test.ts
         └── validation.ts
 
 
@@ -1029,8 +1062,10 @@ index.html
 package.json
   Project name (unifits-website), version 1.0.0, Vite scripts
   (dev/build/preview/lint). Runtime deps: react + react-dom only.
+  Scripts: dev, build, preview, lint, test (vitest run), test:watch.
   Dev deps: vite, @vitejs/plugin-react, typescript, @types/react,
-  @types/react-dom, eslint + plugins.
+  @types/react-dom, eslint + plugins, vitest, jsdom,
+  @testing-library/react, @testing-library/dom.
   Include when adding/removing packages or checking dep versions.
 
 tsconfig.json
@@ -1051,20 +1086,16 @@ tsconfig.node.json
   Include only when modifying Vite config in TypeScript.
 
 vite.config.ts
-  Minimal Vite config using @vitejs/plugin-react. No custom aliases,
-  no proxy config. Include when adding path aliases, API proxy, or
-  changing build output directory.
+  Vite + Vitest config (imports defineConfig from 'vitest/config').
+  build.manualChunks splits react/react-dom; test block = jsdom env,
+  setup file src/test/setup.ts, include src/**/*.test.{ts,tsx}.
+  No aliases, no proxy. File uses CRLF line endings — keep them.
+  Include when adding path aliases, API proxy, chunking, or test config.
 
 eslint.config.js
   ESLint flat config (eslint 9 format). Uses @eslint/js, globals,
   eslint-plugin-react-hooks, eslint-plugin-react-refresh.
   Include when adding lint rules or fixing ESLint config errors.
-
-.env.example
-  NOT PRESENT in the provided zip (2026-10-09) — recreate if needed.
-  Template for env vars. Defines VITE_API_URL=http://localhost:5000/api.
-  Copy to .env when connecting real backend. Access in code via
-  import.meta.env.VITE_API_URL. Include when wiring up real API.
 
 .gitignore
   Standard Vite/Node ignore. Excludes node_modules, dist, .env files.
@@ -1111,6 +1142,9 @@ src/App.tsx
   auth guard logic, handleLogin(user: User) / handleLogout(),
   DEFAULT_ORG config object, currentUser: User | null state,
   navigate() helper passed as prop, OrgProvider wrapper, AppLayout wrapper.
+  Pages are React.lazy imports (except Login/ForgotPassword); each page is
+  wrapped in <ErrorBoundary key={hash}> + <Suspense>. Signed-in users on
+  /login or /forgot-password are redirected to /dashboard.
   Include in EVERY prompt involving routing, auth, or adding a page.
 
 src/layouts/AppLayout.tsx
@@ -1149,18 +1183,14 @@ src/components/ui/index.tsx
   All fully typed with explicit prop interfaces.
   Include in EVERY prompt touching any UI component or building a page.
 
-src/components/shared/index.tsx
-  Backward-compatibility shim. Re-exports Button. Exports Modal wrapper.
-  Used only by the orphaned ManageEmployees/Projects/Events/Funds pages.
-  Include when editing any Manage* page that uses shared/Button or Modal.
-
-src/components/KPI/index.tsx
-  KpiGrid component for Manage* pages. KpiMetric interface typed.
-  COLOR_MAP: string color name → hex. KpiGrid + KpiTile components.
-  Include when adding/changing KPI metrics on any Manage page.
-
 src/components/TableUtils.tsx
-  IconBtn, PaginationRow, DeleteWarning — all typed with prop interfaces.
+  IconBtn, PaginationRow, DeleteWarningBanner, DeleteBodyRows, SearchBar,
+  FilterSelect — all typed. Check here BEFORE writing a new table helper.
+
+src/components/FormWizard.tsx
+  StepSidebar, FieldError, StepBanner — shared by all six Add* wizard pages
+  (employees, events, projects, funds, transactions, utilities).
+  Include when changing wizard step UI or inline field errors.
   Include when editing table action buttons or pagination on any page.
 
 src/components/EditEmployeeModal.tsx
@@ -1170,6 +1200,7 @@ src/components/EditEmployeeModal.tsx
 src/components/EditItemModal.tsx
   In-modal edit for Projects OR Events. kind: 'project' | 'event'.
   item typed as Project | Event union.
+  Generic: EditItemModal<T extends Project | AppEvent> — onSave(updated: T).
   Include when editing the inline project or event edit modal.
 
 src/components/ItemDetailContent.tsx
@@ -1205,8 +1236,12 @@ src/hooks/useModal.ts
   Include when adding modals to any page.
 
 src/utils/formatters.ts
-  Shared display formatters — all typed with explicit param/return types.
+  Shared display formatters: parseDate, formatDate, capitalize (+ others).
   Include when working on data display, table cells, or reports.
+
+src/utils/formatters.test.ts
+  Vitest tests for parseDate/formatDate (local-date, no day shift).
+  Include when changing date helpers.
 
 src/utils/validation.ts
   Centralized form validators. All return string ('' = valid, msg = error).
@@ -1327,10 +1362,6 @@ src/pages/employees/Employees.tsx
   Primary employee list. Status-colored rows, row-click modal, edit modal.
   Include when editing the main employee table or row interactions.
 
-src/pages/employees/ManageEmployees.tsx
-  ORPHANED (not routed, not imported). KpiGrid + DataTable manage view.
-  Include only if reviving/deleting the Manage* pages.
-
 src/pages/employees/AddEmployee.tsx — Props: { currentUser?: User | null }
 src/pages/employees/EditEmployee.tsx — Props: { currentUser?: User | null }
 src/pages/employees/EmployeeDetails.tsx — Props: { currentUser?: User | null }
@@ -1350,7 +1381,6 @@ src/pages/employees/Attendance.tsx — Props: none (ignores currentUser)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 src/pages/projects/Projects.tsx       Props: { currentUser?: User | null }
-src/pages/projects/ManageProjects.tsx Props: {}
 src/pages/projects/AddProject.tsx     Props: { currentUser?: User | null }
 src/pages/projects/EditProject.tsx    Props: { currentUser?: User | null }
 src/pages/projects/ProjectDetail.tsx  Props: { currentUser?: User | null }
@@ -1361,7 +1391,6 @@ src/pages/projects/ProjectDetail.tsx  Props: { currentUser?: User | null }
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 src/pages/events/Events.tsx       Props: { currentUser?: User | null }
-src/pages/events/ManageEvents.tsx Props: {}
 src/pages/events/AddEvent.tsx     Props: { currentUser?: User | null }
 src/pages/events/EditEvent.tsx    Props: { currentUser?: User | null }
 src/pages/events/EventDetail.tsx  Props: { currentUser?: User | null }
@@ -1372,7 +1401,6 @@ src/pages/events/EventDetail.tsx  Props: { currentUser?: User | null }
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 src/pages/funds/Funds.tsx       Props: { currentUser?: User | null }
-src/pages/funds/ManageFunds.tsx Props: {}
 src/pages/funds/AddFund.tsx     Props: { currentUser?: User | null }
 src/pages/funds/EditFund.tsx    Props: { currentUser?: User | null }
 
@@ -1396,8 +1424,9 @@ src/pages/announcements/Announcements.tsx  Props: none (ignores currentUser)
   Announcement list/pin/delete, activity tile strip (paginated), calendar,
   upcoming schedule, detail modals. TileItem/ScheduleEntry types add
   kind ('project'|'event') (+ name/date for schedule rows) — required by
-  TileCard, ScheduleItem and the detail modal. Still has ~48 `any` warnings
-  and a local fmt12 duplicate of mockData.fmt12.
+  TileCard, ScheduleItem and the detail modal. TileItem is a discriminated
+  union on kind. No `any`.
+  Uses fmt12 from mockData and parseDate from utils/formatters.
 src/pages/announcements/Calendar.tsx       Props: {}
 
 
@@ -1448,23 +1477,53 @@ src/App.tsx  (3 swap points inside)
   handleLogout() → POST /api/auth/logout
   DEFAULT_ORG    → GET  /api/organizations/me
 
-.env.example → rename to .env
-  Set VITE_API_URL to your backend base URL.
-  Use import.meta.env.VITE_API_URL in fetch calls.
-
 src/context/OrgContext.tsx
   No changes needed — just populate orgData prop in App.tsx from API.
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  CATEGORY 22 — NEVER INCLUDE IN PROMPTS
+  CATEGORY 22 — TESTS & ERROR HANDLING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+src/components/ErrorBoundary.tsx
+  Class error boundary (Props: children, onGoHome?). Shows a role="alert"
+  card with the error message, "Try again" and "Go to Dashboard".
+  Include when changing crash handling or adding logging (SWAP point:
+  componentDidCatch -> logging service).
+
+src/test/setup.ts
+  Vitest global setup: RTL cleanup, clears sessionStorage + hash after each
+  test, stubs scrollTo/print/scrollIntoView for jsdom.
+  Include when a test needs another jsdom stub.
+
+src/test/pages.smoke.test.tsx
+  Auto-discovers every page in src/pages (except login) via import.meta.glob,
+  renders it, then clicks each control (max 60) on a fresh render. Fails on
+  thrown errors, duplicate keys, "Objects are not valid as a React child",
+  uncaught errors. New pages are covered automatically.
+  Include when pages need special props or the sweep must change.
+
+src/test/ErrorBoundary.test.tsx
+  Crash -> panel shown, sidebar still rendered, "Try again" recovers.
+
+src/test/App.routing.test.tsx
+  Signed-out guard, signed-in redirect from /login, lazy page loads.
+  Include when changing auth/routing in App.tsx.
+
+src/test/pages.flows.test.tsx
+  Behavior tests: Funds edit/save (annual_fee number/null), Utilities edit/save,
+  Attendance mark-all + save, Announcements pagination. Add a flow test when
+  changing save/edit logic on a page.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CATEGORY 23 — NEVER INCLUDE IN PROMPTS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 node_modules/       Third-party packages — irrelevant to prompts
 package-lock.json   Auto-generated lock file — never edit manually
 .gitignore          Version control config — not runtime relevant
 README.md           Project documentation — not runtime relevant
-src/assets/         Not present in the provided zip — nothing to include
 dist/               Build output (stale copy ships in the zip) — never include
 
 ================================================================

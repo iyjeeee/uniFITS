@@ -4,6 +4,10 @@ import type { ChangeEvent } from 'react'
 import { Button, Card, Input, PageHeader, SectionDivider, Select, Textarea, ResponseModal } from '../../components/ui'
 import { MOCK_PROJECTS } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
+import type { NavigateFn } from '../../types'
+
+// Edit form — target_funding stays string|number: stored value is a number, the input yields strings
+interface ProjectForm { title: string; project_type: string; description: string; start_date: string; end_date: string; location: string; target_funding: string | number; status: string }
 
 const STATUS_OPTIONS = [
   { value: 'upcoming', label: 'Upcoming' }, { value: 'ongoing',   label: 'Ongoing'   },
@@ -18,23 +22,23 @@ const PROJECT_TYPE_OPTIONS = [
   { value: 'Other',             label: 'Other'             },
 ]
 
-export default function EditProject({ projectId = '1', navigate }: Record<string, any>) {
+export default function EditProject({ projectId = '1', navigate }: { projectId?: string; navigate: NavigateFn }) {
   const org = useOrg()
-  const proj = MOCK_PROJECTS.find((p: any) => p.id === projectId) || MOCK_PROJECTS[0]
+  const proj = MOCK_PROJECTS.find((p) => p.id === projectId) || MOCK_PROJECTS[0]
 
-  const [form, setForm] = useState<Record<string,any>>({
+  const [form, setForm] = useState<ProjectForm>({
     title: proj.title, project_type: proj.project_type || '', description: proj.description || '',
     start_date: proj.start_date, end_date: proj.end_date || '', location: proj.location || '',
     target_funding: proj.target_funding, status: proj.status,
   })
-  const [photo, setPhoto]   = useState<string | null>((proj as any).photo_url || null)
+  const [photo, setPhoto]   = useState<string | null>(proj.photo_url || null)
   const fileRef = useRef<HTMLInputElement | null>(null)
   const [dragging, setDrag] = useState(false)
   const [feedback, setFeedback] = useState(false)  // success confirmation modal visibility
 
   // set — curried field setter
   const set = (k: string) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
-    setForm((f: Record<string,any>) => ({ ...f, [k]: e.target.value }))
+    setForm(f => ({ ...f, [k]: e.target.value }))
 
   function handleFile(file: File | undefined) {
     if (!file) return
@@ -85,7 +89,7 @@ export default function EditProject({ projectId = '1', navigate }: Record<string
             )
           }
         </div>
-        <input ref={fileRef as any} type="file" accept="image/*" style={{ display: 'none' }}
+        <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
           onChange={(e: ChangeEvent<HTMLInputElement>) => handleFile(e.target.files?.[0])} />
         <div style={{ display: 'flex', gap: 8 }}>
           <Button size="sm" onClick={() => (fileRef.current as HTMLInputElement | null)?.click()}>Choose Photo</Button>

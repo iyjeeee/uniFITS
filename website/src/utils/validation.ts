@@ -1,5 +1,6 @@
 // utils/validation.ts — Shared form validation rules and helpers for all Add/Edit pages
 // Keeps all rules centralized: easy to adjust, extend, or fix without touching components
+import { parseDate } from './formatters'
 
 // ValidatorFn — a zero-arg function that returns '' (valid) or an error string
 type ValidatorFn = () => string
@@ -59,7 +60,7 @@ export const isNonZeroAmount = (value: unknown, label = 'Amount'): string => {
 /** isPastOrTodayDate — date must not be in the future (for payment/attendance dates) */
 export const isPastOrTodayDate = (value: unknown, label = 'Date'): string => {
   if (!value) return ''  // optional — combine with required() separately
-  const d = new Date(String(value))
+  const d = parseDate(String(value))
   if (isNaN(d.getTime())) return `${label} is not a valid date.`
   const today = new Date(); today.setHours(23, 59, 59, 999)
   return d > today ? `${label} cannot be in the future.` : ''
@@ -68,7 +69,7 @@ export const isPastOrTodayDate = (value: unknown, label = 'Date'): string => {
 /** isValidDateRange — ensures end date is not before start date */
 export const isValidDateRange = (startDate: unknown, endDate: unknown): string => {
   if (!startDate || !endDate) return ''
-  const s = new Date(String(startDate)), e = new Date(String(endDate))
+  const s = parseDate(String(startDate)), e = parseDate(String(endDate))
   if (isNaN(s.getTime()) || isNaN(e.getTime())) return ''
   return e < s ? 'End date cannot be before the start date.' : ''
 }

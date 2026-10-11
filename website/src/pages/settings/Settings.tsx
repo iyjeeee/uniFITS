@@ -1,6 +1,7 @@
 // Settings.jsx — All 3 sections in one row: System | Labels | Security
 // Responsive: 3-col desktop → 1-col mobile via useBreakpoint
 import { useState } from 'react'
+import type { ReactNode, InputHTMLAttributes, SelectHTMLAttributes } from 'react'
 import { Card, Button, InfoModal, ResponseModal, SectionDivider } from '../../components/ui'
 import { useOrg } from '../../context/OrgContext'
 import useBreakpoint from '../../hooks/useBreakpoint'
@@ -21,7 +22,7 @@ function IcoWarn() {
 }
 
 /* Compact inline input — consistent height, no unnecessary width stretch */
-function CompactInput({ label, hint, ...props }: Record<string, any>) {
+function CompactInput({ label, hint, ...props }: { label?: string; hint?: string } & InputHTMLAttributes<HTMLInputElement>) {
   return (
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 3 }}>
       {label && <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '.04em' }}>{label}</label>}
@@ -43,7 +44,7 @@ function CompactInput({ label, hint, ...props }: Record<string, any>) {
 }
 
 /* Compact select */
-function CompactSelect({ label, options = [], ...props }: Record<string, any>) {
+function CompactSelect({ label, options = [], ...props }: { label?: string; options?: { value: string; label: string }[] } & SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 3 }}>
       {label && <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '.04em' }}>{label}</label>}
@@ -56,14 +57,14 @@ function CompactSelect({ label, options = [], ...props }: Record<string, any>) {
           color: 'var(--text-primary)', background: '#fff',
           outline: 'none', cursor: 'pointer' as const, width: '100%', boxSizing: 'border-box' as const,
         }}>
-        {options.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
     </div>
   )
 }
 
 /* Action button — compact width, centered text, solid color */
-function ActionBtn({ children, variant = 'primary', onClick, icon, danger }: Record<string, any>) {
+function ActionBtn({ children, variant = 'primary', onClick, icon, danger }: { children: ReactNode; variant?: 'primary' | 'secondary'; onClick?: () => void; icon?: ReactNode; danger?: boolean }) {
   const bg     = danger ? 'var(--danger)'  : variant === 'secondary' ? '#5A6474' : 'var(--accent)'
   const border = danger ? 'var(--danger)'  : variant === 'secondary' ? '#4A5264' : 'var(--accent)'
   return (
@@ -85,7 +86,7 @@ export default function Settings() {
   const settingsCols = isMobile || isTablet ? '1fr' : '1fr 1fr 1fr' // 3-col desktop, 1-col mobile
 
   const [systemName, setSystemName] = useState(org.name || 'uniFITS Organization')
-  const [labels, setLabels] = useState<Record<string,any>>({
+  const [labels, setLabels] = useState<Record<string, string>>({
     people_label:      org.people_label,
     project_label:     org.project_label,
     event_label:       org.event_label,
@@ -95,7 +96,7 @@ export default function Settings() {
     attendance_label:  org.attendance_label,
     report_label:      org.report_label,
   })
-  const [security, setSecurity] = useState<Record<string,any>>({
+  const [security, setSecurity] = useState<Record<string, string | number>>({
     max_login_attempts:       5,
     lockout_duration_minutes: 30,
     session_timeout_minutes:  60,
@@ -105,8 +106,8 @@ export default function Settings() {
   const [showWipeModal, setShowWipeModal] = useState(false)
   const [response,      setResponse]      = useState<{variant:string;title:string;message:string} | null>(null)
 
-  const setLabel = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setLabels((l: any) => ({ ...l, [k]: e.target.value }))
-  const setSec = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setSecurity((s: any) => ({ ...s, [k]: e.target.value }))
+  const setLabel = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setLabels((l) => ({ ...l, [k]: e.target.value }))
+  const setSec = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setSecurity((s) => ({ ...s, [k]: e.target.value }))
 
   const showOK = (title: string, message: string) => setResponse({ variant: 'success', title, message })
   const showWarn = (title: string, message: string) => setResponse({ variant: 'warning', title, message })

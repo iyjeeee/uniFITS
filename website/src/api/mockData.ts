@@ -6,6 +6,7 @@ import type {
   Fund, Transaction, Utility, PaymentMethodOption,
   Attendance, AuditLog, BackupJob,
 } from '../types'
+import { parseDate } from '../utils/formatters'
 
 // ── Helper formatters ─────────────────────────────────────────────────────────
 // NOTE: prefer utils/formatters.ts for new code.
@@ -21,7 +22,7 @@ export function formatCurrency(amount: number, symbol = '₱'): string {
 export function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return '—'
   try {
-    return new Date(dateStr).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })
+    return parseDate(dateStr).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })
   } catch { return dateStr }
 }
 

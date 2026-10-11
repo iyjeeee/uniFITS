@@ -4,10 +4,10 @@ import { Avatar, Badge, Button, Card, CardHeader, PageHeader, StatusBadge } from
 import { MOCK_USERS, MOCK_ATTENDANCES, formatDate } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 
-export default function EmployeeDetails({ userId = '1' }: Record<string, any>) {
+export default function EmployeeDetails({ userId = '1' }: { userId?: string }) {
   const org  = useOrg()
-  const user = MOCK_USERS.find((u: any) => u.id === userId) || MOCK_USERS[0]
-  const userAttendance = MOCK_ATTENDANCES.filter((a: any) => a.user_name === user.full_name)
+  const user = MOCK_USERS.find((u) => u.id === userId) || MOCK_USERS[0]
+  const userAttendance = MOCK_ATTENDANCES.filter((a) => a.user_name === user.full_name)
   const [tab, setTab] = useState('info') // info | attendance
 
   const tabs = ['info', 'attendance']
@@ -40,7 +40,7 @@ export default function EmployeeDetails({ userId = '1' }: Record<string, any>) {
 
       {/* Tab navigation */}
       <div style={{ display: 'flex' as const, gap: 4, borderBottom: '2px solid var(--border)', paddingBottom: 0 }}>
-        {tabs.map((t: any) => (
+        {tabs.map((t) => (
           <button key={t} onClick={() => setTab(t)} style={{
             padding: '8px 18px', background: 'none', border: 'none', cursor: 'pointer' as const,
             fontSize: 14, fontWeight: tab === t ? 600 : 400, fontFamily: 'var(--font-body)',
@@ -77,7 +77,7 @@ export default function EmployeeDetails({ userId = '1' }: Record<string, any>) {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5 }}>
               <thead>
                 <tr style={{ background: 'var(--neutral-light)' }}>
-                  {['Activity Type','Activity','Date','Status','Remarks'].map((h: any) => (
+                  {['Activity Type','Activity','Date','Status','Remarks'].map((h) => (
                     <th key={h} style={th}>{h}</th>
                   ))}
                 </tr>
@@ -85,7 +85,7 @@ export default function EmployeeDetails({ userId = '1' }: Record<string, any>) {
               <tbody>
                 {userAttendance.length === 0
                   ? <tr><td colSpan={5} style={{ padding: '32px', textAlign: 'center' as const, color: 'var(--text-muted)' }}>No attendance records found.</td></tr>
-                  : userAttendance.map((a: any) => (
+                  : userAttendance.map((a) => (
                       <tr key={a.id} style={{ borderBottom: '1px solid var(--border)' }}>
                         <td style={td}><Badge variant={a.activity_type === 'event' ? 'success' : 'accent'}>{a.activity_type}</Badge></td>
                         <td style={td}>{a.activity}</td>

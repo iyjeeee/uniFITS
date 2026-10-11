@@ -20,6 +20,7 @@ export interface Transaction {
   transaction_date: string    // 'YYYY-MM-DD'
   status: TransactionStatus
   description: string
+  notes?: string | null       // optional free-text note (not in mock data yet)
 }
 
 // Utility — matches MOCK_UTILITIES + backend utilities table (org expenses)

@@ -1,10 +1,12 @@
 // EmployeeReport.jsx — Per-member report; header row with title + Export PDF + Print buttons
 // Responsive via useBreakpoint — sidebar collapses on mobile
 import { useState } from 'react'
+import type { ReactNode } from 'react'
 import { StatusBadge, Avatar, Card, InfoModal, ResponseModal } from '../../components/ui'
 import { MOCK_USERS, MOCK_TRANSACTIONS, formatCurrency, formatDate } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 import useBreakpoint from '../../hooks/useBreakpoint'
+import type { User } from '../../types'
 
 function IcoExport() {
   return (
@@ -35,12 +37,12 @@ function IcoPrint() {
 }
 
 /* Solid-color action button */
-function ActionBtn({ children, icon, onClick, variant = 'primary' }: Record<string, any>) {
-  const styles = {
+function ActionBtn({ children, icon, onClick, variant = 'primary' }: { children: ReactNode; icon?: ReactNode; onClick: () => void; variant?: 'primary' | 'secondary' }) {
+  const styles: Record<'primary' | 'secondary', { bg: string; border: string; color: string }> = {
     primary:   { bg: 'var(--accent)',  border: 'var(--accent)',      color: '#fff' },
     secondary: { bg: '#5A6474',        border: '#5A6474',            color: '#fff' },
   }
-  const s = (styles as Record<string,any>)[variant] || styles.primary
+  const s = styles[variant] || styles.primary
   return (
     <button onClick={onClick} style={{
       display: 'flex' as const, alignItems: 'center', justifyContent: 'center', gap: 6,
@@ -55,7 +57,7 @@ function ActionBtn({ children, icon, onClick, variant = 'primary' }: Record<stri
 }
 
 /* ── EmpRow — reusable employee row inside All Employees modal ─── */
-function EmpRow({ u }: Record<string, any>) {
+function EmpRow({ u }: { u: User }) {
   return (
     <div style={{ display: 'flex' as const, alignItems: 'center', gap: 12, padding: '9px 14px', borderRadius: 10, background: 'var(--neutral-light)', border: '1px solid var(--border-card)', marginBottom: 5 }}>
       <Avatar name={u.full_name} size={32} />
@@ -79,10 +81,10 @@ export default function EmployeeReport() {
   const [showAllList,  setShowAllList] = useState(false)
   const [listPage,     setListPage]   = useState(1)
   const LIST_PAGE_SIZE = 8
-  const officers = MOCK_USERS.filter((u: any) => u.role !== 'Member')
-  const members  = MOCK_USERS.filter((u: any) => u.role === 'Member')
+  const officers = MOCK_USERS.filter((u) => u.role !== 'Member')
+  const members  = MOCK_USERS.filter((u) => u.role === 'Member')
   const listTotalPages = Math.max(1, Math.ceil(MOCK_USERS.length / LIST_PAGE_SIZE))
-  const myTx     = MOCK_TRANSACTIONS.filter((t: any) => t.user_id === selected?.id).slice(0, 6)
+  const myTx     = MOCK_TRANSACTIONS.filter((t) => t.user_id === selected?.id).slice(0, 6)
 
   return (
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 14 }}>
@@ -123,7 +125,7 @@ export default function EmployeeReport() {
                 <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase' as const, color: 'var(--text-muted)', padding: '8px 14px 4px' }}>
                   {label}
                 </div>
-                {list.map((u: any) => (
+                {list.map((u) => (
                   <button
                     key={u.id}
                     onClick={() => setSelected(u)}
@@ -195,7 +197,7 @@ export default function EmployeeReport() {
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
                       <tr style={{ background: 'var(--table-head-bg)' }}>
-                        {['Reference', 'Amount', 'Category', 'Method', 'Status', 'Date'].map((h: any) => (
+                        {['Reference', 'Amount', 'Category', 'Method', 'Status', 'Date'].map((h) => (
                           <th key={h} style={{ padding: '8px 12px', textAlign: 'left' as const, fontSize: 11, fontWeight: 600, color: 'var(--table-head-fg)', textTransform: 'uppercase' as const, letterSpacing: '.05em', borderBottom: '2px solid var(--border-table)' }}>
                             {h}
                           </th>
@@ -203,7 +205,7 @@ export default function EmployeeReport() {
                       </tr>
                     </thead>
                     <tbody>
-                      {myTx.map((t: any) => (
+                      {myTx.map((t) => (
                         <tr key={t.id} style={{ borderBottom: '1px solid var(--border-inner)' }}>
                           <td style={{ padding: '9px 12px' }}><code style={{ fontSize: 11 }}>{t.reference_number}</code></td>
                           <td style={{ padding: '9px 12px', fontWeight: 700, color: 'var(--success)' }}>{formatCurrency(t.amount, org.currency_symbol)}</td>
@@ -241,13 +243,13 @@ export default function EmployeeReport() {
                   <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{officers.length} total</span>
                 </div>
                 {/* Officers paginated via listPage */}
-                {officers.slice((listPage-1)*LIST_PAGE_SIZE, listPage*LIST_PAGE_SIZE).map((u: any) => (
+                {officers.slice((listPage-1)*LIST_PAGE_SIZE, listPage*LIST_PAGE_SIZE).map((u) => (
                   <EmpRow key={u.id} u={u} />
                 ))}
                 {/* Officers pagination */}
                 {Math.ceil(officers.length / LIST_PAGE_SIZE) > 1 && (
                   <div style={{ display: 'flex' as const, justifyContent: 'center', gap: 4, marginTop: 10 }}>
-                    {Array.from({ length: Math.ceil(officers.length / LIST_PAGE_SIZE) }, (_, i) => i + 1).map((p: any) => (
+                    {Array.from({ length: Math.ceil(officers.length / LIST_PAGE_SIZE) }, (_, i) => i + 1).map((p) => (
                       <button key={p} onClick={() => setListPage(p)} style={{ width: 28, height: 28, borderRadius: 6, border: '1.5px solid var(--border-card)', background: p === listPage ? 'var(--accent)' : '#fff', color: p === listPage ? '#fff' : 'var(--text-primary)', cursor: 'pointer' as const, fontSize: 11, fontWeight: p === listPage ? 700 : 400 }}>{p}</button>
                     ))}
                   </div>
@@ -261,13 +263,13 @@ export default function EmployeeReport() {
                   <span style={{ padding: '3px 12px', borderRadius: 20, background: '#5A6474', color: '#fff', fontSize: 11.5, fontWeight: 700 }}>Employees</span>
                   <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{members.length} total</span>
                 </div>
-                {members.slice((listPage-1)*LIST_PAGE_SIZE, listPage*LIST_PAGE_SIZE).map((u: any) => (
+                {members.slice((listPage-1)*LIST_PAGE_SIZE, listPage*LIST_PAGE_SIZE).map((u) => (
                   <EmpRow key={u.id} u={u} />
                 ))}
                 {/* Employees pagination */}
                 {Math.ceil(members.length / LIST_PAGE_SIZE) > 1 && (
                   <div style={{ display: 'flex' as const, justifyContent: 'center', gap: 4, marginTop: 10 }}>
-                    {Array.from({ length: Math.ceil(members.length / LIST_PAGE_SIZE) }, (_, i) => i + 1).map((p: any) => (
+                    {Array.from({ length: Math.ceil(members.length / LIST_PAGE_SIZE) }, (_, i) => i + 1).map((p) => (
                       <button key={p} onClick={() => setListPage(p)} style={{ width: 28, height: 28, borderRadius: 6, border: '1.5px solid var(--border-card)', background: p === listPage ? 'var(--accent)' : '#fff', color: p === listPage ? '#fff' : 'var(--text-primary)', cursor: 'pointer' as const, fontSize: 11, fontWeight: p === listPage ? 700 : 400 }}>{p}</button>
                     ))}
                   </div>

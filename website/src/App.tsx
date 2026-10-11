@@ -1,52 +1,53 @@
 // App.tsx — Root component: hash-based router + auth guard + OrgProvider wrapper
 // Uses zero external routing libraries — all navigation via window.location.hash
-// MIGRATION NOTE: converted from App.jsx — all 40 routes unchanged, props now typed
-import { useState, useEffect } from 'react'
-import type { ComponentType } from 'react'
+// MIGRATION NOTE: converted from App.jsx — all routes unchanged, props now typed
+import { useState, useEffect, lazy, Suspense } from 'react'
+import type { ComponentType, LazyExoticComponent } from 'react'
 import AppLayout from './layouts/AppLayout'
 import { OrgProvider } from './context/OrgContext'
+import ErrorBoundary from './components/ErrorBoundary'
 import type { User, OrgConfig, NavigateFn } from './types'
 
-// ── Page imports — all 40 routes ─────────────────────────────────────────────
+// ── Page imports — all 35 routes (Login/ForgotPassword eager, the rest code-split via lazy) ─────────────────────────────────────────────
 import Login               from './pages/login/Login'
 import ForgotPassword      from './pages/login/ForgotPassword'
-import Dashboard           from './pages/dashboard/Dashboard'
-import Announcements       from './pages/announcements/Announcements'
-import Calendar            from './pages/announcements/Calendar'
-import Employees           from './pages/employees/Employees'
-import AddEmployee         from './pages/employees/AddEmployee'
-import EditEmployee        from './pages/employees/EditEmployee'
-import EmployeeDetails     from './pages/employees/EmployeeDetails'
-import RolesPage           from './pages/employees/RolesPage'
-import Attendance          from './pages/employees/Attendance'
-import Projects            from './pages/projects/Projects'
-import AddProject          from './pages/projects/AddProject'
-import EditProject         from './pages/projects/EditProject'
-import ProjectDetail       from './pages/projects/ProjectDetail'
-import Events              from './pages/events/Events'
-import AddEvent            from './pages/events/AddEvent'
-import EditEvent           from './pages/events/EditEvent'
-import EventDetail         from './pages/events/EventDetail'
-import Funds               from './pages/funds/Funds'
-import AddFund             from './pages/funds/AddFund'
-import EditFund            from './pages/funds/EditFund'
-import Transactions        from './pages/transactions/Transactions'
-import AddTransaction      from './pages/transactions/AddTransaction'
-import AddUtility          from './pages/transactions/AddUtility'
-import Utilities           from './pages/transactions/Utilities'
-import Profile             from './pages/profile/Profile'
-import EditProfile         from './pages/profile/EditProfile'
-import PersonalTransactions from './pages/profile/PersonalTransactions'
-import EmployeeReport      from './pages/reports/EmployeeReport'
-import FundReport          from './pages/reports/FundReport'
-import ClubReport          from './pages/reports/ClubReport'
-import AuditLogs           from './pages/audit/AuditLogs'
-import Settings            from './pages/settings/Settings'
-import Backup              from './pages/settings/Backup'
+const Dashboard            = lazy(() => import('./pages/dashboard/Dashboard'))
+const Announcements        = lazy(() => import('./pages/announcements/Announcements'))
+const Calendar             = lazy(() => import('./pages/announcements/Calendar'))
+const Employees            = lazy(() => import('./pages/employees/Employees'))
+const AddEmployee          = lazy(() => import('./pages/employees/AddEmployee'))
+const EditEmployee         = lazy(() => import('./pages/employees/EditEmployee'))
+const EmployeeDetails      = lazy(() => import('./pages/employees/EmployeeDetails'))
+const RolesPage            = lazy(() => import('./pages/employees/RolesPage'))
+const Attendance           = lazy(() => import('./pages/employees/Attendance'))
+const Projects             = lazy(() => import('./pages/projects/Projects'))
+const AddProject           = lazy(() => import('./pages/projects/AddProject'))
+const EditProject          = lazy(() => import('./pages/projects/EditProject'))
+const ProjectDetail        = lazy(() => import('./pages/projects/ProjectDetail'))
+const Events               = lazy(() => import('./pages/events/Events'))
+const AddEvent             = lazy(() => import('./pages/events/AddEvent'))
+const EditEvent            = lazy(() => import('./pages/events/EditEvent'))
+const EventDetail          = lazy(() => import('./pages/events/EventDetail'))
+const Funds                = lazy(() => import('./pages/funds/Funds'))
+const AddFund              = lazy(() => import('./pages/funds/AddFund'))
+const EditFund             = lazy(() => import('./pages/funds/EditFund'))
+const Transactions         = lazy(() => import('./pages/transactions/Transactions'))
+const AddTransaction       = lazy(() => import('./pages/transactions/AddTransaction'))
+const AddUtility           = lazy(() => import('./pages/transactions/AddUtility'))
+const Utilities            = lazy(() => import('./pages/transactions/Utilities'))
+const Profile              = lazy(() => import('./pages/profile/Profile'))
+const EditProfile          = lazy(() => import('./pages/profile/EditProfile'))
+const PersonalTransactions = lazy(() => import('./pages/profile/PersonalTransactions'))
+const EmployeeReport       = lazy(() => import('./pages/reports/EmployeeReport'))
+const FundReport           = lazy(() => import('./pages/reports/FundReport'))
+const ClubReport           = lazy(() => import('./pages/reports/ClubReport'))
+const AuditLogs            = lazy(() => import('./pages/audit/AuditLogs'))
+const Settings             = lazy(() => import('./pages/settings/Settings'))
+const Backup               = lazy(() => import('./pages/settings/Backup'))
 
-// ── Page component prop shape — all authenticated pages accept these ───────────
+// ── Route table holds pages with different prop shapes (currentUser, userId, onLogin…) — the one intentional `any` ──
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type PageComponent = ComponentType<any>
+type PageComponent = ComponentType<any> | LazyExoticComponent<ComponentType<any>>
 
 // RouteConfig — shape of each entry in the ROUTES map
 interface RouteConfig {
@@ -173,6 +174,12 @@ export default function App() {
   const route = ROUTES[hash] ?? ROUTES['/dashboard']
   const { Component, page = 'Dashboard', sub, auth = true } = route
 
+  // Signed-in user on a public route (/login, /forgot-password) — redirect to dashboard
+  useEffect(() => {
+    if (authed && !auth) window.location.hash = '/dashboard'
+  }, [authed, auth])
+  if (authed && !auth) return null
+
   // Unauthenticated or explicitly public route — render without AppLayout
   if (!authed || !auth) {
     if (hash === '/forgot-password') {
@@ -184,7 +191,11 @@ export default function App() {
   return (
     <OrgProvider orgData={DEFAULT_ORG}>
       <AppLayout page={page} sub={sub} navigate={navigate} currentUser={currentUser} onLogout={handleLogout}>
-        <Component currentUser={currentUser} navigate={navigate} />
+        <ErrorBoundary key={hash} onGoHome={() => navigate('/dashboard')}>
+          <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13.5 }}>Loading…</div>}>
+            <Component currentUser={currentUser} navigate={navigate} />
+          </Suspense>
+        </ErrorBoundary>
       </AppLayout>
     </OrgProvider>
   )

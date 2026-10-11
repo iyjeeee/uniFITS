@@ -1,11 +1,15 @@
 // AddTransaction.jsx — 3-col layout: StepSidebar | Form | Live Preview
 // Validation: per-step validation blocks Continue; shows inline field errors
 import { useState } from 'react'
+import type { ReactNode } from 'react'
 import { Button, Card, Input, SectionDivider, Select, Textarea, ResponseModal } from '../../components/ui'
 import { MOCK_USERS, MOCK_FUNDS, MOCK_PROJECTS, MOCK_EVENTS, MOCK_PAYMENT_METHODS } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 import useBreakpoint from '../../hooks/useBreakpoint'
 import { required, isNonZeroAmount, validateStep } from '../../utils/validation'
+import { StepSidebar, FieldError, StepBanner } from '../../components/FormWizard'
+import { capitalize } from '../../utils/formatters'
+import type { OrgConfig } from '../../types'
 
 /* ── SVG icons for ToggleCards ───────────────────────────────────── */
 const IcoMember  = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -26,27 +30,8 @@ const IcoUtility = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="n
 
 const STEPS = ['Source', 'Payment', 'Entry Type', 'Category', 'Amount', 'Review']
 
-/* ── StepSidebar ─────────────────────────────────────────────────── */
-function StepSidebar({ steps, current }: Record<string, any>) {
-  return (
-    <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 4 }}>
-      {steps.map((label: string, i: number) => {
-        const done = i < current, active = i === current
-        return (
-          <div key={i} style={{ display: 'flex' as const, alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 9, background: active ? 'var(--accent-light)' : done ? 'var(--success-light)' : 'transparent', border: '1.5px solid ' + (active ? 'rgba(75,94,170,.3)' : done ? 'rgba(46,125,82,.2)' : 'var(--border-card)') }}>
-            <div style={{ width: 26, height: 26, borderRadius: '50%', background: done ? '#2E7D52' : active ? 'var(--accent)' : 'var(--border-card)', color: done || active ? '#fff' : 'var(--text-muted)', display: 'flex' as const, alignItems: 'center', justifyContent: 'center', fontSize: 11.5, fontWeight: 700, flexShrink: 0 }}>
-              {done ? '✓' : i + 1}
-            </div>
-            <span style={{ fontSize: 13, fontWeight: active ? 700 : done ? 600 : 400, color: active ? 'var(--accent)' : done ? 'var(--success)' : 'var(--text-muted)' }}>{label}</span>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
 /* ── ToggleCard — card-style selection button used in all choice steps ── */
-function ToggleCard({ label, sublabel, icon, value, current, onClick, hasError }: Record<string, any>) {
+function ToggleCard({ label, sublabel, icon, value, current, onClick, hasError }: { label: string; sublabel?: string; icon: ReactNode; value: string; current: string; onClick: (value: string) => void; hasError?: boolean }) {
   const active = current === value
   return (
     <button
@@ -65,52 +50,20 @@ function ToggleCard({ label, sublabel, icon, value, current, onClick, hasError }
   )
 }
 
-/* ── FieldError — inline error message ───────────────────────────── */
-function FieldError({ msg }: Record<string, any>) {
-  if (!msg) return null
-  return (
-    <div style={{ display: 'flex' as const, alignItems: 'center', gap: 5, marginTop: 3, fontSize: 12, color: 'var(--danger)', fontWeight: 500 }} role="alert">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-      </svg>
-      {msg}
-    </div>
-  )
-}
-
-/* ── StepBanner — error summary banner ───────────────────────────── */
-function StepBanner({ errors }: Record<string, any>) {
-  const msgs = Object.values(errors as Record<string,string>).filter(Boolean)
-  if (!msgs.length) return null
-  return (
-    <div style={{ display: 'flex' as const, alignItems: 'flex-start', gap: 10, padding: '12px 14px', borderRadius: 9, background: '#fff5f5', border: '1.5px solid rgba(192,57,43,.3)', marginBottom: 16 }} role="alert">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
-        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-      </svg>
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--danger)', marginBottom: 4 }}>Please fix the following before continuing:</div>
-        {msgs.map((m, i) => <div key={i} style={{ fontSize: 12.5, color: 'var(--danger)', lineHeight: 1.5 }}>• {m}</div>)}
-      </div>
-    </div>
-  )
-}
-
 /* ── LivePreview — right panel showing current form values ─────── */
-function LivePreview({ form, org }: Record<string, any>) {
-  const cap = (s: any): string => s ? s.charAt(0).toUpperCase() + s.slice(1) : '—'
-  const selectedUser   = MOCK_USERS.find((u: any) => u.id === form.user_id)
-  const selectedMethod = MOCK_PAYMENT_METHODS.find((m: any) => m.id === form.payment_method_id)
-  const selectedFund   = MOCK_FUNDS.find((f: any) => f.id === form.fund_id)
+function LivePreview({ form, org }: { form: Record<string, string>; org: OrgConfig }) {
+  const selectedUser   = MOCK_USERS.find((u) => u.id === form.user_id)
+  const selectedMethod = MOCK_PAYMENT_METHODS.find((m) => m.id === form.payment_method_id)
+  const selectedFund   = MOCK_FUNDS.find((f) => f.id === form.fund_id)
   return (
     <div>
       <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '.07em', marginBottom: 14 }}>Live Preview</div>
       {[
-        ['Source',          cap(form.source)],
+        ['Source',          capitalize(form.source)],
         ['Member / Person', selectedUser?.full_name    || '—'],
         ['Payment Method',  selectedMethod?.name       || '—'],
-        ['Entry Type',      cap(form.entry_type)],
-        ['Category',        cap(form.category)],
+        ['Entry Type',      capitalize(form.entry_type)],
+        ['Category',        capitalize(form.category)],
         ['Fund',            selectedFund?.name         || '—'],
         ['Amount',          form.amount ? `${org.currency_symbol}${form.amount}` : '—'],
         ['Notes',           form.notes || '—'],
@@ -131,20 +84,20 @@ export default function AddTransaction() {
   const org = useOrg()
   const { isMobile } = useBreakpoint()
   const [step, setStep] = useState(0)
-  const [form, setForm] = useState<Record<string,any>>({
+  const [form, setForm] = useState<Record<string, string>>({
     source: '', user_id: '', payment_method_id: '',
     entry_type: '', category: '', activity_id: '',
     fund_id: '', amount: '', notes: '',
   })
   const [errors, setErrors] = useState<Record<string,string>>({})
   const [feedback, setFeedback] = useState(false)  // success confirmation modal visibility
-  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => { setForm((f: any) => ({ ...f, [k]: e.target.value })); clearErr(k) }
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => { setForm((f) => ({ ...f, [k]: e.target.value })); clearErr(k) }
   const clearErr = (k: string) => setErrors(p => { const n = { ...p }; delete n[k]; return n })
 
-  const userOptions    = MOCK_USERS.map((u: any) => ({ value: u.id, label: u.full_name }))
-  const fundOptions    = MOCK_FUNDS.map((f: any) => ({ value: f.id, label: f.name }))
-  const projectOptions = MOCK_PROJECTS.map((p: any) => ({ value: p.id, label: p.title }))
-  const eventOptions   = MOCK_EVENTS.map((e: any) => ({ value: e.id, label: e.title }))
+  const userOptions    = MOCK_USERS.map((u) => ({ value: u.id, label: u.full_name }))
+  const fundOptions    = MOCK_FUNDS.map((f) => ({ value: f.id, label: f.name }))
+  const projectOptions = MOCK_PROJECTS.map((p) => ({ value: p.id, label: p.title }))
+  const eventOptions   = MOCK_EVENTS.map((e) => ({ value: e.id, label: e.title }))
   const activityOptions = form.category === 'project' ? projectOptions
                         : form.category === 'event'   ? eventOptions : []
 
@@ -205,9 +158,9 @@ export default function AddTransaction() {
             <SectionDivider label="Transaction Source" />
             <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-muted)' }}>Who is this transaction from?</p>
             <div style={{ display: 'flex' as const, gap: 10, flexWrap: 'wrap' }}>
-              <ToggleCard icon={<IcoMember />}  label={org.people_label}  sublabel="Regular member contribution"  value="member"   current={form.source} hasError={!!errors.source} onClick={(v: any) => { setForm(f => ({ ...f, source: v, user_id: '' })); clearErr('source') }} />
-              <ToggleCard icon={<IcoOfficer />} label="Officer"            sublabel="Officer or admin transaction" value="officer"  current={form.source} hasError={!!errors.source} onClick={(v: any) => { setForm(f => ({ ...f, source: v, user_id: '' })); clearErr('source') }} />
-              <ToggleCard icon={<IcoGlobe />}   label="External / Sponsor" sublabel="Outside donor or sponsor"    value="external" current={form.source} hasError={!!errors.source} onClick={(v: any) => { setForm(f => ({ ...f, source: v, user_id: '' })); clearErr('source') }} />
+              <ToggleCard icon={<IcoMember />}  label={org.people_label}  sublabel="Regular member contribution"  value="member"   current={form.source} hasError={!!errors.source} onClick={(v) => { setForm(f => ({ ...f, source: v, user_id: '' })); clearErr('source') }} />
+              <ToggleCard icon={<IcoOfficer />} label="Officer"            sublabel="Officer or admin transaction" value="officer"  current={form.source} hasError={!!errors.source} onClick={(v) => { setForm(f => ({ ...f, source: v, user_id: '' })); clearErr('source') }} />
+              <ToggleCard icon={<IcoGlobe />}   label="External / Sponsor" sublabel="Outside donor or sponsor"    value="external" current={form.source} hasError={!!errors.source} onClick={(v) => { setForm(f => ({ ...f, source: v, user_id: '' })); clearErr('source') }} />
             </div>
             <FieldError msg={errors.source} />
             {(form.source === 'member' || form.source === 'officer') && (
@@ -225,11 +178,11 @@ export default function AddTransaction() {
             <SectionDivider label="Payment Method" />
             <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-muted)' }}>How was this payment made?</p>
             <div style={{ display: 'grid' as const, gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
-              {MOCK_PAYMENT_METHODS.map((m: any) => {
-                const icons = { 'Cash': <IcoCash />, 'GCash': <IcoPhone />, 'Bank Transfer': <IcoBank />, 'PayMaya': <IcoCard />, 'Cheque': <IcoCheque /> }
-                const subs  = { 'Cash': 'Physical cash handover', 'GCash': 'GCash mobile wallet', 'Bank Transfer': 'Direct bank deposit', 'PayMaya': 'PayMaya e-wallet', 'Cheque': 'Cheque payment' }
+              {MOCK_PAYMENT_METHODS.map((m) => {
+                const icons: Record<string, ReactNode> = { 'Cash': <IcoCash />, 'GCash': <IcoPhone />, 'Bank Transfer': <IcoBank />, 'PayMaya': <IcoCard />, 'Cheque': <IcoCheque /> }
+                const subs: Record<string, string> = { 'Cash': 'Physical cash handover', 'GCash': 'GCash mobile wallet', 'Bank Transfer': 'Direct bank deposit', 'PayMaya': 'PayMaya e-wallet', 'Cheque': 'Cheque payment' }
                 return (
-                  <ToggleCard key={m.id} icon={(icons as Record<string,any>)[m.name] || <IcoCard />} label={m.name} sublabel={(subs as Record<string,string>)[m.name] || ''} value={m.id} current={form.payment_method_id} hasError={!!errors.payment_method_id} onClick={(v: any) => { setForm(f => ({ ...f, payment_method_id: v })); clearErr('payment_method_id') }} />
+                  <ToggleCard key={m.id} icon={icons[m.name] || <IcoCard />} label={m.name} sublabel={subs[m.name] || ''} value={m.id} current={form.payment_method_id} hasError={!!errors.payment_method_id} onClick={(v) => { setForm(f => ({ ...f, payment_method_id: v })); clearErr('payment_method_id') }} />
                 )
               })}
             </div>
@@ -243,9 +196,9 @@ export default function AddTransaction() {
             <SectionDivider label="Entry Type" />
             <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-muted)' }}>What type of financial entry is this?</p>
             <div style={{ display: 'flex' as const, gap: 10, flexWrap: 'wrap' }}>
-              <ToggleCard icon={<IcoContrib />} label="Contribution" sublabel="Member paying into a fund"    value="contribution" current={form.entry_type} hasError={!!errors.entry_type} onClick={(v: any) => { setForm(f => ({ ...f, entry_type: v })); clearErr('entry_type') }} />
-              <ToggleCard icon={<IcoIncome  />} label="Income"       sublabel="External money received"      value="income"       current={form.entry_type} hasError={!!errors.entry_type} onClick={(v: any) => { setForm(f => ({ ...f, entry_type: v })); clearErr('entry_type') }} />
-              <ToggleCard icon={<IcoExpense />} label="Expense"      sublabel="Money paid out or spent"      value="expense"      current={form.entry_type} hasError={!!errors.entry_type} onClick={(v: any) => { setForm(f => ({ ...f, entry_type: v })); clearErr('entry_type') }} />
+              <ToggleCard icon={<IcoContrib />} label="Contribution" sublabel="Member paying into a fund"    value="contribution" current={form.entry_type} hasError={!!errors.entry_type} onClick={(v) => { setForm(f => ({ ...f, entry_type: v })); clearErr('entry_type') }} />
+              <ToggleCard icon={<IcoIncome  />} label="Income"       sublabel="External money received"      value="income"       current={form.entry_type} hasError={!!errors.entry_type} onClick={(v) => { setForm(f => ({ ...f, entry_type: v })); clearErr('entry_type') }} />
+              <ToggleCard icon={<IcoExpense />} label="Expense"      sublabel="Money paid out or spent"      value="expense"      current={form.entry_type} hasError={!!errors.entry_type} onClick={(v) => { setForm(f => ({ ...f, entry_type: v })); clearErr('entry_type') }} />
             </div>
             <FieldError msg={errors.entry_type} />
           </div>
@@ -257,10 +210,10 @@ export default function AddTransaction() {
             <SectionDivider label="Category & Activity" />
             <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-muted)' }}>What does this transaction belong to?</p>
             <div style={{ display: 'grid' as const, gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
-              <ToggleCard icon={<IcoFund />}    label={`${org.fund_label}`}                   sublabel="Fund or wallet transaction"   value="fund"    current={form.category} hasError={!!errors.category} onClick={(v: any) => { setForm(f => ({ ...f, category: v, activity_id: '', fund_id: '' })); clearErr('category') }} />
-              <ToggleCard icon={<IcoProject />} label={`${org.project_label}`}                sublabel="Project-related transaction"  value="project" current={form.category} hasError={!!errors.category} onClick={(v: any) => { setForm(f => ({ ...f, category: v, activity_id: '', fund_id: '' })); clearErr('category') }} />
-              <ToggleCard icon={<IcoEvent />}   label={`${org.event_label}`}                  sublabel="Event-related transaction"    value="event"   current={form.category} hasError={!!errors.category} onClick={(v: any) => { setForm(f => ({ ...f, category: v, activity_id: '', fund_id: '' })); clearErr('category') }} />
-              <ToggleCard icon={<IcoUtility />} label={`${org.utility_label || 'Utility'}`}  sublabel="Operational expense"          value="utility" current={form.category} hasError={!!errors.category} onClick={(v: any) => { setForm(f => ({ ...f, category: v, activity_id: '', fund_id: '' })); clearErr('category') }} />
+              <ToggleCard icon={<IcoFund />}    label={`${org.fund_label}`}                   sublabel="Fund or wallet transaction"   value="fund"    current={form.category} hasError={!!errors.category} onClick={(v) => { setForm(f => ({ ...f, category: v, activity_id: '', fund_id: '' })); clearErr('category') }} />
+              <ToggleCard icon={<IcoProject />} label={`${org.project_label}`}                sublabel="Project-related transaction"  value="project" current={form.category} hasError={!!errors.category} onClick={(v) => { setForm(f => ({ ...f, category: v, activity_id: '', fund_id: '' })); clearErr('category') }} />
+              <ToggleCard icon={<IcoEvent />}   label={`${org.event_label}`}                  sublabel="Event-related transaction"    value="event"   current={form.category} hasError={!!errors.category} onClick={(v) => { setForm(f => ({ ...f, category: v, activity_id: '', fund_id: '' })); clearErr('category') }} />
+              <ToggleCard icon={<IcoUtility />} label={`${org.utility_label || 'Utility'}`}  sublabel="Operational expense"          value="utility" current={form.category} hasError={!!errors.category} onClick={(v) => { setForm(f => ({ ...f, category: v, activity_id: '', fund_id: '' })); clearErr('category') }} />
             </div>
             <FieldError msg={errors.category} />
             {/* Secondary selectors with validation feedback */}
@@ -296,16 +249,15 @@ export default function AddTransaction() {
           <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 10 }}>
             <SectionDivider label="Review Transaction" />
             {(() => {
-              const selectedMethod = MOCK_PAYMENT_METHODS.find((m: any) => m.id === form.payment_method_id)
-              const selectedUser   = MOCK_USERS.find((u: any) => u.id === form.user_id)
-              const selectedFund   = MOCK_FUNDS.find((f: any) => f.id === form.fund_id)
-              const cap = (s: any): string => s ? s.charAt(0).toUpperCase() + s.slice(1) : '—'
+              const selectedMethod = MOCK_PAYMENT_METHODS.find((m) => m.id === form.payment_method_id)
+              const selectedUser   = MOCK_USERS.find((u) => u.id === form.user_id)
+              const selectedFund   = MOCK_FUNDS.find((f) => f.id === form.fund_id)
               return [
-                ['Source',          cap(form.source)],
+                ['Source',          capitalize(form.source)],
                 ['Member / Person', selectedUser?.full_name || (form.source === 'external' ? 'External' : '—')],
                 ['Payment Method',  selectedMethod?.name   || '—'],
-                ['Entry Type',      cap(form.entry_type)],
-                ['Category',        cap(form.category)],
+                ['Entry Type',      capitalize(form.entry_type)],
+                ['Category',        capitalize(form.category)],
                 ['Fund',            selectedFund?.name     || '—'],
                 ['Amount',          form.amount ? `${org.currency_symbol}${form.amount}` : '—'],
                 ['Notes',           form.notes || '—'],

@@ -7,8 +7,11 @@ import { Card, Select, InfoModal, ResponseModal } from '../../components/ui'
 import { MOCK_FUNDS, MOCK_TRANSACTIONS, formatCurrency } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 import useBreakpoint from '../../hooks/useBreakpoint'
-import type { Fund } from '../../types'
+import type { Fund, OrgConfig } from '../../types'
 
+// Edit form — annual_fee stays string|number|null: the number input yields strings (converted to number on save)
+type FundEditState = Omit<Fund, 'annual_fee'> & { annual_fee: number | string | null }
+import { capitalize } from '../../utils/formatters'
 
 /* ── Shared SVG button icons ──────────────────────────────────────── */
 const BtnIco = {
@@ -28,7 +31,6 @@ const BtnIco = {
   Back:   () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>,
 }
 
-
 /* ── SVG Icons ───────────────────────────────────────────────────── */
 function IconLock()   { return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> }
 function IconGlobe()  { return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> }
@@ -37,16 +39,15 @@ function IconGlobe()  { return <svg width="12" height="12" viewBox="0 0 24 24" f
 // function IconPlus()   { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> }
 // function IconSave()   { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> }
 
-
 /* ── TILE COLOR RULES:
    is_required = true  → GREEN top strip + lock icon (non-deletable, protected fund)
    is_required = false → random solid color from palette (deletable)
    Border always matches the strip color at 30% opacity for visual cohesion.     */
 const PROTECTED_COLOR = '#2E7D52'                                        // green = non-deletable
 const OPT_COLORS      = ['#4B5EAA','#2471A3','#7D3C98','#B7600A','#117A65','#C0392B','#1E2128','#0E6655']
-function fundTileColor(fund: any) {
+function fundTileColor(fund: Fund) {
   if (fund.is_required) return PROTECTED_COLOR
-  return (OPT_COLORS as Record<string,any>)[(parseInt(fund.id, 10) - 1 || 0) % OPT_COLORS.length]
+  return OPT_COLORS[(parseInt(fund.id, 10) - 1 || 0) % OPT_COLORS.length]
 }
 
 /* ── Lock icon — shown top-right on non-deletable tiles ─────────── */
@@ -70,7 +71,7 @@ function IcoShieldLock() {
 // }
 
 /* ── FundTileCard — clickable tile ─────────────────────────────── */
-function FundTileCard({ fund, org, onClick }: Record<string, any>) {
+function FundTileCard({ fund, org, onClick }: { fund: Fund; org: OrgConfig; onClick: () => void }) {
   const stripColor  = fundTileColor(fund)
   const isProtected = fund.is_required    // green + lock icon = cannot be deleted
   return (
@@ -105,7 +106,7 @@ function FundTileCard({ fund, org, onClick }: Record<string, any>) {
         {/* Balance */}
         <div style={{ fontSize: 18, fontWeight: 800, color: stripColor }}>{formatCurrency(fund.balance, org.currency_symbol)}</div>
         {/* Annual fee hint */}
-        {fund.annual_fee > 0 && <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>Fee: {formatCurrency(fund.annual_fee, org.currency_symbol)} / yr</div>}
+        {fund.annual_fee != null && fund.annual_fee > 0 && <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>Fee: {formatCurrency(fund.annual_fee, org.currency_symbol)} / yr</div>}
         {/* Click hint */}
         <div style={{ fontSize: 11, color: stripColor, fontWeight: 600, marginTop: 'auto', paddingTop: 6, borderTop: '1px solid var(--border-inner)' }}>
           {isProtected ? 'Protected · Click for details →' : 'Click for details →'}
@@ -116,12 +117,11 @@ function FundTileCard({ fund, org, onClick }: Record<string, any>) {
 }
 
 /* ── Fund Detail content — read-only view (same as FundReport) ───── */
-function FundDetailContent({ fund, org }: Record<string, any>) {
+function FundDetailContent({ fund, org }: { fund: Fund; org: OrgConfig }) {
   const { isMobile } = useBreakpoint()                   // own hook call — must be inside component
   const accentC = fund.is_required ? 'var(--accent)' : 'var(--info)'
   const bgC     = fund.is_required ? 'var(--accent-light)' : 'var(--info-light)'
-  const received = MOCK_TRANSACTIONS.filter((t: any) => t.fund === fund.name && t.entry_type !== 'expense').reduce((s, t) => s + t.amount, 0)
-  const cap = (s: any): string => s ? s.charAt(0).toUpperCase() + s.slice(1) : '—'
+  const received = MOCK_TRANSACTIONS.filter((t) => t.fund === fund.name && t.entry_type !== 'expense').reduce((s, t) => s + t.amount, 0)
 
   return (
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 18 }}>
@@ -134,10 +134,10 @@ function FundDetailContent({ fund, org }: Record<string, any>) {
       <div style={{ display: 'grid' as const, gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 12 }}>
         {[
           ['Fund Name',      fund.name],
-          ['Type',           cap(fund.fund_type)],
-          ['Status',         cap(fund.status)],
+          ['Type',           capitalize(fund.fund_type)],
+          ['Status',         capitalize(fund.status)],
           ['Required',       fund.is_required ? 'Yes — all members' : 'No'],
-          ['Pay Frequency',  cap(fund.payment_frequency)],
+          ['Pay Frequency',  capitalize(fund.payment_frequency)],
           ['Annual Fee',     fund.annual_fee ? formatCurrency(fund.annual_fee, org.currency_symbol) : '—'],
           ['Balance',        formatCurrency(fund.balance, org.currency_symbol)],
           ['Total Received', formatCurrency(received, org.currency_symbol)],
@@ -154,13 +154,13 @@ function FundDetailContent({ fund, org }: Record<string, any>) {
 }
 
 /* ── Fund Edit form — shown inside InfoModal when editMode=true ───── */
-function FundEditForm({ editForm, onFormChange, org }: Record<string, any>) {
+function FundEditForm({ editForm, onFormChange, org }: { editForm: FundEditState | null; onFormChange: (key: keyof FundEditState, value: string) => void; org: OrgConfig }) {
   const FREQ_OPTIONS   = [{ value: 'monthly', label: 'Monthly' }, { value: 'quarterly', label: 'Quarterly' }, { value: 'annually', label: 'Annually' }]
   const STATUS_OPTIONS = [{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }]
-  const field = (label: string, key: string, type = 'text', hint?: string) => (
+  const field = (label: string, key: 'name' | 'description' | 'annual_fee', type = 'text', hint?: string) => (
     <div key={key} style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 3 }}>
       <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '.04em' }}>{label}</label>
-      <input type={type} value={editForm[key] ?? ''} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => onFormChange(key, e.target.value)}
+      <input type={type} value={editForm?.[key] ?? ''} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => onFormChange(key, e.target.value)}
         style={{ padding: '8px 11px', borderRadius: 8, border: '1.5px solid var(--border-card)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: '#fff', outline: 'none', width: '100%', boxSizing: 'border-box' as const }}
         onFocus={e => { e.target.style.borderColor = 'var(--accent)' }}
         onBlur={e  => { e.target.style.borderColor = 'var(--border-card)' }} />
@@ -181,7 +181,7 @@ function FundEditForm({ editForm, onFormChange, org }: Record<string, any>) {
 }
 
 /* ── Delete body ─────────────────────────────────────────────────── */
-function DeleteBody({ fund, org }: Record<string, any>) {
+function DeleteBody({ fund, org }: { fund: Fund; org: OrgConfig }) {
   return (
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 16 }}>
       <div style={{ padding: '14px 16px', borderRadius: 10, background: '#fdecea', border: '1.5px solid rgba(192,57,43,.30)', display: 'flex' as const, gap: 10, alignItems: 'flex-start' }}>
@@ -213,44 +213,46 @@ export default function Funds() {
   const [funds,        setFunds]        = useState(MOCK_FUNDS)
   const [viewItem,     setViewItem]     = useState<Fund | null>(null)    // fund open in detail modal
   const [editMode,     setEditMode]     = useState(false)   // toggle edit inside modal
-  const [editForm,     setEditForm]     = useState<Fund | null>(null)    // local edit form state
+  const [editForm,     setEditForm]     = useState<FundEditState | null>(null)    // local edit form state
   const [deleteItem,   setDeleteItem]   = useState<Fund | null>(null)    // fund pending deletion
   const [actionResult, setActionResult] = useState<{variant:string;title:string;message:string} | null>(null)    // feedback
 
   const totalBalance  = funds.reduce((s, f) => s + f.balance, 0)
-  const activeFunds   = funds.filter((f: any) => f.status === 'active').length
-  const inactiveFunds = funds.filter((f: any) => f.status !== 'active').length
+  const activeFunds   = funds.filter((f) => f.status === 'active').length
+  const inactiveFunds = funds.filter((f) => f.status !== 'active').length
 
   /* Split funds into internal and external sections */
-  const internal = funds.filter((f: any) => f.fund_type === 'internal')
-  const external = funds.filter((f: any) => f.fund_type === 'external')
+  const internal = funds.filter((f) => f.fund_type === 'internal')
+  const external = funds.filter((f) => f.fund_type === 'external')
 
   /* Open detail modal in read-only mode */
-  function openDetail(fund: any) {
+  function openDetail(fund: Fund) {
     setViewItem(fund)
-    setEditForm({ ...fund } as any)
+    setEditForm({ ...fund })
     setEditMode(false)
   }
 
-  function handleFormChange(key: string, value: any) {
-    setEditForm((prev: any) => prev ? ({ ...prev, [key]: value }) : null)
+  function handleFormChange(key: keyof FundEditState, value: string) {
+    setEditForm((prev) => prev ? ({ ...prev, [key]: value }) : null)
   }
 
   function handleSaveEdit() {
-    setFunds(prev => prev.map((f: any) => f.id === editForm?.id ? editForm : f))
-    setViewItem(editForm)
+    if (!editForm) return
+    const saved: Fund = { ...editForm, annual_fee: editForm.annual_fee === '' || editForm.annual_fee == null ? null : Number(editForm.annual_fee) }   // input yields a string
+    setFunds(prev => prev.map((f) => f.id === saved.id ? saved : f))
+    setViewItem(saved)
     setEditMode(false)
     setActionResult({ variant: 'success', title: `${org.fund_label} Updated`, message: `"${editForm?.name}" has been saved successfully.` })
   }
 
   function handleCancelEdit() {
-    setEditForm({ ...viewItem } as any)
+    setEditForm(viewItem ? { ...viewItem } : null)
     setEditMode(false)
   }
 
   function handleDelete() {
     const name = deleteItem?.name
-    setFunds(prev => prev.filter((f: any) => f.id !== deleteItem?.id))
+    setFunds(prev => prev.filter((f) => f.id !== deleteItem?.id))
     if (viewItem?.id === deleteItem?.id) setViewItem(null)
     setDeleteItem(null)
     setTimeout(() => setActionResult({ variant: 'danger', title: `${org.fund_label} Deleted`, message: `"${name}" has been permanently removed.` }), 260)
@@ -268,7 +270,7 @@ export default function Funds() {
 
       {/* ── KPI strip ───────────────────────────────────────────── */}
       <div style={{ display: 'grid' as const, gridTemplateColumns: kpiCols, gap: 12 }}>
-        {kpis.map((k: any) => (
+        {kpis.map((k) => (
           <Card key={k.label} style={{ padding: '14px 18px', background: '#FFFFFF', borderLeft: '4px solid ' + k.color, border: '1px solid ' + k.color + '25', transition: 'transform .18s ease, box-shadow .18s ease' }}
             onMouseEnter={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(75,94,170,.18)' }}
             onMouseLeave={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
@@ -305,7 +307,7 @@ export default function Funds() {
             </div>
           </div>
           <div style={{ display: 'grid' as const, gridTemplateColumns: fundCols, gap: 14 }}>
-            {internal.map((f: any) => <FundTileCard key={f.id} fund={f} org={org} onClick={() => openDetail(f)} />)}
+            {internal.map((f) => <FundTileCard key={f.id} fund={f} org={org} onClick={() => openDetail(f)} />)}
           </div>
         </Card>
       )}
@@ -321,7 +323,7 @@ export default function Funds() {
             </div>
           </div>
           <div style={{ display: 'grid' as const, gridTemplateColumns: fundCols, gap: 14 }}>
-            {external.map((f: any) => <FundTileCard key={f.id} fund={f} org={org} onClick={() => openDetail(f)} />)}
+            {external.map((f) => <FundTileCard key={f.id} fund={f} org={org} onClick={() => openDetail(f)} />)}
           </div>
         </Card>
       )}

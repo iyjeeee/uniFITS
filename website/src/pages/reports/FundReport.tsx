@@ -6,8 +6,8 @@ import { Card, InfoModal, ResponseModal } from '../../components/ui'
 import { MOCK_FUNDS, MOCK_USERS, MOCK_TRANSACTIONS, formatCurrency } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 import useBreakpoint from '../../hooks/useBreakpoint'
-import type { Fund } from '../../types'
-
+import type { Fund, OrgConfig } from '../../types'
+import { capitalize } from '../../utils/formatters'
 
 /* ── SVG Icons ──────────────────────────────────────────────────── */
 function IcoLock()   { return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> }
@@ -20,9 +20,9 @@ function IcoExport() { return <svg width="13" height="13" viewBox="0 0 24 24" fi
    Border always matches the strip color at 30% opacity for visual cohesion.     */
 const PROTECTED_COLOR = '#2E7D52'                                        // green = non-deletable
 const OPT_COLORS      = ['#4B5EAA','#2471A3','#7D3C98','#B7600A','#117A65','#C0392B','#1E2128','#0E6655']
-function fundTileColor(fund: any) {
+function fundTileColor(fund: Fund) {
   if (fund.is_required) return PROTECTED_COLOR
-  return (OPT_COLORS as Record<string,any>)[(parseInt(fund.id, 10) - 1 || 0) % OPT_COLORS.length]
+  return OPT_COLORS[(parseInt(fund.id, 10) - 1 || 0) % OPT_COLORS.length]
 }
 
 /* ── Lock icon — shown top-right on non-deletable tiles ─────────── */
@@ -36,7 +36,7 @@ function IcoShieldLock() {
 }
 
 /* ── FundTileCard — clickable card in the grid ──────────────────── */
-function FundTileCard({ fund, org, onClick }: Record<string, any>) {
+function FundTileCard({ fund, org, onClick }: { fund: Fund; org: OrgConfig; onClick: () => void }) {
   const stripColor  = fundTileColor(fund)
   const isProtected = fund.is_required    // green + lock = cannot be deleted
   return (
@@ -78,7 +78,7 @@ function FundTileCard({ fund, org, onClick }: Record<string, any>) {
           {formatCurrency(fund.balance, org.currency_symbol)}
         </div>
         {/* Annual fee hint */}
-        {fund.annual_fee > 0 && (
+        {fund.annual_fee != null && fund.annual_fee > 0 && (
           <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>Fee: {formatCurrency(fund.annual_fee, org.currency_symbol)} / yr</div>
         )}
         {/* Click hint */}
@@ -93,15 +93,14 @@ function FundTileCard({ fund, org, onClick }: Record<string, any>) {
 /* ── FundDetailContent — body of the detail InfoModal ───────────────
    IMPORTANT: useBreakpoint() must be called here (inside this component)
    because sub-components cannot access variables from a parent's scope.     */
-function FundDetailContent({ fund, org }: Record<string, any>) {
+function FundDetailContent({ fund, org }: { fund: Fund; org: OrgConfig }) {
   const { isMobile } = useBreakpoint()                   // own hook call — fixes ReferenceError
   const accentC = fund.is_required ? 'var(--accent)' : 'var(--info)'
   const bgC     = fund.is_required ? 'var(--accent-light)' : 'var(--info-light)'
-  const cap = (s: any): string => s ? s.charAt(0).toUpperCase() + s.slice(1) : '—'
 
   // Build member contribution list for this fund
   const memberContribs = MOCK_USERS.map(user => {
-    const txns = MOCK_TRANSACTIONS.filter((t: any) =>
+    const txns = MOCK_TRANSACTIONS.filter((t) =>
       t.user_id === user.id &&
       t.fund === fund.name &&
       t.entry_type !== 'expense'
@@ -111,8 +110,8 @@ function FundDetailContent({ fund, org }: Record<string, any>) {
   }).sort((a, b) => b.total - a.total) // sort by contribution descending
 
   const grandTotal = memberContribs.reduce((s, m) => s + m.total, 0)
-  const contributors = memberContribs.filter((m: any) => m.total > 0)
-  const nonContribs  = memberContribs.filter((m: any) => m.total === 0)
+  const contributors = memberContribs.filter((m) => m.total > 0)
+  const nonContribs  = memberContribs.filter((m) => m.total === 0)
 
   return (
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 18 }}>
@@ -130,10 +129,10 @@ function FundDetailContent({ fund, org }: Record<string, any>) {
       <div style={{ display: 'grid' as const, gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 12 }}>
         {[
           ['Fund Name',     fund.name],
-          ['Type',          cap(fund.fund_type)],
-          ['Status',        cap(fund.status)],
+          ['Type',          capitalize(fund.fund_type)],
+          ['Status',        capitalize(fund.status)],
           ['Required',      fund.is_required ? 'Yes — all members' : 'No'],
-          ['Pay Frequency', cap(fund.payment_frequency)],
+          ['Pay Frequency', capitalize(fund.payment_frequency)],
           ['Annual Fee',    fund.annual_fee ? formatCurrency(fund.annual_fee, org.currency_symbol) : '—'],
           ['Balance',       formatCurrency(fund.balance, org.currency_symbol)],
           ['Managed by',    fund.created_by || '—'],
@@ -164,7 +163,7 @@ function FundDetailContent({ fund, org }: Record<string, any>) {
 
         {/* Header row */}
         <div style={{ display: 'grid' as const, gridTemplateColumns: '32px 1fr 90px 80px', gap: 8, padding: '8px 12px', background: 'var(--table-head-bg)', borderRadius: 8, marginBottom: 6 }}>
-          {['#', 'Member', 'Transactions', 'Total'].map((h: any) => (
+          {['#', 'Member', 'Transactions', 'Total'].map((h) => (
             <div key={h} style={{ fontSize: 11, fontWeight: 700, color: 'var(--table-head-fg)', textTransform: 'uppercase' as const, letterSpacing: '.06em' }}>{h}</div>
           ))}
         </div>
@@ -202,7 +201,7 @@ function FundDetailContent({ fund, org }: Record<string, any>) {
                   No Contributions Yet ({nonContribs.length})
                 </div>
                 <div style={{ display: 'flex' as const, flexWrap: 'wrap', gap: 6 }}>
-                  {nonContribs.map((m: any) => (
+                  {nonContribs.map((m) => (
                     <span key={m.user.id} style={{ padding: '4px 12px', borderRadius: 20, background: 'var(--neutral-light)', border: '1px solid var(--border-card)', fontSize: 12, color: 'var(--text-muted)' }}>
                       {m.user.full_name}
                     </span>
@@ -227,10 +226,10 @@ export default function FundReport() {
   const fundCols = isMobile ? '1fr' : isTablet ? 'repeat(2,1fr)' : 'repeat(4,1fr)'
 
   const totalBalance = MOCK_FUNDS.reduce((s, f) => s + f.balance, 0)
-  const active       = MOCK_FUNDS.filter((f: any) => f.status === 'active').length
-  const inactive     = MOCK_FUNDS.filter((f: any) => f.status !== 'active').length
-  const required     = MOCK_FUNDS.filter((f: any) => f.is_required)
-  const optional     = MOCK_FUNDS.filter((f: any) => !f.is_required)
+  const active       = MOCK_FUNDS.filter((f) => f.status === 'active').length
+  const inactive     = MOCK_FUNDS.filter((f) => f.status !== 'active').length
+  const required     = MOCK_FUNDS.filter((f) => f.is_required)
+  const optional     = MOCK_FUNDS.filter((f) => !f.is_required)
 
   const [viewFund,     setViewFund]     = useState<Fund | null>(null)  // fund open in detail modal
   const [showExport,   setShowExport]   = useState(false) // export PDF confirmation
@@ -251,7 +250,7 @@ export default function FundReport() {
           { label: 'Active',                   value: active,                 bg: 'var(--success-light)',  color: 'var(--success)',      border: 'rgba(46,125,82,.25)' },
           { label: 'Inactive',                 value: inactive,               bg: 'var(--danger-light)',   color: 'var(--danger)',       border: 'rgba(192,57,43,.25)' },
           { label: 'Overall Balance',          value: formatCurrency(totalBalance, org.currency_symbol), bg: 'var(--warning-light)', color: 'var(--warning)', border: 'rgba(212,134,10,.25)' },
-        ].map((k: any) => (
+        ].map((k) => (
           <Card key={k.label} style={{ padding: '14px 18px', background: '#FFFFFF', borderLeft: '4px solid ' + k.color, border: '1px solid ' + k.color + '25', transition: 'transform .18s ease, box-shadow .18s ease' }}
             onMouseEnter={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(75,94,170,.18)' }}
             onMouseLeave={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
@@ -274,7 +273,7 @@ export default function FundReport() {
             </div>
           </div>
           <div style={{ display: 'grid' as const, gridTemplateColumns: fundCols, gap: 14 }}>
-            {required.map((f: any) => <FundTileCard key={f.id} fund={f} org={org} onClick={() => setViewFund(f)} />)}
+            {required.map((f) => <FundTileCard key={f.id} fund={f} org={org} onClick={() => setViewFund(f)} />)}
           </div>
         </Card>
       )}
@@ -292,7 +291,7 @@ export default function FundReport() {
             </div>
           </div>
           <div style={{ display: 'grid' as const, gridTemplateColumns: fundCols, gap: 14 }}>
-            {optional.map((f: any) => <FundTileCard key={f.id} fund={f} org={org} onClick={() => setViewFund(f)} />)}
+            {optional.map((f) => <FundTileCard key={f.id} fund={f} org={org} onClick={() => setViewFund(f)} />)}
           </div>
         </Card>
       )}

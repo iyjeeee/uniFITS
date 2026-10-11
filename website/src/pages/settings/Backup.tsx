@@ -53,7 +53,7 @@ export default function Backup() {
 
       {/* Quick action tiles */}
       <div style={{ display: 'grid' as const, gridTemplateColumns: actionCols, gap: 12 }}>
-        {actions.map((b: any) => (
+        {actions.map((b) => (
           <button key={b.label} onClick={b.onClick} style={{ padding: '18px 14px', borderRadius: 'var(--radius-md)', border: `1px solid ${b.color}25`, background: b.bg, cursor: 'pointer' as const, textAlign: 'center' as const, fontFamily: 'var(--font-body)', transition: 'box-shadow .15s' }}>
             <div style={{ color: b.color, display: 'flex' as const, justifyContent: 'center', marginBottom: 8 }}>{b.icon}</div>
             <div style={{ fontSize: 13, fontWeight: 600, color: b.color }}>{b.label}</div>
@@ -84,7 +84,7 @@ export default function Backup() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ background: 'var(--table-header-bg)' }}>
-                  {['#','Filename','Type','Format','Date','Size','Actions'].map((h: any) => (
+                  {['#','Filename','Type','Format','Date','Size','Actions'].map((h) => (
                     <th key={h} style={{ padding: '9px 14px', textAlign: 'left' as const, fontSize: 11, fontWeight: 600, color: 'var(--table-head-fg)', textTransform: 'uppercase' as const, letterSpacing: '.06em', borderBottom: '2px solid var(--border-table)', whiteSpace: 'nowrap' as const }}>{h}</th>
                   ))}
                 </tr>

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Card, InfoModal } from '../../components/ui'
 import { MOCK_AUDIT_LOGS, formatDate, relativeTime } from '../../api/mockData'
 import useBreakpoint from '../../hooks/useBreakpoint'
-import type { AuditLog } from '../../types'
+import type { AuditLog, AuditAction } from '../../types'
 
 const ACTION_BG = {
   login:   '#2E7D52', logout:  '#5A6474', insert:  '#4B5EAA',
@@ -22,7 +22,7 @@ const ACTION_LIGHT = {
   backup:  'var(--info-light)',    restore: 'var(--info-light)', export: 'var(--info-light)',
 }
 
-function ActionBadge({ action }: Record<string, any>) {
+function ActionBadge({ action }: { action: AuditAction }) {
   return (
     <span style={{
       display: 'inline-flex' as const, alignItems: 'center',
@@ -40,8 +40,8 @@ export default function AuditLogs() {
   const [data]    = useState(MOCK_AUDIT_LOGS)
   const [viewLog, setViewLog] = useState<AuditLog | null>(null)
 
-  const summaryCounts = ['login', 'insert', 'update', 'delete', 'backup'].map(action => ({
-    action, count: data.filter((l: any) => l.action === action).length,
+  const summaryCounts = (['login', 'insert', 'update', 'delete', 'backup'] as AuditAction[]).map(action => ({
+    action, count: data.filter((l) => l.action === action).length,
   }))
 
   return (
@@ -77,7 +77,7 @@ export default function AuditLogs() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: 'var(--table-head-bg)' }}>
-                {['#', 'User', 'Action', 'Summary', 'Table', 'IP Address', 'Timestamp'].map((h: any) => (
+                {['#', 'User', 'Action', 'Summary', 'Table', 'IP Address', 'Timestamp'].map((h) => (
                   <th key={h} style={{ padding: '10px 16px', textAlign: 'left' as const, fontSize: 11, fontWeight: 600, color: 'var(--table-head-fg)', textTransform: 'uppercase' as const, letterSpacing: '.06em', borderBottom: '2px solid var(--border-table)', whiteSpace: 'nowrap' as const }}>{h}</th>
                 ))}
               </tr>

@@ -10,6 +10,8 @@ import ItemDetailContent from '../../components/ItemDetailContent'
 import EditItemModal from '../../components/EditItemModal'
 import useBreakpoint from '../../hooks/useBreakpoint'
 import type { Project } from '../../types'
+import { capitalize } from '../../utils/formatters'
+import { IconBtn, PaginationRow } from '../../components/TableUtils'
 
 /* ── SVG icons ──────────────────────────────────────────────────── */
 function IcoDelete()  { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"   strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg> }
@@ -18,42 +20,9 @@ function IcoReject()  { return <svg width="14" height="14" viewBox="0 0 24 24" f
 function IcoPlus()    { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> }
 function IcoPen()     { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"   strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> }
 
-/* ── Solid-color icon button ────────────────────────────────────── */
-function IconBtn({ children, solidBg, title, onClick }: Record<string, any>) {
-  return (
-    <button onClick={e => { e.stopPropagation(); onClick() }} title={title}
-      style={{ width: 32, height: 32, borderRadius: 7, border: 'none', background: solidBg, color: '#fff', cursor: 'pointer' as const, display: 'flex' as const, alignItems: 'center', justifyContent: 'center', transition: 'transform .18s ease, box-shadow .18s ease', flexShrink: 0 }}
-      onMouseEnter={e => {
-        e.currentTarget.style.transform = 'translateY(-2px)'
-        e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)'
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.transform = ''
-        e.currentTarget.style.boxShadow = ''
-      }}>
-      {children}
-    </button>
-  )
-}
-
-/* ── Pagination — always visible ────────────────────────────────── */
-function PaginationRow({ page, totalPages, onPageChange, total }: Record<string, any>) {
-  return (
-    <div style={{ display: 'flex' as const, alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', borderTop: '1px solid var(--border-inner)', flexWrap: 'wrap', gap: 8 }}>
-      <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>Page {page} of {totalPages} · {total} records</span>
-      <div style={{ display: 'flex' as const, gap: 4, flexWrap: 'wrap' }}>
-        {Array.from({ length: totalPages }, (_, i) => i + 1).map((p: any) => (
-          <button key={p} onClick={() => onPageChange(p)} style={{ width: 30, height: 30, borderRadius: 6, border: '1.5px solid var(--border-card)', background: p === page ? 'var(--accent)' : '#fff', color: p === page ? '#fff' : 'var(--text-primary)', cursor: 'pointer' as const, fontSize: 12, fontWeight: p === page ? 700 : 400 }}>{p}</button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 /* ── Delete confirmation body ───────────────────────────────────── */
-function DeleteBody({ item, type }: Record<string, any>) {
-  const cap = (s: any): string => s ? s.charAt(0).toUpperCase() + s.slice(1) : '—'
-  const rows = [['Project Name', item.title], ['Type', cap(item.project_type)], ['Start Date', formatDate(item.start_date)], ['End Date', formatDate(item.end_date)], ['Status', cap(item.status)], ['Target Funding', formatCurrency(item.target_funding)]]
+function DeleteBody({ item, type }: { item: Project; type: string }) {
+  const rows = [['Project Name', item.title], ['Type', capitalize(item.project_type)], ['Start Date', formatDate(item.start_date)], ['End Date', formatDate(item.end_date)], ['Status', capitalize(item.status)], ['Target Funding', formatCurrency(item.target_funding)]]
   return (
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 16 }}>
       <div style={{ padding: '14px 16px', borderRadius: 10, background: '#fdecea', border: '1.5px solid rgba(192,57,43,.30)', display: 'flex' as const, gap: 10, alignItems: 'flex-start' }}>
@@ -94,39 +63,38 @@ export default function Projects() {
   const [page,         setPage]         = useState(1)
   const PAGE_SIZE = 10
 
-  const cap = (s: any): string => s ? s.charAt(0).toUpperCase() + s.slice(1) : '—'
-  const statusOptions = ['all', ...Array.from(new Set(data.map((r: any) => r.status)))]
-  const typeOptions   = ['all', ...Array.from(new Set(data.map((r: any) => r.project_type).filter(Boolean)))]
+  const statusOptions = ['all', ...Array.from(new Set(data.map((r) => r.status)))]
+  const typeOptions   = ['all', ...Array.from(new Set(data.map((r) => r.project_type).filter(Boolean)))]
   const filtered  = data
-    .filter((r: any) => statusFilter === 'all' || r.status       === statusFilter)
-    .filter((r: any) => typeFilter   === 'all' || r.project_type === typeFilter)
-    .filter((r: any) => Object.values(r).some((v: any) => String(v).toLowerCase().includes(search.toLowerCase())))
+    .filter((r) => statusFilter === 'all' || r.status       === statusFilter)
+    .filter((r) => typeFilter   === 'all' || r.project_type === typeFilter)
+    .filter((r) => Object.values(r).some((v) => String(v).toLowerCase().includes(search.toLowerCase())))
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const paged      = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   const kpis = [
     { label: 'Overall Projects', value: data.length,                                       color: 'var(--accent)',  bg: 'var(--accent-light)' },
-    { label: 'Completed',        value: data.filter((p: any) => p.status === 'completed').length,  color: '#2E7D52',        bg: '#f0faf4'             },
-    { label: 'Ongoing',          value: data.filter((p: any) => p.status === 'ongoing').length,    color: 'var(--info)',    bg: 'var(--info-light)'   },
-    { label: 'Upcoming',         value: data.filter((p: any) => p.status === 'upcoming').length,   color: 'var(--warning)', bg: 'var(--warning-light)'},
+    { label: 'Completed',        value: data.filter((p) => p.status === 'completed').length,  color: '#2E7D52',        bg: '#f0faf4'             },
+    { label: 'Ongoing',          value: data.filter((p) => p.status === 'ongoing').length,    color: 'var(--info)',    bg: 'var(--info-light)'   },
+    { label: 'Upcoming',         value: data.filter((p) => p.status === 'upcoming').length,   color: 'var(--warning)', bg: 'var(--warning-light)'},
   ]
 
   function handleDelete() {
     const title = deleteItem?.title
-    setData(prev => prev.filter((r: any) => r.id !== deleteItem?.id))
+    setData(prev => prev.filter((r) => r.id !== deleteItem?.id))
     setDeleteItem(null)
     setTimeout(() => setActionResult({ variant: 'danger', title: 'Project Deleted', message: `"${title}" has been permanently removed.` }), 260)
   }
-  function handleApprove(r: any) {
-    setData(prev => prev.map((p: any) => p.id === r.id ? { ...p, status: 'ongoing' } : p))
+  function handleApprove(r: Project) {
+    setData(prev => prev.map((p) => p.id === r.id ? { ...p, status: 'ongoing' } : p))
     setActionResult({ variant: 'success', title: 'Project Approved', message: `"${r.title}" approved and set to Ongoing.` })
   }
-  function handleReject(r: any) {
-    setData(prev => prev.map((p: any) => p.id === r.id ? { ...p, status: 'cancelled' } : p))
+  function handleReject(r: Project) {
+    setData(prev => prev.map((p) => p.id === r.id ? { ...p, status: 'cancelled' } : p))
     setActionResult({ variant: 'danger', title: 'Project Rejected', message: `"${r.title}" rejected and marked Cancelled.` })
   }
-  function handleSaveEdit(updated: any) {
-    setData(prev => prev.map((r: any) => r.id === updated.id ? updated : r))
+  function handleSaveEdit(updated: Project) {
+    setData(prev => prev.map((r) => r.id === updated.id ? updated : r))
     setActionResult({ variant: 'success', title: 'Project Updated', message: `"${updated.title}" has been saved successfully.` })
   }
 
@@ -134,7 +102,7 @@ export default function Projects() {
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 14 }}>
       {/* KPI row — 4-col desktop, 2-col on mobile/tablet */}
       <div style={{ display: 'grid' as const, gridTemplateColumns: kpiCols, gap: 12 }}>
-        {kpis.map((k: any) => (
+        {kpis.map((k) => (
           <Card key={k.label} style={{ padding: '14px 18px', background: '#FFFFFF', borderLeft: '4px solid ' + k.color, border: '1px solid ' + k.color + '25', transition: 'transform .18s ease, box-shadow .18s ease' }}
             onMouseEnter={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(75,94,170,.18)' }}
             onMouseLeave={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
@@ -157,14 +125,14 @@ export default function Projects() {
               style={{ padding: '7px 10px', borderRadius: 7, border: '1.5px solid var(--border-card)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: '#fff', cursor: 'pointer' as const, outline: 'none', transition: 'border-color .18s ease, box-shadow .18s ease' }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(75,94,170,.25)' }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-card)'; e.currentTarget.style.boxShadow = '' }}>
-              {typeOptions.map((t: any) => <option key={t} value={t}>{t === 'all' ? 'All Types' : t}</option>)}
+              {typeOptions.map((t) => <option key={t} value={t}>{t === 'all' ? 'All Types' : t}</option>)}
             </select>
             {/* Status filter */}
             <select value={statusFilter} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => { setStatusFilter(e.target.value); setPage(1) }}
               style={{ padding: '7px 10px', borderRadius: 7, border: '1.5px solid var(--border-card)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: '#fff', cursor: 'pointer' as const, outline: 'none', transition: 'border-color .18s ease, box-shadow .18s ease' }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(75,94,170,.25)' }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-card)'; e.currentTarget.style.boxShadow = '' }}>
-              {statusOptions.map((s: any) => <option key={s} value={s}>{s === 'all' ? 'All Status' : cap(s)}</option>)}
+              {statusOptions.map((s) => <option key={s} value={s}>{s === 'all' ? 'All Status' : capitalize(s)}</option>)}
             </select>
             <div style={{ position: 'relative' as const }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" style={{ position: 'absolute' as const, left: 9, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -185,7 +153,7 @@ export default function Projects() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: 'var(--table-head-bg)' }}>
-                {['Title','Type','Target Funding','Current Funding','Start Date','End Date','Status','Actions'].map((h: any) => (
+                {['Title','Type','Target Funding','Current Funding','Start Date','End Date','Status','Actions'].map((h) => (
                   <th key={h} style={{ padding: '10px 14px', textAlign: 'left' as const, fontSize: 11, fontWeight: 600, color: 'var(--table-head-fg)', textTransform: 'uppercase' as const, letterSpacing: '.06em', borderBottom: '2px solid var(--border-table)', whiteSpace: 'nowrap' as const }}>{h}</th>
                 ))}
               </tr>
@@ -193,7 +161,7 @@ export default function Projects() {
             <tbody>
               {paged.length === 0 ? (
                 <tr><td colSpan={8} style={{ padding: '32px', textAlign: 'center' as const, color: 'var(--text-muted)' }}>No projects found.</td></tr>
-              ) : paged.map((r: any) => (
+              ) : paged.map((r) => (
                 <tr key={r.id} style={rowStyle(r.status)} onClick={() => setViewItem(r)}
                   onMouseEnter={e => e.currentTarget.style.background = rowHoverBg(r.status)}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
@@ -235,7 +203,7 @@ export default function Projects() {
           open={!!viewItem}
           onClose={() => setViewItem(null)}
           title={viewItem.title}
-          subtitle={`${cap(viewItem.project_type || org.project_label)} · ${formatDate(viewItem.start_date)}`}
+          subtitle={`${capitalize(viewItem.project_type || org.project_label)} · ${formatDate(viewItem.start_date)}`}
           accentColor={modalAccentColor(viewItem.status)}
           footer={
             <div style={{ display: 'flex' as const, gap: 10, justifyContent: 'flex-end' }}>

@@ -24,4 +24,5 @@ export interface Project {
   status: ProjectStatus
   target_funding: number      // PHP amount
   current_funding: number     // PHP amount
+  photo_url?: string | null   // optional cover photo (set by Add/Edit pages)
 }

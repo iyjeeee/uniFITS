@@ -9,6 +9,8 @@ import { rowStyle, rowHoverBg, modalAccentColor } from '../../constants/tableCol
 import EditEmployeeModal from '../../components/EditEmployeeModal'
 import useBreakpoint from '../../hooks/useBreakpoint'
 import type { User } from '../../types'
+import { capitalize } from '../../utils/formatters'
+import { IconBtn, PaginationRow } from '../../components/TableUtils'
 
 /* ── SVG icons ──────────────────────────────────────────────────── */
 function IcoDelete()  { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"   strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg> }
@@ -17,42 +19,9 @@ function IcoUpload()  { return <svg width="13" height="13" viewBox="0 0 24 24" f
 function IcoPen()     { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"   strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> }
 function IcoFileUp()  { return <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> }
 
-/* ── Solid-color icon button ────────────────────────────────────── */
-function IconBtn({ children, solidBg, title, onClick }: Record<string, any>) {
-  return (
-    <button onClick={e => { e.stopPropagation(); onClick() }} title={title}
-      style={{ width: 32, height: 32, borderRadius: 7, border: 'none', background: solidBg, color: '#fff', cursor: 'pointer' as const, display: 'flex' as const, alignItems: 'center', justifyContent: 'center', transition: 'transform .18s ease, box-shadow .18s ease', flexShrink: 0 }}
-      onMouseEnter={e => {
-        e.currentTarget.style.transform = 'translateY(-2px)'
-        e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)'
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.transform = ''
-        e.currentTarget.style.boxShadow = ''
-      }}>
-      {children}
-    </button>
-  )
-}
-
-/* ── Pagination — always visible ────────────────────────────────── */
-function PaginationRow({ page, totalPages, onPageChange, total }: Record<string, any>) {
-  return (
-    <div style={{ display: 'flex' as const, alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', borderTop: '1px solid var(--border-inner)', flexWrap: 'wrap', gap: 8 }}>
-      <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>Page {page} of {totalPages} · {total} records</span>
-      <div style={{ display: 'flex' as const, gap: 4, flexWrap: 'wrap' }}>
-        {Array.from({ length: totalPages }, (_, i) => i + 1).map((p: any) => (
-          <button key={p} onClick={() => onPageChange(p)} style={{ width: 30, height: 30, borderRadius: 6, border: '1.5px solid var(--border-card)', background: p === page ? 'var(--accent)' : '#fff', color: p === page ? '#fff' : 'var(--text-primary)', cursor: 'pointer' as const, fontSize: 12, fontWeight: p === page ? 700 : 400 }}>{p}</button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 /* ── Delete confirmation body ───────────────────────────────────── */
-function DeleteBody({ item, type }: Record<string, any>) {
-  const cap = (s: any): string => s ? s.charAt(0).toUpperCase() + s.slice(1) : '—'
-  const rows = [['Full Name', item.full_name], ['Employee ID', item.employee_number], ['Role', item.role], ['Email', item.email], ['Department', item.department || '—'], ['Status', cap(item.status)]]
+function DeleteBody({ item, type }: { item: User; type: string }) {
+  const rows = [['Full Name', item.full_name], ['Employee ID', item.employee_number], ['Role', item.role], ['Email', item.email], ['Department', item.department || '—'], ['Status', capitalize(item.status)]]
   return (
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 16 }}>
       <div style={{ padding: '14px 16px', borderRadius: 10, background: '#fdecea', border: '1.5px solid rgba(192,57,43,.30)', display: 'flex' as const, gap: 10, alignItems: 'flex-start' }}>
@@ -97,37 +66,36 @@ export default function Employees() {
   const PAGE_SIZE = 10
 
   // Helper — capitalize
-  const cap = (s: any): string => s ? s.charAt(0).toUpperCase() + s.slice(1) : '—'
 
   // Derived
-  const statusOptions = ['all', ...Array.from(new Set(data.map((r: any) => r.status)))]
-  const typeOptions   = ['all', ...Array.from(new Set(data.map((r: any) => r.role).filter(Boolean)))]
+  const statusOptions = ['all', ...Array.from(new Set(data.map((r) => r.status)))]
+  const typeOptions   = ['all', ...Array.from(new Set(data.map((r) => r.role).filter(Boolean)))]
   const filtered = data
-    .filter((r: any) => statusFilter === 'all' || r.status === statusFilter)
-    .filter((r: any) => typeFilter   === 'all' || r.role   === typeFilter)
-    .filter((r: any) => Object.values(r).some((v: any) => String(v).toLowerCase().includes(search.toLowerCase())))
+    .filter((r) => statusFilter === 'all' || r.status === statusFilter)
+    .filter((r) => typeFilter   === 'all' || r.role   === typeFilter)
+    .filter((r) => Object.values(r).some((v) => String(v).toLowerCase().includes(search.toLowerCase())))
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const paged      = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-  const officers   = data.filter((u: any) => u.role !== 'Member')
+  const officers   = data.filter((u) => u.role !== 'Member')
 
   // KPI tiles
   const kpis = [
     { label: `Total ${org.people_label}s`, value: data.length,                                    color: 'var(--accent)',  bg: 'var(--accent-light)' },
-    { label: 'Active',                     value: data.filter((u: any) => u.status === 'active').length,  color: '#2E7D52',        bg: '#f0faf4'             },
-    { label: 'Inactive',                   value: data.filter((u: any) => u.status === 'inactive').length,color: '#C0392B',        bg: '#fdf3f2'             },
+    { label: 'Active',                     value: data.filter((u) => u.status === 'active').length,  color: '#2E7D52',        bg: '#f0faf4'             },
+    { label: 'Inactive',                   value: data.filter((u) => u.status === 'inactive').length,color: '#C0392B',        bg: '#fdf3f2'             },
     { label: 'Officers',                   value: officers.length,                                 color: '#2471A3',        bg: '#f0f7fd'             },
   ]
 
   // Handlers
   function handleDelete() {
     const name = deleteItem?.full_name
-    setData(prev => prev.filter((r: any) => r.id !== deleteItem?.id))
+    setData(prev => prev.filter((r) => r.id !== deleteItem?.id))
     setDeleteItem(null)
     setTimeout(() => setActionResult({ variant: 'danger', title: 'Employee Removed', message: `"${name}" has been permanently removed.` }), 260)
   }
 
   function handleSaveEdit(updated: User) {
-    setData(prev => prev.map((r: any) => r.id === updated.id ? updated : r))
+    setData(prev => prev.map((r) => r.id === updated.id ? updated : r))
     // If the view modal is open for this item, update it too
     if (viewItem?.id === updated.id) setViewItem(updated)
     setActionResult({ variant: 'success', title: 'Employee Updated', message: `"${updated.full_name || updated.first_name}" has been updated successfully.` })
@@ -138,7 +106,7 @@ export default function Employees() {
 
       {/* KPI row — 4-col desktop, 2-col on mobile/tablet */}
       <div style={{ display: 'grid' as const, gridTemplateColumns: kpiCols, gap: 12 }}>
-        {kpis.map((k: any) => (
+        {kpis.map((k) => (
           <Card key={k.label} style={{ padding: '14px 18px', background: '#FFFFFF', borderLeft: '4px solid ' + k.color, border: '1px solid ' + k.color + '25', transition: 'transform .18s ease, box-shadow .18s ease' }}
             onMouseEnter={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(75,94,170,.18)' }}
             onMouseLeave={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
@@ -162,14 +130,14 @@ export default function Employees() {
               style={{ padding: '7px 10px', borderRadius: 7, border: '1.5px solid var(--border-card)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: '#fff', cursor: 'pointer' as const, outline: 'none', transition: 'border-color .18s ease, box-shadow .18s ease' }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(75,94,170,.25)' }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-card)'; e.currentTarget.style.boxShadow = '' }}>
-              {typeOptions.map((t: any) => <option key={t} value={t}>{t === 'all' ? 'All Types' : t}</option>)}
+              {typeOptions.map((t) => <option key={t} value={t}>{t === 'all' ? 'All Types' : t}</option>)}
             </select>
             {/* Status filter */}
             <select value={statusFilter} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => { setStatusFilter(e.target.value); setPage(1) }}
               style={{ padding: '7px 10px', borderRadius: 7, border: '1.5px solid var(--border-card)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: '#fff', cursor: 'pointer' as const, outline: 'none', transition: 'border-color .18s ease, box-shadow .18s ease' }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(75,94,170,.25)' }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-card)'; e.currentTarget.style.boxShadow = '' }}>
-              {statusOptions.map((s: any) => <option key={s} value={s}>{s === 'all' ? 'All Status' : cap(s)}</option>)}
+              {statusOptions.map((s) => <option key={s} value={s}>{s === 'all' ? 'All Status' : capitalize(s)}</option>)}
             </select>
             {/* Search */}
             <div style={{ position: 'relative' as const }}>
@@ -197,7 +165,7 @@ export default function Employees() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: 'var(--table-head-bg)' }}>
-                {['#','Name','Role','Email','Contact','Department','Joined','Status','Actions'].map((h: any) => (
+                {['#','Name','Role','Email','Contact','Department','Joined','Status','Actions'].map((h) => (
                   <th key={h} style={{ padding: '10px 14px', textAlign: 'left' as const, fontSize: 11, fontWeight: 600, color: 'var(--table-head-fg)', textTransform: 'uppercase' as const, letterSpacing: '.06em', borderBottom: '2px solid var(--border-table)', whiteSpace: 'nowrap' as const }}>{h}</th>
                 ))}
               </tr>
@@ -287,7 +255,7 @@ export default function Employees() {
             <div style={{ display: 'grid' as const, gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(3,1fr)', gap: 12 }}>
               {[
                 ['Employee ID',  viewItem.employee_number],
-                ['Status',       cap(viewItem.status)],
+                ['Status',       capitalize(viewItem.status)],
                 ['Gender',       viewItem.gender || '—'],
                 ['Email',        viewItem.email],
                 ['Contact',      viewItem.contact_number],

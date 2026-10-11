@@ -1,28 +1,23 @@
 // Announcements.tsx — Hub with paginated View All modals, pinned/unpinned sections
 // Fully responsive via useBreakpoint — calendar/tiles layout collapses on mobile
 import React, { useState, useRef } from 'react'
+import type { ReactNode } from 'react'
 import { Badge, StatusBadge, Card, Button, Input, Textarea, InfoModal, ResponseModal } from '../../components/ui'
 import {
   MOCK_ANNOUNCEMENTS, MOCK_PROJECTS, MOCK_EVENTS,
-  formatDate, formatCurrency, relativeTime,
+  formatDate, formatCurrency, relativeTime, fmt12,
 } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 import useBreakpoint from '../../hooks/useBreakpoint'
-import type { Announcement, Project, AppEvent } from '../../types'
+import { parseDate } from '../../utils/formatters'
+import type { Announcement, Project, AppEvent, OrgConfig } from '../../types'
 
 /* ── Merged project/event types — `kind` tells tiles, schedule rows and the detail modal which one an item is ── */
-type TileItem      = (Project | AppEvent) & { kind: 'project' | 'event' }
+type TileItem      = (Project & { kind: 'project' }) | (AppEvent & { kind: 'event' })   // discriminated on kind
 type ScheduleEntry = TileItem & { name: string; date: string }   // ScheduleItem reads name/date/kind
+type CalProject    = Project & { isStart: boolean; isEnd: boolean; isMid: boolean }   // calendar pill position within a multi-day project
+interface DayActivities { projects: Project[]; events: AppEvent[] }
 
-
-/* ── Convert 24-hr "HH:MM" to 12-hr "h:MM AM/PM" ─────────────────── */
-function fmt12(t: string): string | null {
-  if (!t) return null
-  const [h, m] = t.split(':').map(Number)
-  const ampm = h >= 12 ? 'PM' : 'AM'
-  const h12  = h % 12 || 12
-  return `${h12}:${String(m).padStart(2,'0')} ${ampm}`
-}
 
 /* ─── Calendar helpers ─────────────────────────────────────────── */
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December']
@@ -30,8 +25,8 @@ const DAY_NAMES   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
 
 /* ─── Solid-color tile palette ─────────────────────────────────── */
 /* Fixed type colors — project = brand blue, event = success green, for easy identification */
-const KIND_COLOR = { project: '#4B5EAA', event: '#2E7D52' }
-function tileColor(_id: string, kind: string): string { return (KIND_COLOR as Record<string,any>)[kind] || '#4B5EAA' }
+const KIND_COLOR: Record<TileItem['kind'], string> = { project: '#4B5EAA', event: '#2E7D52' }
+function tileColor(_id: string, kind: TileItem['kind']): string { return KIND_COLOR[kind] || '#4B5EAA' }
 
 /* ─── SVG icons ────────────────────────────────────────────────── */
 const Ico = {
@@ -49,11 +44,11 @@ const Ico = {
 }
 
 /* ─── Pagination component ─────────────────────────────────────── */
-function Pagination({ page, total, onChange }: Record<string, any>) {
+function Pagination({ page, total, onChange }: { page: number; total: number; onChange: (page: number) => void }) {
   return (
     <div style={{ display: 'flex' as const, alignItems: 'center', justifyContent: 'center', gap: 4, padding: '12px 0 4px' }}>
       <PageBtn disabled={page === 1} onClick={() => onChange(page - 1)}><Ico.ChevL /></PageBtn>
-      {Array.from({ length: total }, (_, i) => i + 1).map((p: any) => (
+      {Array.from({ length: total }, (_, i) => i + 1).map((p) => (
         <PageBtn key={p} active={p === page} onClick={() => onChange(p)}>{p}</PageBtn>
       ))}
       <PageBtn disabled={page === total} onClick={() => onChange(page + 1)}><Ico.ChevR /></PageBtn>
@@ -62,7 +57,7 @@ function Pagination({ page, total, onChange }: Record<string, any>) {
 }
 
 /* ─── Section label inside modal ───────────────────────────────── */
-function ModalSection({ icon, label, count, color = 'var(--accent)' }: Record<string, any>) {
+function ModalSection({ icon, label, count, color = 'var(--accent)' }: { icon: ReactNode; label: string; count: number; color?: string }) {
   return (
     <div style={{ display: 'flex' as const, alignItems: 'center', gap: 8, padding: '12px 0 8px', borderBottom: '2px solid var(--border-table)', marginBottom: 8 }}>
       <span style={{ color, display: 'flex' as const }}>{icon}</span>
@@ -83,7 +78,7 @@ function ModalSection({ icon, label, count, color = 'var(--accent)' }: Record<st
    - Middle days: full-width bar (no text) — keeps reading clean
    - End day: right-rounded pill
    Single-day events show as a standard pill with title.                  */
-function CalDay({ day, isToday, hasAct, projects, events, totalActs, onClick }: Record<string, any>) {
+function CalDay({ day, isToday, hasAct, projects, events, totalActs, onClick }: { day: number; isToday: boolean; hasAct: boolean; projects: CalProject[]; events: AppEvent[]; totalActs: number; onClick: () => void }) {
   const [hov, setHov] = React.useState(false)
   return (
     <div
@@ -119,7 +114,7 @@ function CalDay({ day, isToday, hasAct, projects, events, totalActs, onClick }: 
       </div>
 
       {/* Project pills — continuous bar style for multi-day projects */}
-      {projects.slice(0,2).map((p: any) => (
+      {projects.slice(0,2).map((p) => (
         <div key={p.id} style={{
           fontSize: p.isMid ? 7 : 8.5,
           background: p.isMid ? 'rgba(75,94,170,.7)' : 'var(--accent)',
@@ -138,7 +133,7 @@ function CalDay({ day, isToday, hasAct, projects, events, totalActs, onClick }: 
       ))}
 
       {/* Event pills — always single-day, standard pill */}
-      {events.slice(0, Math.max(0, 2 - projects.length)).map((e: any) => (
+      {events.slice(0, Math.max(0, 2 - projects.length)).map((e) => (
         <div key={e.id} style={{ fontSize:8.5, background:'var(--success)', color:'#fff', borderRadius:3, padding:'2px 4px', marginBottom:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
           {e.title}
         </div>
@@ -170,7 +165,7 @@ export default function Announcements() {
   const [showAllModal,  setShowAllModal]  = useState(false)
   const [allAnnPage,    setAllAnnPage]    = useState(1)  // pagination inside All Announcements modal
   const [viewAnn,       setViewAnn]       = useState<Announcement | null>(null)
-  const [form, setForm] = useState<Record<string,any>>({ title: '', content: '', is_pinned: false })
+  const [form, setForm] = useState<{ title: string; content: string; is_pinned: boolean }>({ title: '', content: '', is_pinned: false })
   const [annResponse,   setAnnResponse]   = useState<{variant:string;title:string;message:string} | null>(null)
   const [pendingDelete, setPendingDelete] = useState<string | null>(null)
 
@@ -183,14 +178,14 @@ export default function Announcements() {
     setAnnResponse({ variant:'success', title:'Announcement Posted', message:'Your announcement has been published and is now visible to all members.' })
   }
   function togglePin(id: string) {
-    const ann = announcements.find((a: any) => a.id === id)
-    setAnnouncements(prev => prev.map((a: any) => a.id === id ? { ...a, is_pinned: !a.is_pinned } : a))
+    const ann = announcements.find((a) => a.id === id)
+    setAnnouncements(prev => prev.map((a) => a.id === id ? { ...a, is_pinned: !a.is_pinned } : a))
     setViewAnn(null)
     setAnnResponse({ variant:'info', title: ann?.is_pinned ? 'Announcement Unpinned' : 'Announcement Pinned', message: ann?.is_pinned ? 'The announcement has been removed from the pinned section.' : 'The announcement is now pinned at the top of the list.' })
   }
   function confirmDelete(id: string) { setViewAnn(null); setPendingDelete(id as string) }
   function handleDelete() {
-    setAnnouncements(prev => prev.filter((a: any) => a.id !== pendingDelete))
+    setAnnouncements(prev => prev.filter((a) => a.id !== pendingDelete))
     setPendingDelete(null)
     setAnnResponse({ variant:'danger', title:'Announcement Deleted', message:'The announcement has been permanently removed and is no longer visible to members.' })
   }
@@ -198,17 +193,17 @@ export default function Announcements() {
   /* ── Calendar + schedule state ───────────────────────────────── */
   const [month,          setMonth]          = useState(today.getMonth())
   const [year,           setYear]           = useState(today.getFullYear())
-  const [selectedDay,    setSelectedDay]    = useState<{day:number;projects:any[];events:any[]} | null>(null)
+  const [selectedDay,    setSelectedDay]    = useState<(DayActivities & { day: number }) | null>(null)
   const [overviewH,      setOverviewH]      = useState<string | number>('auto')
   const overviewRef                         = useRef<HTMLDivElement | null>(null)
 
   /* ── Calendar helpers ────────────────────────────────────────── */
   function daysInMonth(y: number, m: number)   { return new Date(y, m + 1, 0).getDate() }
   function firstDayOfMonth(y: number, m: number) { return new Date(y, m, 1).getDay() }
-  function getActivitiesOnDay(day: number): {projects: any[]; events: any[]} {
+  function getActivitiesOnDay(day: number): DayActivities {
     const dateStr = `${year}-${String(month + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
-    const projects = MOCK_PROJECTS.filter((p: any) => p.start_date === dateStr || p.end_date === dateStr)
-    const events   = MOCK_EVENTS.filter((e: any) => e.event_date === dateStr)
+    const projects = MOCK_PROJECTS.filter((p) => p.start_date === dateStr || p.end_date === dateStr)
+    const events   = MOCK_EVENTS.filter((e) => e.event_date === dateStr)
     return { projects, events }
   }
   const firstDay    = firstDayOfMonth(year, month)
@@ -227,7 +222,7 @@ export default function Announcements() {
   const pagedTiles     = allTiles.slice((tilePage - 1) * TILES_PER_PAGE, tilePage * TILES_PER_PAGE)
 
   /* ── Detail modal (activity click from tile) ─────────────────── */
-  const [detailItem,  setDetailItem]  = useState<Record<string,any> | null>(null)
+  const [detailItem,  setDetailItem]  = useState<TileItem | null>(null)
 
   /* ── Schedule modal ──────────────────────────────────────────── */
   const ANN_MODAL_PER_PAGE  = 8
@@ -236,16 +231,16 @@ export default function Announcements() {
   const [schedPage,     setSchedPage]     = useState(1)
 
   /* ── Derived announcement lists ──────────────────────────────── */
-  const allSorted    = [...announcements].sort((a: any, b: any) =>
+  const allSorted    = [...announcements].sort((a, b) =>
     new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   )
-  const pinnedAnn    = allSorted.filter((a: any) => a.is_pinned)
-  const regularAnn   = allSorted.filter((a: any) => !a.is_pinned)
+  const pinnedAnn    = allSorted.filter((a) => a.is_pinned)
+  const regularAnn   = allSorted.filter((a) => !a.is_pinned)
   const pagedModalAnn = regularAnn.slice(0, ANN_MODAL_PER_PAGE)
   const upcoming: ScheduleEntry[] = allTiles
     .filter(a => a.status === 'upcoming' || a.status === 'ongoing')
     .map((a): ScheduleEntry => ({ ...a, name: a.title, date: 'start_date' in a ? a.start_date : a.event_date }))
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .sort((a, b) => parseDate(a.date).getTime() - parseDate(b.date).getTime())
   const schedModalPages  = Math.max(1, Math.ceil(upcoming.length / SCHED_MODAL_PER_PAGE))
   const pagedModalSched  = upcoming.slice((schedPage - 1) * SCHED_MODAL_PER_PAGE, schedPage * SCHED_MODAL_PER_PAGE)
 
@@ -285,7 +280,7 @@ export default function Announcements() {
               ? <div style={{ textAlign:'center', padding:'40px 0', color:'var(--text-muted)', fontSize:13 }}>No active activities.</div>
               : (
                 <div style={{ display:'grid', gridTemplateColumns:tileGridCols, gap:12 }}>
-                  {pagedTiles.map((item: any) => (
+                  {pagedTiles.map((item) => (
                     <TileCard key={`${item.kind}-${item.id}`} item={item} org={org} onClick={() => setDetailItem(item)} />
                   ))}
                 </div>
@@ -298,7 +293,7 @@ export default function Announcements() {
             <div style={{ fontSize:12, color:'var(--text-muted)' }}>Page {tilePage} of {totalTilePages} · {allTiles.length} total</div>
             <div style={{ display:'flex', gap:4 }}>
               <PageBtn disabled={tilePage===1}              onClick={() => setTilePage(p=>p-1)}><Ico.ChevL /></PageBtn>
-              {Array.from({ length: totalTilePages }, (_,i) => i+1).map((p: any) => (
+              {Array.from({ length: totalTilePages }, (_,i) => i+1).map((p) => (
                 <PageBtn key={p} active={p===tilePage} onClick={() => setTilePage(p)}>{p}</PageBtn>
               ))}
               <PageBtn disabled={tilePage===totalTilePages} onClick={() => setTilePage(p=>p+1)}><Ico.ChevR /></PageBtn>
@@ -323,7 +318,7 @@ export default function Announcements() {
           <div style={{ flex:1, overflowY:'auto', minHeight:0 }}>
             {panelAnn.length === 0
               ? <div style={{ padding:'24px', textAlign:'center', color:'var(--text-muted)', fontSize:13 }}>No announcements yet. Click + to add one.</div>
-              : panelAnn.map((a: any) => <AnnRow key={a.id} a={a} onClick={() => setViewAnn(a)} />)
+              : panelAnn.map((a) => <AnnRow key={a.id} a={a} onClick={() => setViewAnn(a)} />)
             }
           </div>
 
@@ -351,13 +346,13 @@ export default function Announcements() {
 
           <div style={{ padding:'14px 18px' }}>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', marginBottom:6 }}>
-              {DAY_NAMES.map((d: any) => (
+              {DAY_NAMES.map((d) => (
                 <div key={d} style={{ textAlign:'center', fontSize:10.5, fontWeight:700, color:'var(--text-muted)', padding:'2px 0', textTransform:'uppercase', letterSpacing:'.06em' }}>{d}</div>
               ))}
             </div>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:3 }}>
               {Array.from({ length: firstDay }).map((_, i) => <div key={`e${i}`} />)}
-              {Array.from({ length: daysInMonth_ }, (_: any, i: number) => i+1).map((day: number) => {
+              {Array.from({ length: daysInMonth_ }, (_, i) => i+1).map(day => {
                 const isToday   = day===today.getDate() && month===today.getMonth() && year===today.getFullYear()
                 const { projects, events } = getActivitiesOnDay(day)
                 const hasAct    = projects.length>0 || events.length>0
@@ -367,7 +362,7 @@ export default function Announcements() {
                 // For projects spanning multiple days: show a subtle "continuing" indicator
                 // instead of a full pill on every day — only show full pill on start day
                 const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
-                const projectPills = projects.map((p: any) => {
+                const projectPills = projects.map((p) => {
                   const isStart = p.start_date === ds
                   const isEnd   = p.end_date   === ds
                   return { ...p, isStart, isEnd, isMid: !isStart && !isEnd }
@@ -400,7 +395,7 @@ export default function Announcements() {
           <div style={{ flex:1, padding:'4px 0' }}>
             {panelSched.length === 0
               ? <div style={{ padding:'24px', textAlign:'center', color:'var(--text-muted)', fontSize:13 }}>No upcoming activities.</div>
-              : panelSched.map((a: any) => <ScheduleItem key={`${a.kind}-${a.id}`} a={a} />)
+              : panelSched.map((a) => <ScheduleItem key={`${a.kind}-${a.id}`} a={a} />)
             }
           </div>
           {/* View All — centered */}
@@ -476,7 +471,7 @@ export default function Announcements() {
                 count={pinnedAnn.length}
                 color="var(--accent)"
               />
-              {pinnedAnn.map((a: any) => (
+              {pinnedAnn.map((a) => (
                 <AnnRow key={a.id} a={a} onClick={() => { setShowAllModal(false); setViewAnn(a) }} />
               ))}
             </div>
@@ -493,16 +488,16 @@ export default function Announcements() {
               />
               {/* Paginated unpinned list */}
               {pagedModalAnn
-                .filter((a: any) => !a.is_pinned)
-                .map((a: any) => (
+                .filter((a) => !a.is_pinned)
+                .map((a) => (
                   <AnnRow key={a.id} a={a} onClick={() => { setShowAllModal(false); setViewAnn(a) }} />
                 ))}
               {/* Show all pinned on first page too if they were included in slice */}
               {allSorted
-                .filter((a: any) => !a.is_pinned)
+                .filter((a) => !a.is_pinned)
                 .slice((allAnnPage - 1) * ANN_MODAL_PER_PAGE, allAnnPage * ANN_MODAL_PER_PAGE)
-                .filter((a, _, _arr) => !pagedModalAnn.filter((p: any) => !p.is_pinned).find((p: any) => p.id === a.id))
-                .map((a: any) => (
+                .filter((a, _, _arr) => !pagedModalAnn.filter((p) => !p.is_pinned).find((p) => p.id === a.id))
+                .map((a) => (
                   <AnnRow key={a.id} a={a} onClick={() => { setShowAllModal(false); setViewAnn(a) }} />
                 ))}
             </div>
@@ -530,7 +525,7 @@ export default function Announcements() {
         title="Full Upcoming Schedule"
         subtitle={`${upcoming.length} activities · Page ${schedPage} of ${schedModalPages} · 10 per page`}>
         <div>
-          {pagedModalSched.map((a: any) => <ScheduleItem key={`${a.kind}-${a.id}`} a={a} />)}
+          {pagedModalSched.map((a) => <ScheduleItem key={`${a.kind}-${a.id}`} a={a} />)}
           <Pagination page={schedPage} total={schedModalPages} onChange={setSchedPage} />
         </div>
       </InfoModal>
@@ -569,8 +564,8 @@ export default function Announcements() {
           title={`${MONTH_NAMES[month]} ${selectedDay.day}, ${year}`}
           subtitle="Activities on this day">
           <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-            {(selectedDay as any).projects.map((p: any) => <DayCard key={p.id} item={{ ...p, kind:'project' }} org={org} />)}
-            {(selectedDay as any).events.map((e: any) => <DayCard key={e.id} item={{ ...e, kind:'event' }} org={org} />)}
+            {selectedDay.projects.map(p => <DayCard key={p.id} item={{ ...p, kind:'project' }} org={org} />)}
+            {selectedDay.events.map(e => <DayCard key={e.id} item={{ ...e, kind:'event' }} org={org} />)}
           </div>
         </InfoModal>
       )}
@@ -601,7 +596,7 @@ export default function Announcements() {
 }
 
 /* ─── Sub-components (same as before, solid colors) ─────────────────────────  */
-function TileCard({ item, org, onClick }: Record<string, any>) {
+function TileCard({ item, org, onClick }: { item: TileItem; org: OrgConfig; onClick: () => void }) {
   const isProject = item.kind === 'project'
   const accentC   = isProject ? 'var(--accent)' : 'var(--success)'
   const pct = item.target_funding > 0 ? Math.min(100, Math.round((item.current_funding / item.target_funding) * 100)) : null
@@ -650,7 +645,7 @@ function TileCard({ item, org, onClick }: Record<string, any>) {
   )
 }
 
-function DetailContent({ item, org }: Record<string, any>) {
+function DetailContent({ item, org }: { item: TileItem; org: OrgConfig }) {
   const isProject = item.kind === 'project'
   const accentC   = isProject ? 'var(--accent)' : 'var(--success)'
   const bgC       = isProject ? 'var(--accent-light)' : 'var(--success-light)'
@@ -696,7 +691,7 @@ function DetailContent({ item, org }: Record<string, any>) {
   )
 }
 
-function DayCard({ item, org: _org }: Record<string, any>) {
+function DayCard({ item, org: _org }: { item: TileItem; org: OrgConfig }) {
   const isProject = item.kind === 'project'
   const accentC   = isProject ? 'var(--accent)' : 'var(--success)'
   const bgC       = isProject ? 'var(--accent-light)' : 'var(--success-light)'
@@ -725,7 +720,7 @@ function DayCard({ item, org: _org }: Record<string, any>) {
   )
 }
 
-function AnnRow({ a, onClick }: Record<string, any>) {
+function AnnRow({ a, onClick }: { a: Announcement; onClick: () => void }) {
   return (
     <div onClick={onClick}
       style={{ display:'flex', alignItems:'flex-start', gap:9, padding:'10px 14px', cursor:'pointer', borderBottom:'1px solid var(--border-inner)', background: a.is_pinned ? 'rgba(75,94,170,.025)' : 'transparent', transition:'background .12s' }}
@@ -741,8 +736,8 @@ function AnnRow({ a, onClick }: Record<string, any>) {
   )
 }
 
-function ScheduleItem({ a }: Record<string, any>) {
-  const d  = new Date(a.date)
+function ScheduleItem({ a }: { a: ScheduleEntry }) {
+  const d  = parseDate(a.date)
   const dd = isNaN(d.getTime()) ? '??' : d.getDate()
   const mm = isNaN(d.getTime()) ? '???' : MONTH_NAMES[d.getMonth()].slice(0,3)
   return (
@@ -759,7 +754,7 @@ function ScheduleItem({ a }: Record<string, any>) {
   )
 }
 
-function LegendDot({ color, label }: Record<string, any>) {
+function LegendDot({ color, label }: { color: string; label: string }) {
   return (
     <div style={{ display:'flex', alignItems:'center', gap:5, fontSize:11.5, color:'var(--text-muted)' }}>
       <div style={{ width:8, height:8, borderRadius:'50%', background:color }} />{label}
@@ -767,7 +762,7 @@ function LegendDot({ color, label }: Record<string, any>) {
   )
 }
 
-function PageBtn({ children, active, disabled, onClick }: Record<string, any>) {
+function PageBtn({ children, active, disabled, onClick }: { children: ReactNode; active?: boolean; disabled?: boolean; onClick: () => void }) {
   return (
     <button onClick={onClick} disabled={disabled}
       style={{ display:'flex', alignItems:'center', justifyContent:'center', width:28, height:28, borderRadius:6, border:'1.5px solid var(--border-card)', background: active ? 'var(--accent)' : disabled ? 'var(--neutral-light)' : '#fff', color: active ? '#fff' : disabled ? 'var(--text-muted)' : 'var(--text-primary)', cursor: disabled ? 'not-allowed' : 'pointer', fontSize:12, fontWeight: active ? 700 : 400 }}>

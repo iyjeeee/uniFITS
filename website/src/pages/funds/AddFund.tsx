@@ -5,6 +5,11 @@ import { Button, Card, Input, SectionDivider, Select, Textarea, ResponseModal } 
 import { useOrg } from '../../context/OrgContext'
 import useBreakpoint from '../../hooks/useBreakpoint'
 import { required, isPositiveNumber, validateStep } from '../../utils/validation'
+import { StepSidebar, FieldError, StepBanner } from '../../components/FormWizard'
+import { capitalize } from '../../utils/formatters'
+import type { OrgConfig } from '../../types'
+
+interface FundForm { name: string; description: string; fund_type: string; is_required: boolean; payment_frequency: string; annual_fee: string; owner: string }
 
 const STEPS = ['Fund Info', 'Financial', 'Ownership', 'Review']
 const FREQ_OPTIONS = [
@@ -17,69 +22,18 @@ const TYPE_OPTIONS = [
   { value: 'external', label: 'External (Donations/Sponsors)' },
 ]
 
-/* ── StepSidebar ─────────────────────────────────────────────────── */
-function StepSidebar({ steps, current }: Record<string, any>) {
-  return (
-    <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 4 }}>
-      {steps.map((label: string, i: number) => {
-        const done = i < current, active = i === current
-        return (
-          <div key={i} style={{ display: 'flex' as const, alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 9, background: active ? 'var(--accent-light)' : done ? 'var(--success-light)' : 'transparent', border: '1.5px solid ' + (active ? 'rgba(75,94,170,.3)' : done ? 'rgba(46,125,82,.2)' : 'var(--border-card)') }}>
-            <div style={{ width: 26, height: 26, borderRadius: '50%', background: done ? '#2E7D52' : active ? 'var(--accent)' : 'var(--border-card)', color: done || active ? '#fff' : 'var(--text-muted)', display: 'flex' as const, alignItems: 'center', justifyContent: 'center', fontSize: 11.5, fontWeight: 700, flexShrink: 0 }}>
-              {done ? '✓' : i + 1}
-            </div>
-            <span style={{ fontSize: 13, fontWeight: active ? 700 : done ? 600 : 400, color: active ? 'var(--accent)' : done ? 'var(--success)' : 'var(--text-muted)' }}>{label}</span>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-/* ── FieldError — inline error message ───────────────────────────── */
-function FieldError({ msg }: Record<string, any>) {
-  if (!msg) return null
-  return (
-    <div style={{ display: 'flex' as const, alignItems: 'center', gap: 5, marginTop: 3, fontSize: 12, color: 'var(--danger)', fontWeight: 500 }} role="alert">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-      </svg>
-      {msg}
-    </div>
-  )
-}
-
-/* ── StepBanner — error summary banner ───────────────────────────── */
-function StepBanner({ errors }: Record<string, any>) {
-  const msgs = Object.values(errors as Record<string,string>).filter(Boolean)
-  if (!msgs.length) return null
-  return (
-    <div style={{ display: 'flex' as const, alignItems: 'flex-start', gap: 10, padding: '12px 14px', borderRadius: 9, background: '#fff5f5', border: '1.5px solid rgba(192,57,43,.3)', marginBottom: 16 }} role="alert">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
-        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-      </svg>
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--danger)', marginBottom: 4 }}>Please fix the following before continuing:</div>
-        {msgs.map((m, i) => <div key={i} style={{ fontSize: 12.5, color: 'var(--danger)', lineHeight: 1.5 }}>• {m}</div>)}
-      </div>
-    </div>
-  )
-}
-
 /* ── LivePreview ──────────────────────────────────────────────────── */
-function LivePreview({ form, org }: Record<string, any>) {
-  const cap = (s: any): string => s ? s.charAt(0).toUpperCase() + s.slice(1) : '—'
+function LivePreview({ form, org }: { form: FundForm; org: OrgConfig }) {
   return (
     <div>
       <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '.07em', marginBottom: 14 }}>Live Preview</div>
       {[
         [`${org.fund_label} Name`, form.name],
         ['Description',            form.description],
-        ['Fund Type',              cap(form.fund_type)],
+        ['Fund Type',              capitalize(form.fund_type)],
         ['Required?',              form.is_required ? 'Yes — all members' : 'No'],
-        ['Pay Frequency',          form.is_required ? cap((form as any).payment_frequency) : '—'],
-        ['Annual Fee',             form.is_required && (form as any).annual_fee ? `₱${(form as any).annual_fee}` : '—'],
+        ['Pay Frequency',          form.is_required ? capitalize(form.payment_frequency) : '—'],
+        ['Annual Fee',             form.is_required && form.annual_fee ? `₱${form.annual_fee}` : '—'],
         ['Owner / Manager',        form.owner || '—'],
         ['Currency',               'PHP'],
         ['Status',                 'Active (Default)'],
@@ -100,13 +54,13 @@ export default function AddFund() {
   const org  = useOrg()
   const { isMobile } = useBreakpoint()
   const [step, setStep] = useState(0)
-  const [form, setForm] = useState<Record<string,any>>({
+  const [form, setForm] = useState<FundForm>({
     name: '', description: '', fund_type: 'internal',
     is_required: false, payment_frequency: '', annual_fee: '', owner: '',
   })
   const [errors, setErrors] = useState<Record<string,string>>({})
   const [feedback, setFeedback] = useState(false)  // success confirmation modal visibility
-  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => { setForm((f: any) => ({ ...f, [k]: e.target.value })); clearErr(k) }
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => { setForm((f) => ({ ...f, [k]: e.target.value })); clearErr(k) }
   const clearErr = (k: string) => setErrors(p => { const n = { ...p }; delete n[k]; return n })
 
   // stepValidators — rules per step index
@@ -117,10 +71,10 @@ export default function AddFund() {
     () => {
       const rules: Record<string, (() => string)[]> = {}
       if (form.is_required) {
-        rules.payment_frequency = [() => required((form as any).payment_frequency, 'Payment Frequency')]
+        rules.payment_frequency = [() => required(form.payment_frequency, 'Payment Frequency')]
         rules.annual_fee = [
-          () => required((form as any).annual_fee, 'Annual Fee'),
-          () => isPositiveNumber((form as any).annual_fee, 'Annual Fee'),
+          () => required(form.annual_fee, 'Annual Fee'),
+          () => isPositiveNumber(form.annual_fee, 'Annual Fee'),
         ]
       }
       return validateStep(rules)
@@ -179,11 +133,11 @@ export default function AddFund() {
             {form.is_required && (
               <>
                 <div>
-                  <Select label="Payment Frequency" value={(form as any).payment_frequency} onChange={set('payment_frequency')} options={FREQ_OPTIONS} required error={errors.payment_frequency} />
+                  <Select label="Payment Frequency" value={form.payment_frequency} onChange={set('payment_frequency')} options={FREQ_OPTIONS} required error={errors.payment_frequency} />
                   <FieldError msg={errors.payment_frequency} />
                 </div>
                 <div>
-                  <Input label={`Total Annual Fee (${org.currency_symbol})`} type="number" value={(form as any).annual_fee} onChange={set('annual_fee')} placeholder="0.00" required error={errors.annual_fee} />
+                  <Input label={`Total Annual Fee (${org.currency_symbol})`} type="number" value={form.annual_fee} onChange={set('annual_fee')} placeholder="0.00" required error={errors.annual_fee} />
                   <FieldError msg={errors.annual_fee} />
                 </div>
               </>
@@ -207,8 +161,8 @@ export default function AddFund() {
               [`${org.fund_label} Name`, form.name],
               ['Type',          form.fund_type === 'internal' ? 'Internal' : 'External'],
               ['Required?',     form.is_required ? 'Yes — all members' : 'No'],
-              ['Pay Frequency', (form as any).payment_frequency || '—'],
-              ['Annual Fee',    (form as any).annual_fee ? `${org.currency_symbol}${(form as any).annual_fee}` : '—'],
+              ['Pay Frequency', form.payment_frequency || '—'],
+              ['Annual Fee',    form.annual_fee ? `${org.currency_symbol}${form.annual_fee}` : '—'],
               ['Owner',         form.owner || '—'],
               ['Status',        'Active (Default)'],
             ].map(([k, v]) => (

@@ -21,7 +21,7 @@ export default function Login({ onLogin }: { onLogin: (user: User) => void }) {
     setTimeout(() => {
       setLoading(false)
       // ── DEV mock auth: match any registered email (case-insensitive), any password ──
-      const user = MOCK_USERS.find((u: any) => u.email.toLowerCase() === email.trim().toLowerCase())
+      const user = MOCK_USERS.find((u) => u.email.toLowerCase() === email.trim().toLowerCase())
       if (user) {
         onLogin(user)
       } else {

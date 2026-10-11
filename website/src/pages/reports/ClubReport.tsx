@@ -2,6 +2,7 @@
 // Includes: income statement, balance summary, fund breakdown, activity P&L,
 // member stats, utility expense breakdown, and a printable layout.
 import { useState } from 'react'
+import type { ReactNode } from 'react'
 import { Card, Button, ResponseModal } from '../../components/ui'
 import {
   MOCK_USERS, MOCK_PROJECTS, MOCK_EVENTS, MOCK_FUNDS,
@@ -9,6 +10,7 @@ import {
 } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 import useBreakpoint from '../../hooks/useBreakpoint'
+import { capitalize } from '../../utils/formatters'
 
 const REPORT_TYPE_OPTIONS = [
   { value: 'annual',    label: 'Annual Report'    },
@@ -21,7 +23,7 @@ function IcoPDF()    { return <svg width="13" height="13" viewBox="0 0 24 24" fi
 function IcoPrint()  { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> }
 
 /* ── Section divider ─────────────────────────────────────────────── */
-function ReportSection({ title, children }: Record<string, any>) {
+function ReportSection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div style={{ marginBottom: 28 }}>
       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase' as const, letterSpacing: '.06em', paddingBottom: 8, borderBottom: '2px solid var(--accent)', marginBottom: 14 }}>
@@ -33,7 +35,7 @@ function ReportSection({ title, children }: Record<string, any>) {
 }
 
 /* ── Two-col stat row ─────────────────────────────────────────────── */
-function StatRow({ label, value, color, bold, indent, border, whiteLabel }: Record<string, any>) {
+function StatRow({ label, value, color, bold, indent, border, whiteLabel }: { label: string; value: ReactNode; color?: string; bold?: boolean; indent?: boolean; border?: boolean; whiteLabel?: boolean }) {
   // whiteLabel=true: INCOME/EXPENSES/NET SURPLUS header rows — accent bg, white text
   // bold without whiteLabel: total rows — color-tinted light bg so green/red stays visible
   const isHeader   = bold && whiteLabel
@@ -78,11 +80,11 @@ export default function ClubReport() {
   const periodOptions = reportType === 'annual'
     ? YEARS.map(y    => ({ value: String(y),           label: String(y)           }))
     : reportType === 'quarterly'
-    ? QUARTERS.map((q: any) => ({ value: q,                   label: q                   }))
+    ? QUARTERS.map((q) => ({ value: q,                   label: q                   }))
     : MONTHS.map(m   => ({ value: m + ' 2025',         label: m + ' 2025'         }))
 
   // Reset period when type changes
-  function handleTypeChange(e: React.FormEvent | React.ChangeEvent<any>) {
+  function handleTypeChange(e: React.ChangeEvent<HTMLSelectElement>) {
     setReportType(e.target.value)
     setReportPeriod(e.target.value === 'annual' ? '2025' : e.target.value === 'quarterly' ? 'Q1 (Jan–Mar)' : 'January 2025')
     setGenerated(false)
@@ -92,45 +94,44 @@ export default function ClubReport() {
   const totalFundBalance    = MOCK_FUNDS.reduce((s, f) => s + f.balance, 0)
 
   // Income
-  const memberDues          = MOCK_TRANSACTIONS.filter((t: any) => t.entry_type === 'contribution').reduce((s, t) => s + t.amount, 0)
-  const projectIncome       = MOCK_TRANSACTIONS.filter((t: any) => t.category === 'project' && t.entry_type === 'income').reduce((s, t) => s + t.amount, 0)
-  const eventIncome         = MOCK_TRANSACTIONS.filter((t: any) => t.category === 'event'   && t.entry_type === 'income').reduce((s, t) => s + t.amount, 0)
-  const fundIncome          = MOCK_TRANSACTIONS.filter((t: any) => t.category === 'fund'    && t.entry_type === 'income').reduce((s, t) => s + t.amount, 0)
+  const memberDues          = MOCK_TRANSACTIONS.filter((t) => t.entry_type === 'contribution').reduce((s, t) => s + t.amount, 0)
+  const projectIncome       = MOCK_TRANSACTIONS.filter((t) => t.category === 'project' && t.entry_type === 'income').reduce((s, t) => s + t.amount, 0)
+  const eventIncome         = MOCK_TRANSACTIONS.filter((t) => t.category === 'event'   && t.entry_type === 'income').reduce((s, t) => s + t.amount, 0)
+  const fundIncome          = MOCK_TRANSACTIONS.filter((t) => t.category === 'fund'    && t.entry_type === 'income').reduce((s, t) => s + t.amount, 0)
   const totalIncome         = memberDues + projectIncome + eventIncome + fundIncome
 
   // Expenses
-  const projectExpense      = MOCK_TRANSACTIONS.filter((t: any) => t.category === 'project' && t.entry_type === 'expense').reduce((s, t) => s + t.amount, 0)
-  const eventExpense        = MOCK_TRANSACTIONS.filter((t: any) => t.category === 'event'   && t.entry_type === 'expense').reduce((s, t) => s + t.amount, 0)
+  const projectExpense      = MOCK_TRANSACTIONS.filter((t) => t.category === 'project' && t.entry_type === 'expense').reduce((s, t) => s + t.amount, 0)
+  const eventExpense        = MOCK_TRANSACTIONS.filter((t) => t.category === 'event'   && t.entry_type === 'expense').reduce((s, t) => s + t.amount, 0)
   const utilityExpense      = MOCK_UTILITIES.reduce((s, u) => s + u.amount_paid, 0)
   const totalExpense        = projectExpense + eventExpense + utilityExpense
   const netSurplus          = totalIncome - totalExpense
 
   // Member stats
-  const activeMembers       = MOCK_USERS.filter((u: any) => u.status === 'active').length
-  const officers            = MOCK_USERS.filter((u: any) => u.role !== 'Member').length
-  const regularMembers      = MOCK_USERS.filter((u: any) => u.role === 'Member').length
+  const activeMembers       = MOCK_USERS.filter((u) => u.status === 'active').length
+  const officers            = MOCK_USERS.filter((u) => u.role !== 'Member').length
+  const regularMembers      = MOCK_USERS.filter((u) => u.role === 'Member').length
 
   // Project stats
-  const completedProjects   = MOCK_PROJECTS.filter((p: any) => p.status === 'completed').length
-  const ongoingProjects     = MOCK_PROJECTS.filter((p: any) => p.status === 'ongoing').length
-  const completedEvents     = MOCK_EVENTS.filter((e: any) => e.status === 'completed').length
-  const upcomingEvents      = MOCK_EVENTS.filter((e: any) => e.status === 'upcoming').length
+  const completedProjects   = MOCK_PROJECTS.filter((p) => p.status === 'completed').length
+  const ongoingProjects     = MOCK_PROJECTS.filter((p) => p.status === 'ongoing').length
+  const completedEvents     = MOCK_EVENTS.filter((e) => e.status === 'completed').length
+  const upcomingEvents      = MOCK_EVENTS.filter((e) => e.status === 'upcoming').length
 
   // Utility breakdown
-  const utilByType = MOCK_UTILITIES.reduce((acc: Record<string,any>, u: any) => {
+  const utilByType = MOCK_UTILITIES.reduce((acc: Record<string, number>, u) => {
     acc[u.expense_type] = (acc[u.expense_type] || 0) + u.amount_paid
     return acc
-  }, {} as Record<string,any>)
+  }, {} as Record<string, number>)
 
   // Fund per-fund breakdown
-  const fundRows = MOCK_FUNDS.map((f: any) => {
-    const received = MOCK_TRANSACTIONS.filter((t: any) => t.fund === f.name && t.entry_type !== 'expense').reduce((s, t) => s + t.amount, 0)
-    const spent    = MOCK_TRANSACTIONS.filter((t: any) => t.fund === f.name && t.entry_type === 'expense').reduce((s, t) => s + t.amount, 0)
+  const fundRows = MOCK_FUNDS.map((f) => {
+    const received = MOCK_TRANSACTIONS.filter((t) => t.fund === f.name && t.entry_type !== 'expense').reduce((s, t) => s + t.amount, 0)
+    const spent    = MOCK_TRANSACTIONS.filter((t) => t.fund === f.name && t.entry_type === 'expense').reduce((s, t) => s + t.amount, 0)
     return { ...f, received, spent }
   })
 
-  const cap = (s: any): string => s ? s.charAt(0).toUpperCase() + s.slice(1) : '—'
-  const reportTypeLabel = REPORT_TYPE_OPTIONS.find((o: any) => o.value === reportType)?.label || 'Annual Report'
+  const reportTypeLabel = REPORT_TYPE_OPTIONS.find((o) => o.value === reportType)?.label || 'Annual Report'
 
   return (
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 14 }}>
@@ -145,7 +146,7 @@ export default function ClubReport() {
               <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '.04em' }}>Report Type</label>
               <select value={reportType} onChange={handleTypeChange}
                 style={{ padding: '8px 12px', borderRadius: 8, border: '1.5px solid var(--border-card)', fontSize: 13.5, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: '#fff', outline: 'none', cursor: 'pointer' as const }}>
-                {REPORT_TYPE_OPTIONS.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                {REPORT_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
             {/* Report Period — changes based on type */}
@@ -155,7 +156,7 @@ export default function ClubReport() {
               </label>
               <select value={reportPeriod} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => { setReportPeriod(e.target.value); setGenerated(false) }}
                 style={{ padding: '8px 12px', borderRadius: 8, border: '1.5px solid var(--border-card)', fontSize: 13.5, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: '#fff', outline: 'none', cursor: 'pointer' as const, minWidth: 180 }}>
-                {periodOptions.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                {periodOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
             <Button onClick={() => setGenerated(true)}>Generate Report</Button>
@@ -188,7 +189,7 @@ export default function ClubReport() {
                 uniFITS Organization
               </div>
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--accent)', marginBottom: 4 }}>
-                {cap(reportType)} Financial Report
+                {capitalize(reportType)} Financial Report
               </div>
               <div style={{ fontSize: 13.5, color: 'var(--text-muted)', marginBottom: 2 }}>
                 Period: {reportPeriod}
@@ -206,7 +207,7 @@ export default function ClubReport() {
                   { label: 'Active Projects',     value: MOCK_PROJECTS.length,    color: 'var(--warning)' },
                   { label: 'Events Held',         value: completedEvents,         color: 'var(--success)' },
                   { label: 'Fund Balance',        value: formatCurrency(totalFundBalance, org.currency_symbol), color: 'var(--success)' },
-                ].map((k: any) => (
+                ].map((k) => (
                   <div key={k.label} style={{ padding: '14px 16px', borderRadius: 10, background: 'var(--neutral-light)', border: '1.5px solid var(--border-card)', textAlign: 'center' as const }}>
                     <div style={{ fontSize: 22, fontWeight: 800, color: k.color, lineHeight: 1 }}>{k.value}</div>
                     <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 5 }}>{k.label}</div>
@@ -257,7 +258,7 @@ export default function ClubReport() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                   <thead>
                     <tr style={{ background: 'var(--accent)' }}>
-                      {['Fund Name', 'Type', 'Status', 'Total Received', 'Total Spent', 'Current Balance'].map((h: any) => (
+                      {['Fund Name', 'Type', 'Status', 'Total Received', 'Total Spent', 'Current Balance'].map((h) => (
                         <th key={h} style={{ padding: '10px 14px', textAlign: 'left' as const, fontSize: 11, fontWeight: 700, color: '#fff', textTransform: 'uppercase' as const, letterSpacing: '.06em', borderBottom: '2px solid var(--border-table)', whiteSpace: 'nowrap' as const }}>{h}</th>
                       ))}
                     </tr>
@@ -269,7 +270,7 @@ export default function ClubReport() {
                         <td style={{ padding: '10px 14px', textTransform: 'capitalize' as const }}>{f.fund_type}</td>
                         <td style={{ padding: '10px 14px' }}>
                           <span style={{ padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: f.status === 'active' ? '#2E7D52' : '#C0392B', color: '#fff' }}>
-                            {cap(f.status)}
+                            {capitalize(f.status)}
                           </span>
                         </td>
                         <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--success)' }}>{formatCurrency(f.received, org.currency_symbol)}</td>

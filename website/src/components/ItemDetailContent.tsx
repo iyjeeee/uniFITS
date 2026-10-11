@@ -4,6 +4,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import { StatusBadge } from './ui'
 import { formatCurrency, formatDate, MOCK_TRANSACTIONS, MOCK_ATTENDANCES, fmt12 } from '../api/mockData'
 import useBreakpoint from '../hooks/useBreakpoint'
+import { capitalize } from '../utils/formatters'
 import type { Project, AppEvent, OrgConfig, Transaction, Attendance } from '../types'
 
 // Kind-specific accent colors — project=blue, event=green
@@ -97,7 +98,6 @@ export default function ItemDetailContent({ item, org, kind }: ItemDetailContent
   const pct       = item.target_funding > 0
     ? Math.min(100, Math.round((item.current_funding / item.target_funding) * 100))
     : null
-  const cap = (s?: string) => s ? s.charAt(0).toUpperCase() + s.slice(1) : '—'
 
   // ── Derive financial + attendance data from mock arrays ──────────────────
   const memberContribs = MOCK_TRANSACTIONS.filter((t: Transaction) =>
@@ -119,12 +119,12 @@ export default function ItemDetailContent({ item, org, kind }: ItemDetailContent
 
   // ── Info detail grid rows — shared + kind-specific ───────────────────────
   const detailRows: [string, string][] = [
-    ['Status',   cap(item.status)],
+    ['Status',   capitalize(item.status)],
     isProject
       ? ['Duration',    `${formatDate((item as Project).start_date)} – ${formatDate((item as Project).end_date)}`]
       : ['Date & Time', `${formatDate((item as AppEvent).event_date)}${(item as AppEvent).event_time ? ' · ' + fmt12((item as AppEvent).event_time) : ''}`],
     ['Location',        item.location || '—'],
-    isProject ? ['Type', cap((item as Project).project_type)] : ['Status', cap(item.status)],
+    isProject ? ['Type', capitalize((item as Project).project_type)] : ['Status', capitalize(item.status)],
     ['Target Funding',  item.target_funding  > 0 ? formatCurrency(item.target_funding,  org.currency_symbol) : 'Not Required'],
     ['Current Funding', item.current_funding > 0 ? formatCurrency(item.current_funding, org.currency_symbol) : '—'],
   ].filter((row, idx, arr) =>

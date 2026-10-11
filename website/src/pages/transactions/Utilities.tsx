@@ -10,14 +10,19 @@ import { MOCK_UTILITIES, MOCK_FUNDS, formatCurrency, formatDate } from '../../ap
 import { useOrg } from '../../context/OrgContext'
 import { rowStyle, rowHoverBg, modalAccentColor } from '../../constants/tableColors'
 import useBreakpoint from '../../hooks/useBreakpoint'
-import type { Utility } from '../../types'
+import type { Utility, OrgConfig } from '../../types'
+
+// Edit form — amounts stay string|number: stored values are numbers, the inputs yield strings (converted on save)
+type UtilityEditForm = Omit<Utility, 'total_amount' | 'amount_paid'> & { total_amount: number | string; amount_paid: number | string }
+interface UtilityDetailModalProps { item: Utility; editForm: UtilityEditForm | null; editMode: boolean; onFormChange: (key: keyof UtilityEditForm, value: string) => void; org: OrgConfig }
+import { capitalize } from '../../utils/formatters'
 
 /* ── Utility detail + inline edit view inside InfoModal ──────────── */
 // editMode toggles between read-only detail and editable form within the same modal
-function UtilityDetailModal({ item, editForm, editMode, setEditMode: _setEditMode, onFormChange, org }: Record<string, any>) {
+function UtilityDetailModal({ item, editForm, editMode, onFormChange, org }: UtilityDetailModalProps) {
   const remaining = item.total_amount - item.amount_paid
   const pctPaid   = item.total_amount > 0 ? Math.round((item.amount_paid / item.total_amount) * 100) : 0
-  const fundOptions = MOCK_FUNDS.map((f: any) => ({ value: f.name, label: f.name }))
+  const fundOptions = MOCK_FUNDS.map((f) => ({ value: f.name, label: f.name }))
   const statusOptions = [{ value: 'unpaid', label: 'Unpaid' }, { value: 'partial', label: 'Partial' }, { value: 'paid', label: 'Paid' }]
 
   if (editMode) {
@@ -119,8 +124,7 @@ function UtilityDetailModal({ item, editForm, editMode, setEditMode: _setEditMod
 }
 
 /* ── Delete confirmation body ────────────────────────────────────── */
-function DeleteBody({ item, org }: Record<string, any>) {
-  const cap = (s: any): string => s ? s.charAt(0).toUpperCase() + s.slice(1) : '—'
+function DeleteBody({ item, org }: { item: Utility; org: OrgConfig }) {
   return (
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 16 }}>
       <div style={{ padding: '14px 16px', borderRadius: 10, background: '#fdecea', border: '1.5px solid rgba(192,57,43,.30)', display: 'flex' as const, gap: 10, alignItems: 'flex-start' }}>
@@ -132,7 +136,7 @@ function DeleteBody({ item, org }: Record<string, any>) {
       </div>
       <div>
         <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '.06em', marginBottom: 10 }}>{org.utility_label} Summary</div>
-        {[['Category', item.expense_type], ['Total', formatCurrency(item.total_amount, org.currency_symbol)], ['Status', cap(item.status)], ['Paid To', item.paid_to || '—']].map(([k, v], idx) => (
+        {[['Category', item.expense_type], ['Total', formatCurrency(item.total_amount, org.currency_symbol)], ['Status', capitalize(item.status)], ['Paid To', item.paid_to || '—']].map(([k, v], idx) => (
           <div key={k} style={{ display: 'flex' as const, gap: 16, padding: '10px 14px', borderBottom: '1px solid var(--border-inner)', background: idx % 2 === 0 ? 'var(--neutral-light)' : '#fff' }}>
             <div style={{ width: 130, fontSize: 12.5, color: 'var(--text-muted)', flexShrink: 0, fontWeight: 500 }}>{k}</div>
             <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)' }}>{v}</div>
@@ -158,28 +162,27 @@ export default function Utilities() {
   const [page,         setPage]         = useState(1)
   const [viewItem,     setViewItem]     = useState<Utility | null>(null)    // item open in detail modal
   const [editMode, setEditMode]     = useState(false)   // toggle edit view inside detail modal
-  const [editForm,     setEditForm]     = useState<Utility | null>(null)    // local edit form state
+  const [editForm,     setEditForm]     = useState<UtilityEditForm | null>(null)    // local edit form state
   const [deleteItem,   setDeleteItem]   = useState<Utility | null>(null)    // item pending deletion
   const [actionResult, setActionResult] = useState<{variant:string;title:string;message:string} | null>(null)    // feedback
 
   const PAGE_SIZE = 10
-  const cap = (s: any): string => s ? s.charAt(0).toUpperCase() + s.slice(1) : '—'
 
   /* Open detail modal — always starts in read-only mode */
-  function openDetail(item: any) {
+  function openDetail(item: Utility) {
     setViewItem(item)
-    setEditForm({ ...item } as any)
+    setEditForm({ ...item })
     setEditMode(false)
   }
 
   /* Apply field change to local edit form */
-  function handleFormChange(key: any, value: any) {
-    setEditForm((prev: any) => ({ ...(prev || {}), [key]: value }))
+  function handleFormChange(key: keyof UtilityEditForm, value: string) {
+    setEditForm(prev => prev && { ...prev, [key]: value })   // edit form only exists while a row is open
   }
 
   /* Save edit — update record in list */
   function handleSaveEdit() {
-    setData(prev => prev.map((u: any) => u.id === editForm?.id ? { ...editForm, total_amount: Number(editForm?.total_amount), amount_paid: Number(editForm?.amount_paid) } : u))
+    setData(prev => prev.map((u) => u.id === editForm?.id ? { ...editForm, total_amount: Number(editForm?.total_amount), amount_paid: Number(editForm?.amount_paid) } : u))
     if (editForm) setViewItem({ ...editForm, total_amount: Number(editForm.total_amount), amount_paid: Number(editForm.amount_paid) })
     setEditMode(false)
     setActionResult({ variant: 'success', title: `${org.utility_label} Updated`, message: `"${editForm?.expense_type}" has been saved successfully.` })
@@ -187,14 +190,14 @@ export default function Utilities() {
 
   /* Cancel edit — revert form to current item state */
   function handleCancelEdit() {
-    setEditForm({ ...viewItem } as any)
+    setEditForm(viewItem ? { ...viewItem } : null)
     setEditMode(false)
   }
 
   /* Handle delete */
   function handleDelete() {
     const cat = deleteItem?.expense_type
-    setData(prev => prev.filter((u: any) => u.id !== deleteItem?.id))
+    setData(prev => prev.filter((u) => u.id !== deleteItem?.id))
     if (viewItem?.id === deleteItem?.id) setViewItem(null)
     setDeleteItem(null)
     setTimeout(() => setActionResult({ variant: 'danger', title: `${org.utility_label} Deleted`, message: `"${cat}" has been permanently removed.` }), 260)
@@ -206,12 +209,12 @@ export default function Utilities() {
   const totalUnpaid  = totalOwed - totalPaid
 
   /* Filter + paginate */
-  const statusOptions = ['all', ...Array.from(new Set(data.map((u: any) => u.status)))]
-  const typeOptions   = ['all', ...Array.from(new Set(data.map((u: any) => u.expense_type).filter(Boolean)))]
+  const statusOptions = ['all', ...Array.from(new Set(data.map((u) => u.status)))]
+  const typeOptions   = ['all', ...Array.from(new Set(data.map((u) => u.expense_type).filter(Boolean)))]
   const filtered = data
-    .filter((u: any) => statusFilter === 'all' || u.status       === statusFilter)
-    .filter((u: any) => typeFilter   === 'all' || u.expense_type === typeFilter)
-    .filter((u: any) => Object.values(u).some((v: any) => String(v).toLowerCase().includes(search.toLowerCase())))
+    .filter((u) => statusFilter === 'all' || u.status       === statusFilter)
+    .filter((u) => typeFilter   === 'all' || u.expense_type === typeFilter)
+    .filter((u) => Object.values(u).some((v) => String(v).toLowerCase().includes(search.toLowerCase())))
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const paged      = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
@@ -227,7 +230,7 @@ export default function Utilities() {
 
       {/* ── KPI strip ───────────────────────────────────────────── */}
       <div style={{ display: 'grid' as const, gridTemplateColumns: kpiCols, gap: 12 }}>
-        {kpis.map((k: any) => (
+        {kpis.map((k) => (
           <Card key={k.label} style={{ padding: '14px 18px', background: '#FFFFFF', borderLeft: '4px solid ' + k.color, border: '1px solid ' + k.color + '25', transition: 'transform .18s ease, box-shadow .18s ease' }}
             onMouseEnter={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(75,94,170,.18)' }}
             onMouseLeave={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
@@ -251,14 +254,14 @@ export default function Utilities() {
               style={{ padding: '7px 28px 7px 10px', borderRadius: 7, border: '1.5px solid var(--border-card)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: '#fff', cursor: 'pointer' as const, outline: 'none', transition: 'border-color .18s ease, transform .18s ease, box-shadow .18s ease', appearance: 'none', WebkitAppearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%231E2128' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '10px' }}
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)'; e.currentTarget.style.borderColor = 'var(--accent)' }}
               onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; e.currentTarget.style.borderColor = 'var(--border-card)' }}>
-              {typeOptions.map((t: any) => <option key={t} value={t}>{t === 'all' ? 'All Types' : t}</option>)}
+              {typeOptions.map((t) => <option key={t} value={t}>{t === 'all' ? 'All Types' : t}</option>)}
             </select>
             {/* Status filter — white style, consistent with all other filter dropdowns */}
             <select value={statusFilter} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => { setStatusFilter(e.target.value); setPage(1) }}
               style={{ padding: '7px 28px 7px 10px', borderRadius: 7, border: '1.5px solid var(--border-card)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: '#fff', cursor: 'pointer' as const, outline: 'none', transition: 'border-color .18s ease, transform .18s ease, box-shadow .18s ease', appearance: 'none', WebkitAppearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%231E2128' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '10px' }}
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)'; e.currentTarget.style.borderColor = 'var(--accent)' }}
               onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; e.currentTarget.style.borderColor = 'var(--border-card)' }}>
-              {statusOptions.map((s: any) => <option key={s} value={s}>{s === 'all' ? 'All Status' : cap(s)}</option>)}
+              {statusOptions.map((s) => <option key={s} value={s}>{s === 'all' ? 'All Status' : capitalize(s)}</option>)}
             </select>
             {/* Search */}
             <div style={{ position: 'relative' as const }}>
@@ -281,7 +284,7 @@ export default function Utilities() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: 'var(--table-head-bg)' }}>
-                {['#', 'Category', 'Total', 'Paid', 'Remaining', 'Due Date', 'Paid To', 'Fund', 'Status', 'Actions'].map((h: any) => (
+                {['#', 'Category', 'Total', 'Paid', 'Remaining', 'Due Date', 'Paid To', 'Fund', 'Status', 'Actions'].map((h) => (
                   <th key={h} style={{ padding: '10px 14px', textAlign: 'left' as const, fontSize: 11, fontWeight: 600, color: 'var(--table-head-fg)', textTransform: 'uppercase' as const, letterSpacing: '.06em', borderBottom: '2px solid var(--border-table)', whiteSpace: 'nowrap' as const }}>{h}</th>
                 ))}
               </tr>
@@ -363,7 +366,6 @@ export default function Utilities() {
             item={viewItem}
             editForm={editForm}
             editMode={editMode}
-            setEditMode={setEditMode}
             onFormChange={handleFormChange}
             org={org}
           />

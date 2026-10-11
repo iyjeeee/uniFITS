@@ -4,13 +4,13 @@ import { Card, PageHeader, Button, StatusBadge } from '../../components/ui'
 import { MOCK_PROJECTS, MOCK_ATTENDANCES, MOCK_TRANSACTIONS, formatCurrency, formatDate } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 
-export default function ProjectDetail({ projectId = '1' }: Record<string, any>) {
+export default function ProjectDetail({ projectId = '1' }: { projectId?: string }) {
   const org  = useOrg()
-  const proj = MOCK_PROJECTS.find((p: any) => p.id === projectId) || MOCK_PROJECTS[0]
-  const attendance   = MOCK_ATTENDANCES.filter((a: any) => a.activity === proj.title)
-  const contributions = MOCK_TRANSACTIONS.filter((t: any) => t.category === 'project')
-  const totalIncome  = contributions.filter((t: any) => t.entry_type !== 'expense').reduce((s, t) => s + t.amount, 0)
-  const totalExpense = contributions.filter((t: any) => t.entry_type === 'expense').reduce((s, t) => s + t.amount, 0)
+  const proj = MOCK_PROJECTS.find((p) => p.id === projectId) || MOCK_PROJECTS[0]
+  const attendance   = MOCK_ATTENDANCES.filter((a) => a.activity === proj.title)
+  const contributions = MOCK_TRANSACTIONS.filter((t) => t.category === 'project')
+  const totalIncome  = contributions.filter((t) => t.entry_type !== 'expense').reduce((s, t) => s + t.amount, 0)
+  const totalExpense = contributions.filter((t) => t.entry_type === 'expense').reduce((s, t) => s + t.amount, 0)
 
   return (
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 20 }}>
@@ -51,14 +51,14 @@ export default function ProjectDetail({ projectId = '1' }: Record<string, any>) 
           <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-inner)', background: 'var(--accent-light)', display: 'flex' as const, alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--accent)' }}>Employee Contributions</div>
-              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>{contributions.filter((t: any) => t.entry_type !== 'expense').length} records</div>
+              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>{contributions.filter((t) => t.entry_type !== 'expense').length} records</div>
             </div>
             <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--accent)' }}>{formatCurrency(totalIncome, org?.currency_symbol)}</div>
           </div>
           <div style={{ padding: '4px 0' }}>
-            {contributions.filter((t: any) => t.entry_type !== 'expense').length === 0
+            {contributions.filter((t) => t.entry_type !== 'expense').length === 0
               ? <div style={{ padding: '20px', textAlign: 'center' as const, color: 'var(--text-muted)', fontSize: 13 }}>No contributions yet.</div>
-              : contributions.filter((t: any) => t.entry_type !== 'expense').slice(0, 5).map((t: any) => (
+              : contributions.filter((t) => t.entry_type !== 'expense').slice(0, 5).map((t) => (
                 <div key={t.id} style={{ display: 'flex' as const, alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', borderBottom: '1px solid var(--border)', fontSize: 13.5 }}>
                   <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{t.user_name || 'Member'}</span>
                   <span style={{ fontWeight: 700, color: 'var(--success)' }}>+{formatCurrency(t.amount, org?.currency_symbol)}</span>
@@ -76,13 +76,13 @@ export default function ProjectDetail({ projectId = '1' }: Record<string, any>) 
               <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>{attendance.length} records</div>
             </div>
             <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--info)' }}>
-              {attendance.filter((a: any) => a.status === 'present').length}/{attendance.length} present
+              {attendance.filter((a) => a.status === 'present').length}/{attendance.length} present
             </div>
           </div>
           <div style={{ padding: '4px 0' }}>
             {attendance.length === 0
               ? <div style={{ padding: '20px', textAlign: 'center' as const, color: 'var(--text-muted)', fontSize: 13 }}>No attendance records yet.</div>
-              : attendance.map((a: any) => (
+              : attendance.map((a) => (
                 <div key={a.id} style={{ display: 'flex' as const, alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', borderBottom: '1px solid var(--border)', fontSize: 13.5 }}>
                   <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{a.user_name}</span>
                   <StatusBadge status={a.status} />
@@ -102,9 +102,9 @@ export default function ProjectDetail({ projectId = '1' }: Record<string, any>) 
             <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--success)' }}>{formatCurrency(totalIncome, org?.currency_symbol)}</div>
           </div>
           <div style={{ padding: '4px 0' }}>
-            {contributions.filter((t: any) => t.entry_type === 'income').length === 0
+            {contributions.filter((t) => t.entry_type === 'income').length === 0
               ? <div style={{ padding: '20px', textAlign: 'center' as const, color: 'var(--text-muted)', fontSize: 13 }}>No external income recorded.</div>
-              : contributions.filter((t: any) => t.entry_type === 'income').slice(0, 5).map((t: any) => (
+              : contributions.filter((t) => t.entry_type === 'income').slice(0, 5).map((t) => (
                 <div key={t.id} style={{ display: 'flex' as const, alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', borderBottom: '1px solid var(--border)', fontSize: 13.5 }}>
                   <span style={{ color: 'var(--text-secondary)' }}>{t.user_name || 'External'}</span>
                   <span style={{ fontWeight: 700, color: 'var(--success)' }}>+{formatCurrency(t.amount, org?.currency_symbol)}</span>
@@ -124,9 +124,9 @@ export default function ProjectDetail({ projectId = '1' }: Record<string, any>) 
             <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--danger)' }}>{formatCurrency(totalExpense, org?.currency_symbol)}</div>
           </div>
           <div style={{ padding: '4px 0' }}>
-            {contributions.filter((t: any) => t.entry_type === 'expense').length === 0
+            {contributions.filter((t) => t.entry_type === 'expense').length === 0
               ? <div style={{ padding: '20px', textAlign: 'center' as const, color: 'var(--text-muted)', fontSize: 13 }}>No expenses recorded.</div>
-              : contributions.filter((t: any) => t.entry_type === 'expense').slice(0, 5).map((t: any) => (
+              : contributions.filter((t) => t.entry_type === 'expense').slice(0, 5).map((t) => (
                 <div key={t.id} style={{ display: 'flex' as const, alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', borderBottom: '1px solid var(--border)', fontSize: 13.5 }}>
                   <span style={{ color: 'var(--text-secondary)' }}>{t.user_name || 'External'}</span>
                   <span style={{ fontWeight: 700, color: 'var(--danger)' }}>−{formatCurrency(t.amount, org?.currency_symbol)}</span>

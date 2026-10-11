@@ -10,17 +10,20 @@ import { MOCK_TRANSACTIONS, formatCurrency, formatDate } from '../../api/mockDat
 import { useOrg } from '../../context/OrgContext'
 import { rowStyle, rowHoverBg, modalAccentColor } from '../../constants/tableColors'
 import useBreakpoint from '../../hooks/useBreakpoint'
-import type { Transaction } from '../../types'
+import type { Transaction, OrgConfig, EntryType } from '../../types'
+
+// Rows on this page use a simplified 3-state approval status (mapped from the stored status in normalise)
+type TxRow = Omit<Transaction, 'status'> & { status: 'approved' | 'rejected' | 'pending' }
+import { capitalize } from '../../utils/formatters'
 
 /* ── TypeBadge — entry type uses Badge with proper variant ──────── */
-function TypeBadge({ type }: Record<string, any>) {
+function TypeBadge({ type }: { type: EntryType }) {
   const variant = type === 'expense' ? 'danger' : type === 'contribution' ? 'accent' : 'success'
-  const cap = (s: any): string => s ? s.charAt(0).toUpperCase() + s.slice(1) : '—'
-  return <Badge variant={variant}>{cap(type)}</Badge>
+  return <Badge variant={variant}>{capitalize(type)}</Badge>
 }
 
 /* ── Transaction detail modal content (receipt-style) ───────────── */
-function TransactionDetail({ tx, org, isMobile }: Record<string, any>) {
+function TransactionDetail({ tx, org, isMobile }: { tx: TxRow; org: OrgConfig; isMobile: boolean }) {
   return (
     <div>
       {/* Receipt header */}
@@ -89,8 +92,7 @@ function TransactionDetail({ tx, org, isMobile }: Record<string, any>) {
 }
 
 /* ── Delete confirmation body ─────────────────────────────────────── */
-function DeleteBody({ tx, org }: Record<string, any>) {
-  const cap = (s: any): string => s ? s.charAt(0).toUpperCase() + s.slice(1) : '—'
+function DeleteBody({ tx, org }: { tx: TxRow; org: OrgConfig }) {
   return (
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 16 }}>
       <div style={{ padding: '14px 16px', borderRadius: 10, background: '#fdecea', border: '1.5px solid rgba(192,57,43,.30)', display: 'flex' as const, gap: 10, alignItems: 'flex-start' }}>
@@ -102,7 +104,7 @@ function DeleteBody({ tx, org }: Record<string, any>) {
       </div>
       <div>
         <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '.06em', marginBottom: 10 }}>Transaction Summary</div>
-        {[['Reference', tx.reference_number], ['Amount', formatCurrency(tx.amount, org.currency_symbol)], ['Type', cap(tx.entry_type)], ['Category', cap(tx.category)], ['Fund', tx.fund], ['Status', cap(tx.status)]].map(([k, v], idx) => (
+        {[['Reference', tx.reference_number], ['Amount', formatCurrency(tx.amount, org.currency_symbol)], ['Type', capitalize(tx.entry_type)], ['Category', capitalize(tx.category)], ['Fund', tx.fund], ['Status', capitalize(tx.status)]].map(([k, v], idx) => (
           <div key={k} style={{ display: 'flex' as const, gap: 16, padding: '10px 14px', borderBottom: '1px solid var(--border-inner)', background: idx % 2 === 0 ? 'var(--neutral-light)' : '#fff' }}>
             <div style={{ width: 130, fontSize: 12.5, color: 'var(--text-muted)', flexShrink: 0, fontWeight: 500 }}>{k}</div>
             <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)' }}>{v}</div>
@@ -122,7 +124,7 @@ export default function Transactions() {
   const kpiCols = isMobile || isTablet ? 'repeat(2,1fr)' : 'repeat(4,1fr)'
 
   /* Normalise mock data — map old status values to pending/approved/rejected */
-  const normalise = (t: any) => ({
+  const normalise = (t: Transaction): TxRow => ({
     ...t,
     status: t.status === 'completed' ? 'approved'
            : t.status === 'failed'   ? 'rejected'
@@ -134,44 +136,43 @@ export default function Transactions() {
   const [typeFilter,   setTypeFilter]   = useState('all')   // filter by entry_type
   const [statusFilter, setStatusFilter] = useState('all')   // filter by status
   const [page,         setPage]         = useState(1)
-  const [viewItem,     setViewItem]     = useState<Transaction | null>(null)    // tx open in detail modal
-  const [deleteItem,   setDeleteItem]   = useState<Transaction | null>(null)    // tx pending deletion
+  const [viewItem,     setViewItem]     = useState<TxRow | null>(null)    // tx open in detail modal
+  const [deleteItem,   setDeleteItem]   = useState<TxRow | null>(null)    // tx pending deletion
   const [actionResult, setActionResult] = useState<{variant:string;title:string;message:string} | null>(null)    // feedback modal
 
   const PAGE_SIZE = 10
-  const cap = (s: any): string => s ? s.charAt(0).toUpperCase() + s.slice(1) : '—'
 
   /* Computed KPIs */
-  const totalIncome  = data.filter((t: any) => t.entry_type !== 'expense').reduce((s, t) => s + t.amount, 0)
-  const totalExpense = data.filter((t: any) => t.entry_type === 'expense').reduce((s, t) => s + t.amount, 0)
+  const totalIncome  = data.filter((t) => t.entry_type !== 'expense').reduce((s, t) => s + t.amount, 0)
+  const totalExpense = data.filter((t) => t.entry_type === 'expense').reduce((s, t) => s + t.amount, 0)
   const balance      = totalIncome - totalExpense
   const typeOptions   = ['all', 'contribution', 'income', 'expense']
   const statusOptions = ['all', 'approved', 'pending', 'rejected']
 
   /* Filter + paginate */
   const filtered = data
-    .filter((t: any) => typeFilter   === 'all' || t.entry_type === typeFilter)
-    .filter((t: any) => statusFilter === 'all' || t.status     === statusFilter)
-    .filter((t: any) => Object.values(t).some((v: any) => String(v).toLowerCase().includes(search.toLowerCase())))
+    .filter((t) => typeFilter   === 'all' || t.entry_type === typeFilter)
+    .filter((t) => statusFilter === 'all' || t.status     === statusFilter)
+    .filter((t) => Object.values(t).some((v) => String(v).toLowerCase().includes(search.toLowerCase())))
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const paged      = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   /* Approve — sets status to approved */
-  function handleApprove(tx: any) {
-    setData(prev => prev.map((t: any) => t.id === tx.id ? { ...t, status: 'approved' } : t))
+  function handleApprove(tx: TxRow) {
+    setData(prev => prev.map((t) => t.id === tx.id ? { ...t, status: 'approved' } : t))
     setActionResult({ variant: 'success', title: `${org.transaction_label} Approved`, message: `Transaction ${tx.reference_number} has been approved successfully.` })
   }
 
   /* Reject — sets status to rejected */
-  function handleReject(tx: any) {
-    setData(prev => prev.map((t: any) => t.id === tx.id ? { ...t, status: 'rejected' } : t))
+  function handleReject(tx: TxRow) {
+    setData(prev => prev.map((t) => t.id === tx.id ? { ...t, status: 'rejected' } : t))
     setActionResult({ variant: 'danger', title: `${org.transaction_label} Rejected`, message: `Transaction ${tx.reference_number} has been rejected.` })
   }
 
   /* Delete — removes from list */
   function handleDelete() {
     const ref = deleteItem?.reference_number
-    setData(prev => prev.filter((t: any) => t.id !== deleteItem?.id))
+    setData(prev => prev.filter((t) => t.id !== deleteItem?.id))
     if (viewItem?.id === deleteItem?.id) setViewItem(null)
     setDeleteItem(null)
     setTimeout(() => setActionResult({ variant: 'danger', title: `${org.transaction_label} Deleted`, message: `Transaction ${ref} has been permanently removed.` }), 260)
@@ -189,7 +190,7 @@ export default function Transactions() {
 
       {/* ── KPI strip ───────────────────────────────────────────── */}
       <div style={{ display: 'grid' as const, gridTemplateColumns: kpiCols, gap: 12 }}>
-        {kpis.map((k: any) => (
+        {kpis.map((k) => (
           <Card key={k.label} style={{ padding: '14px 18px', background: '#FFFFFF', borderLeft: '4px solid ' + k.color, border: '1px solid ' + k.color + '25', transition: 'transform .18s ease, box-shadow .18s ease' }}
             onMouseEnter={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(75,94,170,.18)' }}
             onMouseLeave={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
@@ -213,14 +214,14 @@ export default function Transactions() {
               style={{ padding: '7px 28px 7px 10px', borderRadius: 7, border: '1.5px solid var(--border-card)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: '#fff', cursor: 'pointer' as const, outline: 'none', transition: 'border-color .18s ease, transform .18s ease, box-shadow .18s ease', appearance: 'none', WebkitAppearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%231E2128' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '10px' }}
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)'; e.currentTarget.style.borderColor = 'var(--accent)' }}
               onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; e.currentTarget.style.borderColor = 'var(--border-card)' }}>
-              {typeOptions.map((t: any) => <option key={t} value={t}>{t === 'all' ? 'All Types' : cap(t)}</option>)}
+              {typeOptions.map((t) => <option key={t} value={t}>{t === 'all' ? 'All Types' : capitalize(t)}</option>)}
             </select>
             {/* Status filter — white bg, consistent with all other page filter dropdowns */}
             <select value={statusFilter} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => { setStatusFilter(e.target.value); setPage(1) }}
               style={{ padding: '7px 28px 7px 10px', borderRadius: 7, border: '1.5px solid var(--border-card)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text-primary)', background: '#fff', cursor: 'pointer' as const, outline: 'none', transition: 'border-color .18s ease, transform .18s ease, box-shadow .18s ease', appearance: 'none', WebkitAppearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%231E2128' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '10px' }}
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)'; e.currentTarget.style.borderColor = 'var(--accent)' }}
               onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; e.currentTarget.style.borderColor = 'var(--border-card)' }}>
-              {statusOptions.map((s: any) => <option key={s} value={s}>{s === 'all' ? 'All Status' : cap(s)}</option>)}
+              {statusOptions.map((s) => <option key={s} value={s}>{s === 'all' ? 'All Status' : capitalize(s)}</option>)}
             </select>
             {/* Search */}
             <div style={{ position: 'relative' as const }}>
@@ -243,7 +244,7 @@ export default function Transactions() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: 'var(--table-head-bg)' }}>
-                {['#', 'Reference', 'Member', 'Amount', 'Type', 'Category', 'Fund', 'Date', 'Status', 'Actions'].map((h: any) => (
+                {['#', 'Reference', 'Member', 'Amount', 'Type', 'Category', 'Fund', 'Date', 'Status', 'Actions'].map((h) => (
                   <th key={h} style={{ padding: '10px 14px', textAlign: 'left' as const, fontSize: 11, fontWeight: 600, color: 'var(--table-head-fg)', textTransform: 'uppercase' as const, letterSpacing: '.06em', borderBottom: '2px solid var(--border-table)', whiteSpace: 'nowrap' as const }}>{h}</th>
                 ))}
               </tr>

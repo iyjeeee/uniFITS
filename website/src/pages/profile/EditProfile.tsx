@@ -4,20 +4,22 @@ import { Avatar, Button, Card, Input, PageHeader, SectionDivider, Select, Respon
 import { MOCK_USERS } from '../../api/mockData'
 import useBreakpoint from '../../hooks/useBreakpoint'
 
+interface ProfileForm { first_name: string; last_name: string; gender: string; contact_number: string; email: string; address_city: string; address_province: string; occupation: string; has_partner: boolean; showPwSection: boolean }
+
 const GENDER_OPTIONS = [{ value: 'Male', label: 'Male' },{ value: 'Female', label: 'Female' },{ value: 'Non-binary', label: 'Non-binary' },{ value: 'Prefer not to say', label: 'Prefer not to say' }]
 
-export default function EditProfile({ userId = '1' }: Record<string, any>) {
+export default function EditProfile({ userId = '1' }: { userId?: string }) {
   
   const { isMobile } = useBreakpoint()
-  const user = MOCK_USERS.find((u: any) => u.id === userId) || MOCK_USERS[0]
-  const [form, setForm] = useState<Record<string,any>>({
+  const user = MOCK_USERS.find((u) => u.id === userId) || MOCK_USERS[0]
+  const [form, setForm] = useState<ProfileForm>({
     first_name: user.first_name, last_name: user.last_name,
     gender: user.gender, contact_number: user.contact_number,
     email: user.email, address_city: user.address_city || '',
     address_province: user.address_province || '', occupation: user.occupation || '',
     has_partner: false, showPwSection: false,
   })
-  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setForm((f: any) => ({ ...f, [k]: e.target.value }))
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setForm((f) => ({ ...f, [k]: e.target.value }))
   const [feedback, setFeedback] = useState(false)  // success confirmation modal visibility
 
   return (

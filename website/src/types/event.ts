@@ -15,4 +15,5 @@ export interface AppEvent {
   status: EventStatus
   target_funding: number      // PHP amount
   current_funding: number     // PHP amount
+  photo_url?: string | null   // optional cover photo (set by Add/Edit pages)
 }
