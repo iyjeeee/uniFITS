@@ -4,6 +4,34 @@
   Monorepo path: unifits/website/
   Stack: React 18 · Vite 5 · TypeScript · Zero external UI libs · Hash router
   Status: TYPESCRIPT MIGRATION COMPLETE & VERIFIED (2026-09-10)
+  Session 2026-10-11 — FILE SPLITTING, batch 1 (tsc/build clean, eslint 0 errors,
+    1 warning, 55 tests pass). Every split was proven behavior-neutral by
+    comparing rendered HTML before/after in many page states.
+    · CONVENTION: page sub-components/hooks live in <area>/parts/ next to the
+      page (pages/announcements/parts, pages/employees/parts). The page file
+      only composes. The smoke test skips **/parts/** (they are not pages).
+    · Announcements.tsx 774 -> ~110 lines + parts/ (4 cards, 6 modals,
+      useAnnouncements hook, helpers, types, icons, small row components).
+    · Attendance.tsx 474 -> 88 lines + parts/ (tile card, member card, section,
+      detail content, header, icons, shared types, useAttendanceMarking hook).
+    · components/ui/index.tsx 679 -> a re-export barrel + 15 files (one per
+      component group). Imports from '../components/ui' are unchanged.
+    · useToast moved to hooks/useToast.ts (still unused by any page).
+    · NEW constants/calendar.ts (MONTH_NAMES, DAY_NAMES) shared by
+      Announcements, Calendar and ClubReport (replaced 3 copies).
+    · Bugs fixed during the split: "All Announcements" modal showed page 1's
+      rows again on page 2+ (accumulated); schedule modal subtitle said
+      "10 per page" but the page size is 8. Removed dead code (an unused
+      height ref/state and no-op min-height) from the announcements panel.
+    · NEW hooks/useModalLock.ts replaces the identical scroll-lock effect that was
+      duplicated inside InfoModal and ResponseModal.
+    · NEW tests: announcements.parts.test.tsx (pagination regression + helpers),
+      modals.test.tsx (scroll lock).
+    · STILL TO SPLIT (largest first): RolesPage (525), Profile (472),
+      Funds (443), PersonalTransactions (416), Utilities (412),
+      Employees (377), ClubReport (376), Dashboard (376), Transactions (353),
+      FundReport (351), Header (332), ItemDetailContent (326), EmployeeReport
+      (309), Settings (303), Sidebar (300).
   Session 2026-10-10 (b) — ZERO `any` cleanup (tsc/build clean, eslint 0 errors,
     47 tests pass). All 540 explicit `any` removed from src/pages by real typing.
     · eslint rule @typescript-eslint/no-explicit-any is now 'error' (was warn).
@@ -310,7 +338,7 @@ IMPORTANT DESIGN DECISIONS ON COLORS
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  1.5  UI COMPONENT LIBRARY (src/components/ui/index.tsx)
+  1.5  UI COMPONENT LIBRARY (src/components/ui/ — index.tsx re-exports one file per group)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Import: import { X } from '../../components/ui'   (from pages)
@@ -451,7 +479,7 @@ Modal (legacy alias)
   Maps open/onClose/title/subtitle/children/footer → InfoModal.
   Kept as a compatibility alias; maps to InfoModal.
 
-useToast() / ToastContainer
+useToast() (hooks/useToast.ts) / ToastContainer (components/ui/Toast.tsx)
   useToast() → { toasts, toast }. Call toast({ message, variant, duration }).
   variant: 'success'|'error'|'warning'|'info' (default 'success').
   duration: ms before auto-dismiss (default 3000).
@@ -807,7 +835,8 @@ Animation contract (both modals follow this exactly):
   · ResponseModal also uses `snapshot` ref to freeze content during exit
   · Adding keyframe animations WILL cause flicker/reappear bugs
 
-Scroll lock: useModalLock(open) hook inside ui/index.tsx
+Scroll lock: useModalLock(open) hook in hooks/useModalLock.ts (used by InfoModal and
+  ResponseModal; was an inline effect duplicated in both)
   · Sets body overflow:hidden + paddingRight = scrollbar width
   · Scrollbar compensation prevents page-width layout shift on open/close
 
@@ -896,8 +925,8 @@ TypeScript types:
   1.16  KNOWN ISSUES & TECH DEBT (verified 2026-10-09)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Baseline: tsc -b clean · vite build clean · npm test 47/47 · eslint 0 errors,
-2 warnings (react-refresh/only-export-components, OrgContext + one more).
+Baseline: tsc -b clean · vite build clean · npm test 55/55 · eslint 0 errors,
+1 warning (react-refresh/only-export-components in OrgContext).
   · `any` is banned (lint error). Reason: it hid the Attendance blank-page bug —
     tsc cannot catch prop/shape mismatches behind Record<string, any>.
     Only exception: route-table type in App.tsx (pages have different props).
@@ -921,7 +950,7 @@ Commands (run from website/):
   npm run lint        eslint (0 errors required)
   npx tsc -b          type-check (must be clean)
   npm run build       tsc -b + vite build
-  npm test            vitest run — 47 tests, ~20 s (33 page sweeps + 14 others)
+  npm test            vitest run — 55 tests, ~20 s (33 page sweeps + 22 others)
   npm run test:watch  vitest watch mode
 Before delivering any change: tsc -b, lint, build and npm test must all pass.
 A new page needs NO new test — pages.smoke.test.tsx picks it up. If a page
@@ -956,7 +985,13 @@ unifits/website/
     │   └── mockData.ts
     ├── components/
     │   ├── ui/
-    │   │   └── index.tsx
+    │   │   ├── index.tsx            (re-exports everything below)
+    │   │   ├── Avatar.tsx · Badge.tsx · Button.tsx · Card.tsx
+    │   │   ├── DataTable.tsx · EmptyState.tsx · FilterSelect.tsx
+    │   │   ├── FormFields.tsx       (Input, Select, Textarea)
+    │   │   ├── InfoModal.tsx        (InfoModal + legacy Modal alias)
+    │   │   ├── KpiCard.tsx · PageHeader.tsx · ResponseModal.tsx
+    │   │   └── SectionDivider.tsx · StepWizard.tsx · Toast.tsx
     │   ├── ErrorBoundary.tsx
     │   ├── FormWizard.tsx
     │   ├── Header.tsx
@@ -967,18 +1002,28 @@ unifits/website/
     │   ├── EditItemModal.tsx
     │   └── ItemDetailContent.tsx
     ├── constants/
+    │   ├── calendar.ts
     │   └── tableColors.ts
     ├── context/
     │   └── OrgContext.tsx
     ├── hooks/
     │   ├── useBreakpoint.ts
-    │   └── useModal.ts
+    │   ├── useModal.ts
+    │   ├── useModalLock.ts
+    │   └── useToast.ts
     ├── layouts/
     │   └── AppLayout.tsx
     ├── pages/
     │   ├── announcements/
     │   │   ├── Announcements.tsx
-    │   │   └── Calendar.tsx
+    │   │   ├── Calendar.tsx
+    │   │   └── parts/
+    │   │       ├── ActivityOverviewCard · AnnouncementsPanel · CalendarCard · ScheduleCard
+    │   │       ├── AnnouncementDetailModal · NewAnnouncementModal · AllAnnouncementsModal
+    │   │       ├── ScheduleModal · ActivityDetailModal · DayDetailModal   (.tsx)
+    │   │       ├── TileCard · ActivityDetailContent · DayCard · AnnRow · ScheduleItem
+    │   │       ├── CalDay · LegendDot · ModalSection · Pagination · icons   (.tsx)
+    │   │       └── useAnnouncements.ts · helpers.ts · types.ts
     │   ├── audit/
     │   │   └── AuditLogs.tsx
     │   ├── dashboard/
@@ -986,6 +1031,7 @@ unifits/website/
     │   ├── employees/
     │   │   ├── AddEmployee.tsx
     │   │   ├── Attendance.tsx
+    │   │   ├── parts/   (Attendance*.tsx pieces, attendanceShared.ts, useAttendanceMarking.ts)
     │   │   ├── EditEmployee.tsx
     │   │   ├── EmployeeDetails.tsx
     │   │   ├── Employees.tsx
@@ -1177,9 +1223,11 @@ src/components/Icons.tsx
   CATEGORY 5 — UI COMPONENT LIBRARY
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-src/components/ui/index.tsx
-  The entire custom design system — 20 exported components/hooks in one file
-  (18 UI components + useToast + ToastContainer, restored).
+src/components/ui/index.tsx (+ one file per component group in the same folder)
+  The custom design system — 20 exported components. index.tsx only
+  re-exports; each component lives in its own file (Badge.tsx, Button.tsx,
+  FormFields.tsx, InfoModal.tsx, ResponseModal.tsx, DataTable.tsx, ...).
+  Add a new component as its own file and re-export it in index.tsx.
   All fully typed with explicit prop interfaces.
   Include in EVERY prompt touching any UI component or building a page.
 
@@ -1229,6 +1277,15 @@ src/context/OrgContext.tsx
 src/hooks/useBreakpoint.ts
   Window resize listener typed: returns Breakpoint interface.
   Include when adding responsive layout behavior to any component.
+
+src/hooks/useModalLock.ts
+  useModalLock(open) — body scroll lock for modals. Include when writing a new modal.
+
+src/hooks/useToast.ts
+  useToast() -> { toasts, toast }; pair with ToastContainer. Not used yet.
+
+src/constants/calendar.ts
+  MONTH_NAMES, DAY_NAMES — shared by Announcements, Calendar, ClubReport.
 
 src/hooks/useModal.ts
   Generic modal hook: useModal<T>(initialOpen?: boolean).
@@ -1367,6 +1424,10 @@ src/pages/employees/EditEmployee.tsx — Props: { currentUser?: User | null }
 src/pages/employees/EmployeeDetails.tsx — Props: { currentUser?: User | null }
 src/pages/employees/RolesPage.tsx — Props: {}
 src/pages/employees/Attendance.tsx — Props: none (ignores currentUser)
+  Composition only; pieces in pages/employees/parts/ (AttendanceTileCard,
+  AttendanceMemberCard, AttendanceSection, AttendanceDetailContent,
+  AttendanceSectionHeader, AttendanceIcons, attendanceShared.ts types +
+  status colors, useAttendanceMarking hook = records/modal state + handlers).
   Project + Event tile cards; clicking opens InfoModal to mark
   Present/Absent per member (bulk actions per section). Fully typed
   (Activity = Project | AppEvent; MarkStatus; MemberRow) — no `any`.
@@ -1421,6 +1482,12 @@ src/pages/transactions/AddUtility.tsx
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 src/pages/announcements/Announcements.tsx  Props: none (ignores currentUser)
+  Composition only; everything else is in pages/announcements/parts/:
+  cards (ActivityOverviewCard, AnnouncementsPanel, CalendarCard,
+  ScheduleCard), modals (AnnouncementDetail/New/All/Schedule/ActivityDetail/
+  DayDetail), small pieces (TileCard, AnnRow, ...), useAnnouncements.ts
+  (announcement state + CRUD), helpers.ts (buildTiles, buildSchedule,
+  getActivitiesOnDay, per-page constants), types.ts.
   Announcement list/pin/delete, activity tile strip (paginated), calendar,
   upcoming schedule, detail modals. TileItem/ScheduleEntry types add
   kind ('project'|'event') (+ name/date for schedule rows) — required by

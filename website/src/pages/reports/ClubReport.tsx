@@ -11,6 +11,7 @@ import {
 import { useOrg } from '../../context/OrgContext'
 import useBreakpoint from '../../hooks/useBreakpoint'
 import { capitalize } from '../../utils/formatters'
+import { MONTH_NAMES } from '../../constants/calendar'
 
 const REPORT_TYPE_OPTIONS = [
   { value: 'annual',    label: 'Annual Report'    },
@@ -75,13 +76,12 @@ export default function ClubReport() {
   /* ── Dynamic period options based on report type ─────────────── */
   const YEARS = [2025, 2024, 2023]
   const QUARTERS = ['Q1 (Jan–Mar)', 'Q2 (Apr–Jun)', 'Q3 (Jul–Sep)', 'Q4 (Oct–Dec)']
-  const MONTHS   = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
   const periodOptions = reportType === 'annual'
     ? YEARS.map(y    => ({ value: String(y),           label: String(y)           }))
     : reportType === 'quarterly'
     ? QUARTERS.map((q) => ({ value: q,                   label: q                   }))
-    : MONTHS.map(m   => ({ value: m + ' 2025',         label: m + ' 2025'         }))
+    : MONTH_NAMES.map(m   => ({ value: m + ' 2025',         label: m + ' 2025'         }))
 
   // Reset period when type changes
   function handleTypeChange(e: React.ChangeEvent<HTMLSelectElement>) {

@@ -8,7 +8,7 @@ import { MOCK_USERS } from '../api/mockData'
 import type { User, NavigateFn } from '../types'
 
 interface PageProps { currentUser: User | null; navigate: NavigateFn }
-const modules = import.meta.glob<{ default: ComponentType<PageProps> }>(['../pages/**/*.tsx', '!../pages/login/**'], { eager: true })
+const modules = import.meta.glob<{ default: ComponentType<PageProps> }>(['../pages/**/*.tsx', '!../pages/login/**', '!../pages/**/parts/**'], { eager: true })   // parts/ = page sub-components, not pages
 const pages = Object.entries(modules).map(([path, m]) => [path.replace('../pages/', '').replace('.tsx', ''), m.default] as const)
 
 const MAX_CLICKS = 60

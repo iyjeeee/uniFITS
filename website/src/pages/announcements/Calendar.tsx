@@ -4,12 +4,11 @@ import { Badge, Button, Card, CardHeader, PageHeader } from '../../components/ui
 import { MOCK_PROJECTS, MOCK_EVENTS } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 import { parseDate } from '../../utils/formatters'
+import { MONTH_NAMES, DAY_NAMES } from '../../constants/calendar'
 
 function getDaysInMonth(year: number, month: number): number { return new Date(year, month + 1, 0).getDate() }
 function getFirstDay(year: number, month: number): number { return new Date(year, month, 1).getDay() }
 
-const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December']
-const DAY_NAMES   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
 
 export default function Calendar() {
   const org = useOrg()
