@@ -6,6 +6,8 @@ import Funds from '../pages/funds/Funds'
 import Utilities from '../pages/transactions/Utilities'
 import Attendance from '../pages/employees/Attendance'
 import Announcements from '../pages/announcements/Announcements'
+import RolesPage from '../pages/employees/RolesPage'
+import Profile from '../pages/profile/Profile'
 import type { ReactElement } from 'react'
 
 const mount = (ui: ReactElement) => render(<OrgProvider orgData={{}}>{ui}</OrgProvider>)
@@ -50,5 +52,36 @@ describe('edit/save flows', () => {
     mount(<Announcements />)
     fireEvent.click(screen.getByRole('button', { name: '2' }))
     expect(document.body.textContent).toMatch(/Page 2 of 2/)
+  })
+
+  it('Roles: creating a role adds it to the table, and it can be deleted again', async () => {
+    mount(<RolesPage />)
+    clickButton(/Add Role/)
+    const name = document.querySelector<HTMLInputElement>('input'); if (!name) throw new Error('no name input')
+    fireEvent.change(name, { target: { value: 'Treasurer Aide' } })
+    clickButton(/Create Role/)
+    expect(screen.getByText(/has been added successfully/)).toBeTruthy()
+    expect(document.querySelector('tbody')?.textContent).toContain('Treasurer Aide')
+    clickButton(/Got it/)
+    const row = Array.from(document.querySelectorAll('tbody tr')).find(r => r.textContent?.includes('Treasurer Aide'))
+    fireEvent.click(row!.querySelector('button[title="Delete role"]')!)
+    clickButton(/Yes, Delete/)
+    await new Promise(r => setTimeout(r, 350))   // feedback modal appears after the close animation
+    expect(document.querySelector('tbody')?.textContent).not.toContain('Treasurer Aide')
+    expect(screen.getByText(/permanently removed/)).toBeTruthy()
+  })
+
+  it('Roles: toggling a permission and saving shows the success message', () => {
+    mount(<RolesPage />)
+    fireEvent.click(document.querySelector('tbody tr')!)
+    clickButton(/Save Permissions/)
+    expect(screen.getByText(/permissions have been saved successfully/)).toBeTruthy()
+  })
+
+  it('Profile: editing and saving shows the success message', () => {
+    mount(<Profile userId="2" />)
+    clickButton(/Edit Profile/)
+    clickButton(/Save/)
+    expect(screen.getByText('Profile Updated')).toBeTruthy()
   })
 })

@@ -3,16 +3,17 @@ import { useState } from 'react'
 import { Avatar, Button, Card, Input, PageHeader, SectionDivider, Select, ResponseModal } from '../../components/ui'
 import { MOCK_USERS } from '../../api/mockData'
 import useBreakpoint from '../../hooks/useBreakpoint'
+import { GENDER_OPTIONS } from '../../constants/profile'
+import type { ProfileForm } from './parts/profileShared'
 
-interface ProfileForm { first_name: string; last_name: string; gender: string; contact_number: string; email: string; address_city: string; address_province: string; occupation: string; has_partner: boolean; showPwSection: boolean }
+type EditProfileForm = ProfileForm & { showPwSection: boolean }   // adds the password-section toggle
 
-const GENDER_OPTIONS = [{ value: 'Male', label: 'Male' },{ value: 'Female', label: 'Female' },{ value: 'Non-binary', label: 'Non-binary' },{ value: 'Prefer not to say', label: 'Prefer not to say' }]
 
 export default function EditProfile({ userId = '1' }: { userId?: string }) {
   
   const { isMobile } = useBreakpoint()
   const user = MOCK_USERS.find((u) => u.id === userId) || MOCK_USERS[0]
-  const [form, setForm] = useState<ProfileForm>({
+  const [form, setForm] = useState<EditProfileForm>({
     first_name: user.first_name, last_name: user.last_name,
     gender: user.gender, contact_number: user.contact_number,
     email: user.email, address_city: user.address_city || '',
