@@ -1,1 +1,0 @@
-components/ui/ScreenHeader.tsx was DELETED (removed from project) — see REMOVED_FILES.txt
