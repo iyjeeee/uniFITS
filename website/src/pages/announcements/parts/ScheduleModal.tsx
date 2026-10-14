@@ -2,7 +2,7 @@
 import { InfoModal } from '../../../components/ui'
 import { MODAL_PER_PAGE } from './helpers'
 import type { ScheduleEntry } from './types'
-import { Pagination } from './Pagination'
+import Pagination from '../../../components/Pagination'
 import ScheduleItem from './ScheduleItem'
 
 export default function ScheduleModal({ open, onClose, items, page, onPageChange }: { open: boolean; onClose: () => void; items: ScheduleEntry[]; page: number; onPageChange: (page: number) => void }) {
@@ -15,7 +15,7 @@ export default function ScheduleModal({ open, onClose, items, page, onPageChange
       subtitle={`${items.length} activities · Page ${page} of ${totalPages} · ${MODAL_PER_PAGE} per page`}>
       <div>
         {pageRows.map(a => <ScheduleItem key={`${a.kind}-${a.id}`} a={a} />)}
-        <Pagination page={page} total={totalPages} onChange={onPageChange} />
+        <Pagination page={page} total={totalPages} onChange={onPageChange} padded />
       </div>
     </InfoModal>
   )

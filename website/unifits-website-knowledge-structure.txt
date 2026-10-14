@@ -4,6 +4,36 @@
   Monorepo path: unifits/website/
   Stack: React 18 · Vite 5 · TypeScript · Zero external UI libs · Hash router
   Status: TYPESCRIPT MIGRATION COMPLETE & VERIFIED (2026-09-10)
+  Session 2026-10-13 — FILE SPLITTING, batch 3 (tsc/build clean, eslint 0 errors,
+    1 warning, 62 tests pass). Rendered HTML compared before/after for each page.
+    · RULE LEARNED: before extracting any icon/helper/component, search the shared
+      modules first — components/Icons (BtnIco, TableIco), components/TableUtils,
+      components/Pagination, components/FundTileCard, components/ui, utils/, constants/.
+    · Funds.tsx 443 -> 67 lines + funds/parts/ (FundsKpiStrip, FundsHeaderCard,
+      FundSection, FundsEmptyState, FundDetailModal, DeleteFundModal, FundDetailContent,
+      FundEditForm, FundDeleteBody, FundsIcons, fundsShared.ts, useFunds hook).
+      54 states (Funds + FundReport, every tile, edit/delete flows) identical.
+    · NEW components/FundTileCard.tsx + constants/fundColors.ts — one fund tile shared
+      by Funds and FundReport (FundReport lost ~75 lines of copied code).
+    · PersonalTransactions.tsx 416 -> 54 lines + profile/parts/ (ContributionsCard,
+      RequiredDuesCard, TransactionDetailModal, DueDetailModal, AllDuesModal, DueTileCard,
+      DueDetailContent, TransactionTypeBadge, PersonalTransactionsIcons, dueShared.ts,
+      transactionColumns.tsx, usePersonalTransactions hook).
+    · BUG FIXED: clicking a row in "My Transaction History" did nothing (the detail modal
+      was unreachable; DataTable had no row-click support). DataTable now has an optional
+      onRowClick prop (pointer cursor only when provided); the page uses it.
+    · BUG FIXED: Description column used key String(Math.random()) (re-mounted cells
+      on every render) — now a stable key.
+    · NEW components/Pagination.tsx (+ PageBtn) replaces two copies (Announcements
+      parts + PersonalTransactions); `padded` prop adds modal spacing. Announcements
+      modal chevrons are now 13px like everywhere else (were 14px).
+    · RolesIcons now reuses the shared BtnIco/TableIco (my batch-2 copies of BtnPlus/
+      BtnDelete/BtnShield/IcoDelete duplicated existing icons — removed).
+    · NEW tests: datatable.test.tsx, flows for PersonalTransactions row click and
+      protected-fund delete rule.
+    · KNOWN DUPLICATION (not changed, would alter visuals): each page has its own
+      DeleteBody; components/TableUtils has DeleteWarningBanner/DeleteBodyRows that no
+      page uses. Candidate for one shared delete body + modal-footer buttons.
   Session 2026-10-12 — FILE SPLITTING, batch 2 (tsc/build clean, eslint 0 errors,
     1 warning, 58 tests pass). Same method: rendered HTML compared before/after.
     · RolesPage.tsx 525 -> 42 lines + employees/parts/ (RolesHeaderCard, RolesTable,
@@ -42,9 +72,8 @@
       duplicated inside InfoModal and ResponseModal.
     · NEW tests: announcements.parts.test.tsx (pagination regression + helpers),
       modals.test.tsx (scroll lock).
-    · STILL TO SPLIT (largest first): Funds (443), PersonalTransactions (416), Utilities (412),
-      Employees (377), ClubReport (376), Dashboard (376), Transactions (353),
-      FundReport (351), Header (332), ItemDetailContent (326), EmployeeReport
+    · STILL TO SPLIT (largest first): Utilities (412), Employees (377), ClubReport (376),
+      Dashboard (376), Transactions (353), FundReport (276), Header (332), ItemDetailContent (326), EmployeeReport
       (309), Settings (303), Sidebar (300).
   Session 2026-10-10 (b) — ZERO `any` cleanup (tsc/build clean, eslint 0 errors,
     47 tests pass). All 540 explicit `any` removed from src/pages by real typing.
@@ -939,7 +968,7 @@ TypeScript types:
   1.16  KNOWN ISSUES & TECH DEBT (verified 2026-10-09)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Baseline: tsc -b clean · vite build clean · npm test 58/58 · eslint 0 errors,
+Baseline: tsc -b clean · vite build clean · npm test 62/62 · eslint 0 errors,
 1 warning (react-refresh/only-export-components in OrgContext).
   · `any` is banned (lint error). Reason: it hid the Attendance blank-page bug —
     tsc cannot catch prop/shape mismatches behind Record<string, any>.
@@ -964,7 +993,7 @@ Commands (run from website/):
   npm run lint        eslint (0 errors required)
   npx tsc -b          type-check (must be clean)
   npm run build       tsc -b + vite build
-  npm test            vitest run — 58 tests, ~20 s (33 page sweeps + 25 others)
+  npm test            vitest run — 62 tests, ~25 s (33 page sweeps + 29 others)
   npm run test:watch  vitest watch mode
 Before delivering any change: tsc -b, lint, build and npm test must all pass.
 A new page needs NO new test — pages.smoke.test.tsx picks it up. If a page
@@ -1014,9 +1043,12 @@ unifits/website/
     │   ├── TableUtils.tsx
     │   ├── EditEmployeeModal.tsx
     │   ├── EditItemModal.tsx
+    │   ├── FundTileCard.tsx
+    │   ├── Pagination.tsx
     │   └── ItemDetailContent.tsx
     ├── constants/
     │   ├── calendar.ts
+    │   ├── fundColors.ts
     │   ├── profile.ts
     │   └── tableColors.ts
     ├── context/
@@ -1037,7 +1069,7 @@ unifits/website/
     │   │       ├── AnnouncementDetailModal · NewAnnouncementModal · AllAnnouncementsModal
     │   │       ├── ScheduleModal · ActivityDetailModal · DayDetailModal   (.tsx)
     │   │       ├── TileCard · ActivityDetailContent · DayCard · AnnRow · ScheduleItem
-    │   │       ├── CalDay · LegendDot · ModalSection · Pagination · icons   (.tsx)
+    │   │       ├── CalDay · LegendDot · ModalSection · icons   (.tsx; pager = components/Pagination)
     │   │       └── useAnnouncements.ts · helpers.ts · types.ts
     │   ├── audit/
     │   │   └── AuditLogs.tsx
@@ -1060,7 +1092,8 @@ unifits/website/
     │   ├── funds/
     │   │   ├── AddFund.tsx
     │   │   ├── EditFund.tsx
-    │   │   └── Funds.tsx
+    │   │   ├── Funds.tsx
+    │   │   └── parts/   (Fund*/Delete*Modal pieces, FundsIcons, fundsShared.ts, useFunds.ts)
     │   ├── login/
     │   │   ├── ForgotPassword.tsx
     │   │   ├── Login.tsx
@@ -1072,7 +1105,9 @@ unifits/website/
     │   │   ├── PersonalTransactions.tsx
     │   │   ├── Profile.tsx
     │   │   └── parts/   (Profile*/PersonalInfo/RoleAccess/AttendanceSummary/PersonalTransactions cards,
-    │   │                 All*Modal, EditProfileModal, ProfileIcons, profileShared.ts, useProfile.ts)
+    │   │                 All*Modal, EditProfileModal, ProfileIcons, profileShared.ts, useProfile.ts,
+    │   │                 Contributions/RequiredDues cards, Due*/Transaction* modals+content,
+    │   │                 dueShared.ts, transactionColumns.tsx, usePersonalTransactions.ts)
     │   ├── projects/
     │   │   ├── AddProject.tsx
     │   │   ├── EditProject.tsx
@@ -1241,8 +1276,20 @@ src/components/Icons.tsx
   CATEGORY 5 — UI COMPONENT LIBRARY
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+src/components/FundTileCard.tsx
+  Clickable fund tile (color strip, lock badge for protected funds). Used by Funds and
+  FundReport. Colors come from constants/fundColors.ts. Include when changing fund cards.
+
+src/components/Pagination.tsx
+  Default Pagination({ page, total, onChange, padded? }) numbered pager with chevrons, plus
+  named PageBtn. Include for any paged list/modal (padded = extra spacing inside modals).
+
+src/constants/fundColors.ts
+  PROTECTED_COLOR, OPT_COLORS, fundTileColor(fund).
+
 src/components/ui/index.tsx (+ one file per component group in the same folder)
-  The custom design system — 20 exported components. index.tsx only
+  The custom design system — 20 exported components. DataTable supports an optional
+  onRowClick(row) (rows get a pointer cursor only when it is provided). index.tsx only
   re-exports; each component lives in its own file (Badge.tsx, Button.tsx,
   FormFields.tsx, InfoModal.tsx, ResponseModal.tsx, DataTable.tsx, ...).
   Add a new component as its own file and re-export it in index.tsx.
@@ -1483,7 +1530,13 @@ src/pages/events/EventDetail.tsx  Props: { currentUser?: User | null }
   CATEGORY 15 — PAGES / FUNDS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-src/pages/funds/Funds.tsx       Props: { currentUser?: User | null }
+src/pages/funds/Funds.tsx       Props: none
+  Composition only; pieces in pages/funds/parts/ (FundsKpiStrip, FundsHeaderCard,
+  FundSection = titled tile grid used for internal + external funds, FundDetailModal,
+  DeleteFundModal, FundDetailContent, FundEditForm, FundDeleteBody, FundsIcons,
+  fundsShared.ts = FundEditState, useFunds hook = list + detail/edit/delete state).
+  Tiles come from components/FundTileCard (shared with FundReport).
+  Edit saves annual_fee as number|null (the input yields a string).
 src/pages/funds/AddFund.tsx     Props: { currentUser?: User | null }
 src/pages/funds/EditFund.tsx    Props: { currentUser?: User | null }
 
@@ -1528,7 +1581,11 @@ src/pages/profile/Profile.tsx              Props: { userId?: string } (defaults 
   useProfile hook = derived attendance/transaction data + edit state). EditProfile.tsx
   shares GENDER_OPTIONS (constants/profile.ts) and ProfileForm (parts/profileShared).
 src/pages/profile/EditProfile.tsx          Props: { currentUser: User | null }
-src/pages/profile/PersonalTransactions.tsx Props: { currentUser: User | null }
+src/pages/profile/PersonalTransactions.tsx Props: { userId?: string } (defaults to '1')
+  Composition only; pieces in pages/profile/parts/ (ContributionsCard, RequiredDuesCard,
+  TransactionDetailModal, DueDetailModal, AllDuesModal, DueTileCard, DueDetailContent,
+  TransactionTypeBadge, transactionColumns.tsx, dueShared.ts, usePersonalTransactions).
+  Table rows are clickable (DataTable onRowClick) and open TransactionDetailModal.
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

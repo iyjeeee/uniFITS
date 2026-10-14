@@ -1,4 +1,4 @@
-// FundReport.jsx — Tile-card fund report; 4 per row; fund detail opens InfoModal (not blank page)
+// FundReport.tsx — Tile-card fund report; 4 per row; fund detail opens InfoModal (not blank page)
 // FIX: isMobile was used in FundDetailContent sub-component but defined only in parent scope —
 //      sub-components must call useBreakpoint() themselves to access responsive state
 import { useState } from 'react'
@@ -8,87 +8,12 @@ import { useOrg } from '../../context/OrgContext'
 import useBreakpoint from '../../hooks/useBreakpoint'
 import type { Fund, OrgConfig } from '../../types'
 import { capitalize } from '../../utils/formatters'
+import FundTileCard from '../../components/FundTileCard'
 
 /* ── SVG Icons ──────────────────────────────────────────────────── */
 function IcoLock()   { return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> }
 function IcoGlobe()  { return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> }
 function IcoExport() { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> }
-
-/* ── TILE COLOR RULES:
-   is_required = true  → GREEN top strip + lock icon (non-deletable, protected fund)
-   is_required = false → random solid color from palette (deletable)
-   Border always matches the strip color at 30% opacity for visual cohesion.     */
-const PROTECTED_COLOR = '#2E7D52'                                        // green = non-deletable
-const OPT_COLORS      = ['#4B5EAA','#2471A3','#7D3C98','#B7600A','#117A65','#C0392B','#1E2128','#0E6655']
-function fundTileColor(fund: Fund) {
-  if (fund.is_required) return PROTECTED_COLOR
-  return OPT_COLORS[(parseInt(fund.id, 10) - 1 || 0) % OPT_COLORS.length]
-}
-
-/* ── Lock icon — shown top-right on non-deletable tiles ─────────── */
-function IcoShieldLock() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="11" width="18" height="11" rx="2"/>
-      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-    </svg>
-  )
-}
-
-/* ── FundTileCard — clickable card in the grid ──────────────────── */
-function FundTileCard({ fund, org, onClick }: { fund: Fund; org: OrgConfig; onClick: () => void }) {
-  const stripColor  = fundTileColor(fund)
-  const isProtected = fund.is_required    // green + lock = cannot be deleted
-  return (
-    <div
-      onClick={onClick}
-      style={{
-        borderRadius: 12, overflow: 'hidden', position: 'relative' as const,
-        border: `2px solid ${stripColor}40`,
-        background: '#fff', cursor: 'pointer' as const,
-        display: 'flex' as const, flexDirection: 'column' as const,
-        transition: 'transform .15s, box-shadow .15s',
-      }}
-      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = `0 8px 20px ${stripColor}40` }}
-      onMouseLeave={(e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
-
-      {/* Solid color top strip — GREEN for protected, random for optional */}
-      <div style={{ height: 6, background: stripColor }} />
-
-      {/* Lock badge — top-right corner, only for non-deletable protected funds */}
-      {isProtected && (
-        <div title="Protected fund — cannot be deleted" style={{ position: 'absolute' as const, top: 10, right: 10, width: 24, height: 24, borderRadius: '50%', background: PROTECTED_COLOR, color: '#fff', display: 'flex' as const, alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(46,125,82,.4)', zIndex: 1 }}>
-          <IcoShieldLock />
-        </div>
-      )}
-
-      <div style={{ padding: '13px 14px', flex: 1, display: 'flex' as const, flexDirection: 'column' as const, gap: 7 }}>
-        {/* Fund name */}
-        <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.3, color: 'var(--text-primary)', overflow: 'hidden', display: '-webkit-box' as const, WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', paddingRight: isProtected ? 28 : 0 }}>
-          {fund.name}
-        </div>
-        {/* Status pill */}
-        <div style={{ display: 'inline-flex' as const, width: 'fit-content' }}>
-          <span style={{ padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: fund.status === 'active' ? '#2E7D52' : '#C0392B', color: '#fff' }}>
-            {fund.status.charAt(0).toUpperCase() + fund.status.slice(1)}
-          </span>
-        </div>
-        {/* Balance */}
-        <div style={{ fontSize: 18, fontWeight: 800, color: stripColor }}>
-          {formatCurrency(fund.balance, org.currency_symbol)}
-        </div>
-        {/* Annual fee hint */}
-        {fund.annual_fee != null && fund.annual_fee > 0 && (
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>Fee: {formatCurrency(fund.annual_fee, org.currency_symbol)} / yr</div>
-        )}
-        {/* Click hint */}
-        <div style={{ fontSize: 11, color: stripColor, fontWeight: 600, marginTop: 'auto', paddingTop: 6, borderTop: '1px solid var(--border-inner)' }}>
-          {isProtected ? 'Protected · Click for details →' : 'Click for details →'}
-        </div>
-      </div>
-    </div>
-  )
-}
 
 /* ── FundDetailContent — body of the detail InfoModal ───────────────
    IMPORTANT: useBreakpoint() must be called here (inside this component)

@@ -13,8 +13,9 @@ interface DataTableProps<T extends { id?: string | number }> {
   title?:    string
   subtitle?: string
   emptyMsg?: string
+  onRowClick?: (row: T) => void   // makes rows clickable (pointer cursor); omit for a plain table
 }
-export function DataTable<T extends { id?: string | number }>({ columns = [], data = [], title, subtitle, emptyMsg = 'No records found.' }: DataTableProps<T>) {
+export function DataTable<T extends { id?: string | number }>({ columns = [], data = [], title, subtitle, emptyMsg = 'No records found.', onRowClick }: DataTableProps<T>) {
   const [search,   setSearch  ] = useState('')
   const [page,     setPage    ] = useState(1)
   const [pageSize, setPageSize] = useState(10)
@@ -74,7 +75,8 @@ export function DataTable<T extends { id?: string | number }>({ columns = [], da
             {paginated.length === 0
               ? <tr><td colSpan={columns.length} style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13.5 }}>{emptyMsg}</td></tr>
               : paginated.map((row, i) => (
-                  <tr key={row.id ?? i} style={{ borderBottom: '1px solid var(--border-inner)' }}
+                  <tr key={row.id ?? i} style={{ borderBottom: '1px solid var(--border-inner)', ...(onRowClick ? { cursor: 'pointer' } : {}) }}
+                    onClick={onRowClick ? () => onRowClick(row) : undefined}
                     onMouseEnter={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'var(--neutral-light)' }}
                     onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'transparent' }}>
                     {columns.map(col => (

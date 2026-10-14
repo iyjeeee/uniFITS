@@ -2,8 +2,8 @@
 import type { Dispatch, SetStateAction } from 'react'
 import { InfoModal } from '../../../components/ui'
 import type { RoleForm } from './rolesShared'
-import { BtnPlus } from './RolesIcons'
 import AddRoleContent from './AddRoleContent'
+import { BtnIco } from '../../../components/Icons'
 
 export default function AddRoleModal({ open, form, setForm, onClose, onCreate }: { open: boolean; form: RoleForm; setForm: Dispatch<SetStateAction<RoleForm>>; onClose: () => void; onCreate: () => void }) {
   return (
@@ -20,7 +20,7 @@ export default function AddRoleModal({ open, form, setForm, onClose, onCreate }:
             style={{ display: 'inline-flex' as const, alignItems: 'center', gap: 6, padding: '10px 22px', borderRadius: 9, border: 'none', background: form.name.trim() ? 'var(--accent)' : 'var(--border)', color: '#fff', fontSize: 14, fontWeight: 600, cursor: form.name.trim() ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-body)', transition: 'transform .18s ease, box-shadow .18s ease' }}
             onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 0 0 1.5px rgba(0,0,0,.70), 0 4px 12px rgba(0,0,0,.14)' }}
             onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
-            <BtnPlus /> Create Role
+            <BtnIco.Plus /> Create Role
           </button>
           <button onClick={onClose}
             style={{ padding: '10px 28px', borderRadius: 9, border: '1.5px solid var(--border-card)', background: 'var(--neutral-light)', color: 'var(--text-primary)', fontSize: 14, fontWeight: 600, cursor: 'pointer' as const, fontFamily: 'var(--font-body)', transition: 'transform .18s ease, box-shadow .18s ease' }}

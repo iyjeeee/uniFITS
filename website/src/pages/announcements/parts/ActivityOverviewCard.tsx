@@ -6,7 +6,7 @@ import { Card } from '../../../components/ui'
 import { Ico } from './icons'
 import { TILES_PER_PAGE } from './helpers'
 import type { TileItem } from './types'
-import { PageBtn } from './Pagination'
+import { PageBtn } from '../../../components/Pagination'
 import TileCard from './TileCard'
 import LegendDot from './LegendDot'
 

@@ -4,7 +4,7 @@ import { IconBtn } from '../../../components/TableUtils'
 import { MOCK_USERS } from '../../../api/mockData'
 import type { Role } from '../../../types'
 import { ALL_PERMISSIONS } from './rolesShared'
-import { IcoDelete } from './RolesIcons'
+import { TableIco } from '../../../components/Icons'
 
 export default function RolesTable({ roles, onOpen, onDelete }: { roles: Role[]; onOpen: (role: Role) => void; onDelete: (role: Role) => void }) {
   return (
@@ -61,7 +61,7 @@ export default function RolesTable({ roles, onOpen, onDelete }: { roles: Role[];
                   </td>
                   {/* Actions: Delete button for all roles including system */}
                   <td style={{ padding: '12px 16px' }} onClick={e => e.stopPropagation()}>
-                    <IconBtn solidBg="var(--danger)" title="Delete role" onClick={() => onDelete(role)}><IcoDelete /></IconBtn>
+                    <IconBtn solidBg="var(--danger)" title="Delete role" onClick={() => onDelete(role)}><TableIco.Delete /></IconBtn>
                   </td>
                 </tr>
               )

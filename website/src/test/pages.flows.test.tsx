@@ -8,6 +8,7 @@ import Attendance from '../pages/employees/Attendance'
 import Announcements from '../pages/announcements/Announcements'
 import RolesPage from '../pages/employees/RolesPage'
 import Profile from '../pages/profile/Profile'
+import PersonalTransactions from '../pages/profile/PersonalTransactions'
 import type { ReactElement } from 'react'
 
 const mount = (ui: ReactElement) => render(<OrgProvider orgData={{}}>{ui}</OrgProvider>)
@@ -83,5 +84,18 @@ describe('edit/save flows', () => {
     clickButton(/Edit Profile/)
     clickButton(/Save/)
     expect(screen.getByText('Profile Updated')).toBeTruthy()
+  })
+
+  it('PersonalTransactions: clicking a transaction row opens its detail (regression: rows used to do nothing)', () => {
+    mount(<PersonalTransactions userId="1" />)
+    expect(screen.queryAllByRole('button', { name: 'Close' })).toHaveLength(0)
+    fireEvent.click(document.querySelector('tbody tr')!)
+    expect(screen.getAllByRole('button', { name: 'Close' }).length).toBeGreaterThan(0)   // the detail modal's footer
+  })
+
+  it('Funds: a protected (required) fund cannot be deleted, an optional one can', () => {
+    mount(<Funds />)
+    clickText('Membership Dues Fund')
+    expect(screen.queryAllByRole('button').some(b => /Delete/.test(b.textContent ?? ''))).toBe(false)
   })
 })

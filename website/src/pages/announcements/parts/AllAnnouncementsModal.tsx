@@ -3,7 +3,7 @@ import { InfoModal } from '../../../components/ui'
 import type { Announcement } from '../../../types'
 import { Ico } from './icons'
 import { MODAL_PER_PAGE } from './helpers'
-import { Pagination } from './Pagination'
+import Pagination from '../../../components/Pagination'
 import ModalSection from './ModalSection'
 import AnnRow from './AnnRow'
 
@@ -34,7 +34,7 @@ export default function AllAnnouncementsModal({ open, onClose, announcements, pa
         )}
 
         {regular.length > MODAL_PER_PAGE && (
-          <Pagination page={page} total={Math.ceil(regular.length / MODAL_PER_PAGE)} onChange={onPageChange} />
+          <Pagination page={page} total={Math.ceil(regular.length / MODAL_PER_PAGE)} onChange={onPageChange} padded />
         )}
 
         {announcements.length === 0 && (

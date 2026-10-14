@@ -1,7 +1,8 @@
 // parts/RolesHeaderCard.tsx — Default-permissions banner with the Add Role button
 import { useOrg } from '../../../context/OrgContext'
 import { Card } from '../../../components/ui'
-import { BtnPlus, IcoShield } from './RolesIcons'
+import { BtnIco } from '../../../components/Icons'
+import { IcoShield } from './RolesIcons'
 
 export default function RolesHeaderCard({ onAdd }: { onAdd: () => void }) {
   const org = useOrg()
@@ -25,7 +26,7 @@ export default function RolesHeaderCard({ onAdd }: { onAdd: () => void }) {
         <button
           onClick={onAdd}
           style={{ display: 'inline-flex' as const, alignItems: 'center', gap: 6, padding: '9px 18px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: 13.5, fontWeight: 600, cursor: 'pointer' as const, fontFamily: 'var(--font-body)', whiteSpace: 'nowrap' as const }}>
-          <BtnPlus /> Add Role
+          <BtnIco.Plus /> Add Role
         </button>
       </div>
     </Card>
