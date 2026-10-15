@@ -5,6 +5,7 @@ import { OrgProvider } from '../context/OrgContext'
 import Funds from '../pages/funds/Funds'
 import Utilities from '../pages/transactions/Utilities'
 import Employees from '../pages/employees/Employees'
+import Dashboard from '../pages/dashboard/Dashboard'
 import Attendance from '../pages/employees/Attendance'
 import Announcements from '../pages/announcements/Announcements'
 import RolesPage from '../pages/employees/RolesPage'
@@ -93,6 +94,16 @@ describe('edit/save flows', () => {
     clickButton(/Yes, Remove/)
     await screen.findByText(/has been permanently removed/)   // feedback modal appears after a short delay
     expect(document.querySelectorAll('tbody tr').length).toBe(5)
+  })
+
+  it('Dashboard: KPI cards navigate to their pages', () => {
+    mount(<Dashboard />)
+    const go = (label: RegExp, hash: string) => { window.location.hash = ''; fireEvent.click(screen.getByText(label)); expect(window.location.hash).toBe('#' + hash) }
+    go(/Total Fund Balance/, '/funds')
+    go(/Upcoming Events/, '/events')
+    go(/Total Transactions/, '/transactions')
+    expect(screen.getByText('Top Contributors')).toBeTruthy()
+    expect(screen.getByText('Recent Transactions')).toBeTruthy()
   })
 
   it('Attendance: marking everyone present and saving updates the tile counts', () => {
