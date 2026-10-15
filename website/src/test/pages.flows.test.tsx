@@ -4,6 +4,7 @@ import { render, screen, fireEvent, within } from '@testing-library/react'
 import { OrgProvider } from '../context/OrgContext'
 import Funds from '../pages/funds/Funds'
 import Utilities from '../pages/transactions/Utilities'
+import Employees from '../pages/employees/Employees'
 import Attendance from '../pages/employees/Attendance'
 import Announcements from '../pages/announcements/Announcements'
 import RolesPage from '../pages/employees/RolesPage'
@@ -62,6 +63,36 @@ describe('edit/save flows', () => {
     clickButton(/Yes, Delete/)
     await screen.findByText(/has been permanently removed/)   // feedback modal appears after a short delay
     expect(screen.getByText('No utilities found.')).toBeTruthy()
+  })
+
+  it('Employees: role filter narrows the table and the search box finds by name', () => {
+    mount(<Employees />)
+    const selects = () => Array.from(document.querySelectorAll('select'))
+    fireEvent.change(selects()[0], { target: { value: 'Member' } })   // role filter
+    expect(document.querySelectorAll('tbody tr').length).toBe(3)
+    expect(document.body.textContent).not.toContain('Juan Dela Cruz')
+    fireEvent.change(selects()[0], { target: { value: 'all' } })
+    fireEvent.change(document.querySelector('input[placeholder="Search…"]') as Element, { target: { value: 'maria' } })
+    expect(document.querySelectorAll('tbody tr').length).toBe(1)
+  })
+
+  it('Employees: detail Edit opens the edit modal and Save updates the row', () => {
+    mount(<Employees />)
+    fireEvent.click(screen.getAllByText('Maria Santos').find(el => el.closest('tr')) as Element)
+    clickButton(/Edit Employee/)
+    const first = Array.from(document.querySelectorAll<HTMLInputElement>('input')).find(i => i.value === 'Maria')
+    if (!first) throw new Error('no first-name input')
+    fireEvent.change(first, { target: { value: 'Mariana' } }); clickButton(/Save Employee/)
+    expect(document.body.textContent).toContain('Mariana Santos')
+    expect(document.body.textContent).toContain('has been updated successfully')
+  })
+
+  it('Employees: delete removes the row and shows the confirmation message', async () => {
+    mount(<Employees />)
+    fireEvent.click(document.querySelector('button[title="Delete"]') as Element)
+    clickButton(/Yes, Remove/)
+    await screen.findByText(/has been permanently removed/)   // feedback modal appears after a short delay
+    expect(document.querySelectorAll('tbody tr').length).toBe(5)
   })
 
   it('Attendance: marking everyone present and saving updates the tile counts', () => {

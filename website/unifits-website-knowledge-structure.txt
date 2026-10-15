@@ -6,6 +6,18 @@
   Status: TYPESCRIPT MIGRATION COMPLETE & VERIFIED (2026-09-10)
   NEXT STEPS (owner decision 2026-10-14): finish splitting (bugs found meanwhile are only
     logged in section 1.18, not fixed) -> fix section 1.18 -> discuss Supabase first.
+  Session 2026-10-16 — FILE SPLITTING, batch 5 (Employees) (tsc/build clean, eslint 0 errors,
+    1 warning, 67 tests pass). 65 rendered states compared before/after: all byte-identical.
+    · Employees.tsx 377 -> 53 lines + employees/parts/ (useEmployees, employeesShared.ts,
+      EmployeesKpiStrip, EmployeesToolbar, EmployeesTable, EmployeesFilterSelect, EmployeeRolePill,
+      EmployeeDetailModal, EmployeeDetailContent, ImportEmployeesModal, DeleteEmployeeModal,
+      EmployeeDeleteBody, EmployeesIcons).
+    · Uses shared KpiStrip + TableToolbar (ToolbarSearch/ToolbarAddButton) and BtnIco.Delete /
+      TableIco.Plus / TableIco.Edit instead of 3 local copies; only IcoUpload/IcoFileUp stay local.
+    · NEW tests (pages.flows.test.tsx): Employees role filter + search, detail->Edit->Save, delete.
+    · STILL TO SPLIT (largest first): ClubReport (376), Dashboard (376), Transactions (353),
+      Header (332), ItemDetailContent (326), EmployeeReport (309), Settings (303), Sidebar (300),
+      AddTransaction (295), FundReport (276), Events (273), Projects (268), AddUtility (257).
   Session 2026-10-15 — FILE SPLITTING, batch 4 (Utilities) (tsc/build clean, eslint 0 errors,
     1 warning, 64 tests pass). 75 rendered states compared before/after: 68 byte-identical,
     7 differ only by one stale empty style="" attribute the old code left on a wrapper <div>
@@ -19,10 +31,7 @@
     · components/ui/FilterSelect.tsx restyled to match the dropdown the list pages really render
       (it had zero users); Utilities is its first user. Transactions still has two inline copies.
     · NEW tests (pages.flows.test.tsx): Utilities cancel-edit, filter + delete flow.
-    · STILL TO SPLIT (largest first): Employees (377), ClubReport (376), Dashboard (376),
-      Transactions (353), Header (332), ItemDetailContent (326), EmployeeReport (309),
-      Settings (303), Sidebar (300), AddTransaction (295), FundReport (276), Events (273),
-      Projects (268), AddUtility (257).
+    · (superseded by the 2026-10-16 list above)
   Session 2026-10-13 — FILE SPLITTING, batch 3 (tsc/build clean, eslint 0 errors,
     1 warning, 62 tests pass). Rendered HTML compared before/after for each page.
     · RULE LEARNED: before extracting any icon/helper/component, search the shared
@@ -943,8 +952,8 @@ CloseButton in InfoModal:
 18. Manage* pages (ManageEmployees/Projects/Events/Funds) and
     components/shared were unused and DELETED (2026-10-09). The live pages
     are Employees/Projects/Events/Funds. Do not recreate them.
-19. Employees.tsx and Transactions.tsx use their own local IconBtn
-    (not from TableUtils) — same visual pattern, locally defined.
+19. IconBtn lives only in components/TableUtils.tsx (verified 2026-10-16); Employees and
+    Transactions import it. (An older note claiming local copies was wrong.)
 20. Header profile pill reads currentUser (name, role, initials via
     getInitials). photo_url / avatar image is not wired yet.
 21. TypeScript: never use 'any' without a TODO comment explaining why.
@@ -1023,7 +1032,7 @@ Commands (run from website/):
   npm run lint        eslint (0 errors required)
   npx tsc -b          type-check (must be clean)
   npm run build       tsc -b + vite build
-  npm test            vitest run — 64 tests, ~25 s (33 page sweeps + 31 others)
+  npm test            vitest run — 67 tests, ~25 s (33 page sweeps + 34 others)
   npm run test:watch  vitest watch mode
 Before delivering any change: tsc -b, lint, build and npm test must all pass.
 A new page needs NO new test — pages.smoke.test.tsx picks it up. If a page
@@ -1108,6 +1117,15 @@ LOW — cosmetic / cleanup
         different from the dropdown/search box every list page renders (add to B-11 cleanup).
         Projects, Events, Employees, Transactions still hold inline copies of the search box,
         Add button and KPI strip (components/KpiStrip + TableToolbar now exist for them).
+  B-21  EditEmployeeModal.tsx has a hard-coded ROLE_OPTIONS list (President, Treasurer,
+        Secretary, Member) but MOCK_ROLES also has "Project Lead" (and RolesPage can add
+        roles). A user with another role shows "Member" in the edit form and would be saved
+        as Member. No mock user currently has such a role, so it is not visible yet.
+  B-22  Employees filter dropdowns are native selects (no chevron) while the Utilities
+        dropdowns use the custom chevron look (ui/FilterSelect) — inconsistent UI between
+        list pages. Left as-is in the split (EmployeesFilterSelect); unify in step B.
+  B-23  Employees Import modal is UI only: Browse File / Import File / template link do
+        nothing (no parsing, no upload). Incomplete feature, not a regression.
 
 BACKEND-PHASE — handle when Supabase is discussed (do NOT start early)
   B-16  Auth is fake: sessionStorage flag unifits_authed + unifits_user; Login accepts any
@@ -1202,7 +1220,9 @@ unifits/website/
     │   │   ├── AddEmployee.tsx
     │   │   ├── Attendance.tsx
     │   │   ├── parts/   (Attendance*.tsx pieces + attendanceShared.ts + useAttendanceMarking.ts;
-    │   │   │             Role*/Roles*/PermPill/AddRole* pieces + rolesShared.ts + useRoles.ts)
+    │   │   │             Role*/Roles*/PermPill/AddRole* pieces + rolesShared.ts + useRoles.ts;
+    │   │   │             Employee*/Employees*/ImportEmployeesModal/DeleteEmployeeModal pieces
+    │   │   │             + employeesShared.ts + useEmployees.ts)
     │   │   ├── EditEmployee.tsx
     │   │   ├── EmployeeDetails.tsx
     │   │   ├── Employees.tsx
@@ -1612,8 +1632,22 @@ src/pages/dashboard/Dashboard.tsx
 
 src/pages/employees/Employees.tsx
   Props: { currentUser: User | null }
-  Primary employee list. Status-colored rows, row-click modal, edit modal.
-  Include when editing the main employee table or row interactions.
+  Primary employee list — composition only (53 lines). Status-colored rows, row-click modal,
+  edit modal (components/EditEmployeeModal), import modal, delete confirmation.
+  Include when editing the main employee table or row interactions, plus only the part you change
+  (src/pages/employees/parts/):
+  useEmployees.ts            all state: list data, filters (changing one resets page 1), paging,
+                             detail/edit/delete/import modals, delete (+260 ms delayed feedback), save.
+  employeesShared.ts         EMPLOYEE_PAGE_SIZE, EmployeeActionResult.
+  EmployeesKpiStrip.tsx      Total / Active / Inactive / Officers (uses components/KpiStrip).
+  EmployeesToolbar.tsx       title, role + status filters, search, Import and Add buttons.
+  EmployeesFilterSelect.tsx  native filter dropdown (no chevron — see B-22).
+  EmployeesTable.tsx         table, status-colored rows, mailto link, Delete-only actions.
+  EmployeeRolePill.tsx       blue role badge (table + detail hero).
+  EmployeeDetailModal.tsx    row-click detail InfoModal; Edit hands off to EditEmployeeModal.
+  EmployeeDetailContent.tsx  profile hero + detail grid (3 cols desktop / 2 mobile).
+  ImportEmployeesModal.tsx   import InfoModal (UI only — B-23); EmployeesIcons.tsx = upload icons.
+  DeleteEmployeeModal.tsx    remove confirmation modal; EmployeeDeleteBody.tsx = its body.
 
 src/pages/employees/AddEmployee.tsx — Props: { currentUser?: User | null }
 src/pages/employees/EditEmployee.tsx — Props: { currentUser?: User | null }
@@ -1805,7 +1839,7 @@ src/test/App.routing.test.tsx
   Include when changing auth/routing in App.tsx.
 
 src/test/pages.flows.test.tsx
-  Behavior tests: Funds edit/save (annual_fee number/null), Utilities edit/save/cancel/filter/delete,
+  Behavior tests: Funds edit/save (annual_fee number/null), Utilities edit/save/cancel/filter/delete, Employees filter/search/edit/delete,
   Attendance mark-all + save, Announcements pagination. Add a flow test when
   changing save/edit logic on a page.
 
