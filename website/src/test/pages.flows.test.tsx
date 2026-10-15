@@ -42,6 +42,28 @@ describe('edit/save flows', () => {
     expect(document.body.textContent).toContain('4,000.00')
   })
 
+  it('Utilities: Cancel in edit mode discards the typed value', () => {
+    mount(<Utilities />)
+    const row = screen.getAllByText('Electricity Bill').find(el => el.closest('tr'))
+    if (!row) throw new Error('no table row')
+    fireEvent.click(row); clickButton(/^\s*Edit/)
+    setNumberInput('9999'); clickButton(/Cancel/)
+    expect(document.body.textContent).not.toContain('9,999.00')
+    expect(document.body.textContent).toContain('3,500.00')   // original total still shown
+  })
+
+  it('Utilities: filters narrow the table and a delete removes the row with a confirmation message', async () => {
+    mount(<Utilities />)
+    const selects = () => Array.from(document.querySelectorAll('select'))
+    fireEvent.change(selects()[1], { target: { value: 'unpaid' } })   // status filter
+    expect(document.querySelectorAll('tbody tr').length).toBe(1)
+    expect(document.body.textContent).toContain('Water Bill')
+    fireEvent.click(document.querySelector('button[title="Delete"]') as Element)
+    clickButton(/Yes, Delete/)
+    await screen.findByText(/has been permanently removed/)   // feedback modal appears after a short delay
+    expect(screen.getByText('No utilities found.')).toBeTruthy()
+  })
+
   it('Attendance: marking everyone present and saving updates the tile counts', () => {
     mount(<Attendance />)
     clickText('Medical Mission 2026')

@@ -1,9 +1,28 @@
 ================================================================
   UNIFITS WEBSITE — FULL PROJECT KNOWLEDGE & CODEBASE STRUCTURE
-  File: unifits-website-knowledge-structure.md
+  File: unifits-website-knowledge-structure.txt
   Monorepo path: unifits/website/
   Stack: React 18 · Vite 5 · TypeScript · Zero external UI libs · Hash router
   Status: TYPESCRIPT MIGRATION COMPLETE & VERIFIED (2026-09-10)
+  NEXT STEPS (owner decision 2026-10-14): finish splitting (bugs found meanwhile are only
+    logged in section 1.18, not fixed) -> fix section 1.18 -> discuss Supabase first.
+  Session 2026-10-15 — FILE SPLITTING, batch 4 (Utilities) (tsc/build clean, eslint 0 errors,
+    1 warning, 64 tests pass). 75 rendered states compared before/after: 68 byte-identical,
+    7 differ only by one stale empty style="" attribute the old code left on a wrapper <div>
+    after Edit -> Cancel/Save (no visual effect).
+    · Utilities.tsx 412 -> 45 lines + transactions/parts/ (useUtilities, utilitiesShared.ts,
+      UtilitiesKpiStrip, UtilitiesToolbar, UtilitiesTable, UtilityDetailModal, UtilityDetailView,
+      UtilityEditFields, UtilityDetailFooter, DeleteUtilityModal, UtilityDeleteBody).
+    · NEW components/KpiStrip.tsx (KPI tile strip, valueSize prop) and components/TableToolbar.tsx
+      (TableToolbar, ToolbarSearch, ToolbarAddButton). Transactions, Projects, Events, Employees
+      contain byte-identical copies of this markup -> use these when each is split.
+    · components/ui/FilterSelect.tsx restyled to match the dropdown the list pages really render
+      (it had zero users); Utilities is its first user. Transactions still has two inline copies.
+    · NEW tests (pages.flows.test.tsx): Utilities cancel-edit, filter + delete flow.
+    · STILL TO SPLIT (largest first): Employees (377), ClubReport (376), Dashboard (376),
+      Transactions (353), Header (332), ItemDetailContent (326), EmployeeReport (309),
+      Settings (303), Sidebar (300), AddTransaction (295), FundReport (276), Events (273),
+      Projects (268), AddUtility (257).
   Session 2026-10-13 — FILE SPLITTING, batch 3 (tsc/build clean, eslint 0 errors,
     1 warning, 62 tests pass). Rendered HTML compared before/after for each page.
     · RULE LEARNED: before extracting any icon/helper/component, search the shared
@@ -72,9 +91,10 @@
       duplicated inside InfoModal and ResponseModal.
     · NEW tests: announcements.parts.test.tsx (pagination regression + helpers),
       modals.test.tsx (scroll lock).
-    · STILL TO SPLIT (largest first): Utilities (412), Employees (377), ClubReport (376),
-      Dashboard (376), Transactions (353), FundReport (276), Header (332), ItemDetailContent (326), EmployeeReport
-      (309), Settings (303), Sidebar (300).
+    · STILL TO SPLIT (largest first, current line counts): Utilities (412), Employees (377),
+      ClubReport (376), Dashboard (376), Transactions (353), Header (332), ItemDetailContent (326),
+      EmployeeReport (309), Settings (303), Sidebar (300), AddTransaction (295), FundReport (276),
+      Events (273), Projects (268), AddUtility (257). Candidates only — smaller ones are optional.
   Session 2026-10-10 (b) — ZERO `any` cleanup (tsc/build clean, eslint 0 errors,
     47 tests pass). All 540 explicit `any` removed from src/pages by real typing.
     · eslint rule @typescript-eslint/no-explicit-any is now 'error' (was warn).
@@ -603,6 +623,16 @@ TableUtils (src/components/TableUtils.tsx)
     numbered buttons right. Props: page, totalPages, onPageChange, total.
   DeleteWarning: delete confirmation wrapping ResponseModal (danger).
 
+KpiStrip (src/components/KpiStrip.tsx)
+  Default export. Props: kpis [{ label, value, color }], valueSize (default 28).
+  2 columns on mobile/tablet, 4 on desktop; tile hover lift. Used by UtilitiesKpiStrip (22).
+
+TableToolbar (src/components/TableToolbar.tsx)
+  TableToolbar({ title, subtitle, children }) — card toolbar row (title left, controls right).
+  ToolbarSearch({ value, onChange(value) }) — 180px search box. ToolbarAddButton({ onClick,
+  children }) — accent Add button (children = icon + label). Used by UtilitiesToolbar.
+  ui/FilterSelect (value, onChange(value), options string|{value,label}) sits next to them.
+
 Icons.tsx (src/components/Icons.tsx)
   BtnIco (14px) — toolbar/modal button icons:
     Save, Edit, Delete, Cancel, Close, Plus, Check, PDF,
@@ -993,12 +1023,103 @@ Commands (run from website/):
   npm run lint        eslint (0 errors required)
   npx tsc -b          type-check (must be clean)
   npm run build       tsc -b + vite build
-  npm test            vitest run — 62 tests, ~25 s (33 page sweeps + 29 others)
+  npm test            vitest run — 64 tests, ~25 s (33 page sweeps + 31 others)
   npm run test:watch  vitest watch mode
 Before delivering any change: tsc -b, lint, build and npm test must all pass.
 A new page needs NO new test — pages.smoke.test.tsx picks it up. If a page
 needs props beyond currentUser/navigate, extend the mount() helper there.
 Tests are not covered by the Vite bundle (not imported by the app).
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1.18  BUG & ISSUE LOG — DOCUMENTED, NOT FIXED (fix AFTER the file splitting)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+OWNER DECISION (2026-10-14): while splitting files, only DOCUMENT bugs here —
+do not fix them mid-split. After splitting is finished, fix this list in order.
+Work order: (1) finish splitting -> (2) fix this log -> (3) DISCUSS Supabase with
+the owner BEFORE any Supabase work (never start it unprompted).
+Every entry below was checked against the code (2026-10-14). "Where" = files.
+
+HIGH — wrong data or missing behavior users can see
+  B-01  Detail/Edit pages always show record 1.
+        Where: EmployeeDetails, EditEmployee, EditFund, EventDetail, ProjectDetail,
+        Profile, EditProfile, PersonalTransactions (prop defaults to '1').
+        Why: App.tsx only passes currentUser + navigate, never an id. Effect: "My
+        Profile" shows Juan even when Maria is logged in; every Edit page edits record 1.
+        Fix idea: pass the logged-in user id / route param from App (needs routing change).
+  B-02  Role permissions are never enforced.
+        Where: whole app. Permissions exist (types/user.ts, RolesPage) but no page or
+        component reads them; Sidebar shows every item to every role.
+        Fix idea: one hasPermission(user, key) helper + guard Sidebar items, routes, buttons.
+  B-03  Dashboard charts use hard-coded series, not the data.
+        Where: pages/dashboard/Dashboard.tsx — MONTHLY_DATA, FUND_DATA, STATUS_BREAKDOWN.
+        Effect: charts never change when transactions/funds change.
+  B-04  Reports hard-code the year 2025.
+        Where: pages/reports/ClubReport.tsx (period options, default period, period reset).
+        Fix idea: derive years/periods from the data and the current date.
+
+MEDIUM — wrong or misleading behavior
+  B-05  Calendar "upcoming" list includes cancelled/rejected items.
+        Where: pages/announcements/Calendar.tsx lines ~42-43 filter is status !== 'completed'.
+        Compare Announcements/parts/helpers.ts buildSchedule (only upcoming/ongoing).
+  B-06  Placeholder author "Current User" saved on new data.
+        Where: parts/useAttendanceMarking.ts (recorded_by), parts/useAnnouncements.ts
+        (created_by), pages/settings/Backup.tsx (created_by). Most pages ignore the
+        currentUser prop, so real authors are never recorded.
+  B-07  Two different formatCurrency / formatDate implementations.
+        Where: utils/formatters.ts formatCurrency(amount, compact=false) vs api/mockData.ts
+        formatCurrency(amount, symbol='₱'). Every page imports the mockData one; the
+        utils one looks unused. Same duplication for formatDate. Risk: someone imports the
+        wrong one and passes a symbol as the "compact" flag.
+        Also: display helpers live in api/mockData.ts (should be in utils/ before the
+        mock layer is replaced).
+  B-08  Attendance Save collapses late/excused into present/absent and clears remarks
+        (owner accepted this for mock data; revisit when the backend exists).
+        Where: parts/useAttendanceMarking.ts.
+  B-09  Direct hash navigation instead of the navigate() prop in ~20 places.
+        Where: Header, Sidebar, Add*/Edit* pages, Funds/Projects/Events/Employees/
+        Transactions/Utilities list headers, ActivityDetailModal. Works with the hash
+        router but bypasses App's navigate(); breaks if the router changes.
+
+LOW — cosmetic / cleanup
+  B-10  Header "My Profile" avatar ignores photo_url (initials only).
+  B-11  Unused code: useToast + ToastContainer; TableUtils DeleteWarningBanner and
+        DeleteBodyRows; KpiMetric type (types/ui.ts); utils/formatters helpers that no page
+        imports (formatNumber, formatPercent, truncate, ... — verify before deleting).
+  B-12  Every page has its own DeleteBody and its own modal footer buttons (Save/Cancel/
+        Delete/Close with hover styles). Merging changes visuals (widths/wording) — needs a
+        design decision first.
+  B-13  Transaction.notes is displayed in TransactionDetailModal but no mock transaction has
+        notes, so that block never shows. PersonalTransactions due statuses are derived demo
+        values (DueFund.due_status is not real data).
+  B-14  Lint: 1 warning — context/OrgContext.tsx exports a hook and a component together.
+  B-15  Possible empty leftover folders after deletions (components/KPI, components/shared)
+        — delete if present. Also three empty folders literally named "{components",
+        "{components/ui,components,pages" and "{components/ui,components,pages/{funds,...}}"
+        exist under src/ (a shell brace expansion that did not run) — delete them.
+        The original upload also contained a stale dist/ folder; build output must not be
+        committed or zipped.
+  B-19  Utilities edit form: no validation. Amount Paid may exceed Total, amounts may be
+        negative, an emptied number input saves as 0, and Status is chosen by hand so it can
+        contradict the amounts (e.g. "paid" with 0 paid). Labels also hard-code "(₱)" instead
+        of org.currency_symbol. AddUtility not checked for the same issues (not verified).
+  B-20  TableUtils exports FilterSelect and SearchBar that no page uses and that look
+        different from the dropdown/search box every list page renders (add to B-11 cleanup).
+        Projects, Events, Employees, Transactions still hold inline copies of the search box,
+        Add button and KPI strip (components/KpiStrip + TableToolbar now exist for them).
+
+BACKEND-PHASE — handle when Supabase is discussed (do NOT start early)
+  B-16  Auth is fake: sessionStorage flag unifits_authed + unifits_user; Login accepts any
+        mock user email with any non-empty password; LoginForm shows a DEV demo-credentials
+        hint ("remove when backend is live").
+  B-17  Roles/permissions need enforcing in the database (Supabase RLS), not only in the UI.
+  B-18  All pages read MOCK_* arrays directly — a thin api/ data layer is needed first.
+
+TO VERIFY (suspected, not yet checked)
+  V-01  Header notification bell/badge looks static (mock) — confirm.
+  V-02  Responsive layouts (tablet/mobile) were never checked in a real browser; tests run
+        in jsdom only (no visual/layout checks).
 
 
 ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
@@ -1037,6 +1158,8 @@ unifits/website/
     │   │   └── SectionDivider.tsx · StepWizard.tsx · Toast.tsx
     │   ├── ErrorBoundary.tsx
     │   ├── FormWizard.tsx
+    │   ├── KpiStrip.tsx
+    │   ├── TableToolbar.tsx
     │   ├── Header.tsx
     │   ├── Sidebar.tsx
     │   ├── Icons.tsx
@@ -1124,7 +1247,8 @@ unifits/website/
     │       ├── AddTransaction.tsx
     │       ├── AddUtility.tsx
     │       ├── Transactions.tsx
-    │       └── Utilities.tsx
+    │       ├── Utilities.tsx
+    │       └── parts/            (Utilities sub-components — see Category 16)
     ├── types/
     │   ├── index.ts
     │   ├── announcement.ts
@@ -1299,6 +1423,13 @@ src/components/ui/index.tsx (+ one file per component group in the same folder)
 src/components/TableUtils.tsx
   IconBtn, PaginationRow, DeleteWarningBanner, DeleteBodyRows, SearchBar,
   FilterSelect — all typed. Check here BEFORE writing a new table helper.
+
+src/components/KpiStrip.tsx
+  KPI tile strip (kpis, valueSize). Include when building/changing KPI rows on list pages.
+
+src/components/TableToolbar.tsx
+  TableToolbar, ToolbarSearch, ToolbarAddButton — the toolbar row of list-page table cards.
+  Include when changing the search box, Add button or toolbar layout of a list page.
 
 src/components/FormWizard.tsx
   StepSidebar, FieldError, StepBanner — shared by all six Add* wizard pages
@@ -1548,7 +1679,21 @@ src/pages/funds/EditFund.tsx    Props: { currentUser?: User | null }
 src/pages/transactions/Transactions.tsx  Props: { currentUser?: User | null }
 src/pages/transactions/AddTransaction.tsx
 src/pages/transactions/Utilities.tsx     Props: { currentUser?: User | null }
-  "Add Utility" button navigates to /transactions/utilities/add.
+  Composition only (45 lines). "Add Utility" button navigates to /transactions/utilities/add.
+  Pieces in src/pages/transactions/parts/ — include the page + only the part you change:
+  useUtilities.ts            all state: list data, filters (changing one resets page 1), paging,
+                             detail/edit/cancel/save, delete (+260 ms delayed feedback), feedback.
+  utilitiesShared.ts         UTILITY_PAGE_SIZE, UtilityEditForm (amounts string|number),
+                             UtilityActionResult, UTILITY_STATUS_OPTIONS.
+  UtilitiesKpiStrip.tsx      4 KPIs from the list (uses components/KpiStrip, valueSize 22).
+  UtilitiesToolbar.tsx       title, type + status filters (ui/FilterSelect), search, Add button.
+  UtilitiesTable.tsx         table, status-colored rows, Delete-only action column.
+  UtilityDetailModal.tsx     detail InfoModal; switches view/edit; title/accent per mode.
+  UtilityDetailView.tsx      read-only detail (progress bar, tiles, breakdown, notes).
+  UtilityEditFields.tsx      inline edit form (fund options from MOCK_FUNDS).
+  UtilityDetailFooter.tsx    Save/Cancel (edit) or Edit/Close (view) buttons.
+  DeleteUtilityModal.tsx     delete confirmation modal + footer; UtilityDeleteBody.tsx = its body.
+  Parts have no own route; pages.smoke.test skips **/parts/**.
 src/pages/transactions/AddUtility.tsx
 
 
@@ -1660,7 +1805,7 @@ src/test/App.routing.test.tsx
   Include when changing auth/routing in App.tsx.
 
 src/test/pages.flows.test.tsx
-  Behavior tests: Funds edit/save (annual_fee number/null), Utilities edit/save,
+  Behavior tests: Funds edit/save (annual_fee number/null), Utilities edit/save/cancel/filter/delete,
   Attendance mark-all + save, Announcements pagination. Add a flow test when
   changing save/edit logic on a page.
 
