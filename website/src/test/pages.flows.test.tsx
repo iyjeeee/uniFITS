@@ -6,6 +6,7 @@ import Funds from '../pages/funds/Funds'
 import Utilities from '../pages/transactions/Utilities'
 import Employees from '../pages/employees/Employees'
 import Dashboard from '../pages/dashboard/Dashboard'
+import ClubReport from '../pages/reports/ClubReport'
 import Attendance from '../pages/employees/Attendance'
 import Announcements from '../pages/announcements/Announcements'
 import RolesPage from '../pages/employees/RolesPage'
@@ -104,6 +105,23 @@ describe('edit/save flows', () => {
     go(/Total Transactions/, '/transactions')
     expect(screen.getByText('Top Contributors')).toBeTruthy()
     expect(screen.getByText('Recent Transactions')).toBeTruthy()
+  })
+
+  it('ClubReport: Generate shows the report; changing type or period hides it; Export PDF shows feedback', () => {
+    mount(<ClubReport />)
+    const selects = () => Array.from(document.querySelectorAll('select'))
+    expect(screen.queryByText(/Statement of Income/)).toBeNull()
+    clickButton(/Generate Report/)
+    expect(screen.getByText(/Statement of Income/)).toBeTruthy()
+    clickButton(/Export PDF/)
+    expect(document.body.textContent).toContain('Annual Report for 2025 has been generated')
+    clickButton(/Got it/)
+    fireEvent.change(selects()[1], { target: { value: '2024' } })   // period change hides the stale report
+    expect(screen.queryByText(/Statement of Income/)).toBeNull()
+    clickButton(/Generate Report/)
+    fireEvent.change(selects()[0], { target: { value: 'quarterly' } })   // type change resets period + hides report
+    expect(screen.queryByText(/Statement of Income/)).toBeNull()
+    expect(selects()[1].value).toBe('Q1 (Jan–Mar)')
   })
 
   it('Attendance: marking everyone present and saving updates the tile counts', () => {

@@ -6,6 +6,25 @@
   Status: TYPESCRIPT MIGRATION COMPLETE & VERIFIED (2026-09-10)
   NEXT STEPS (owner decision 2026-10-14): finish splitting (bugs found meanwhile are only
     logged in section 1.18, not fixed) -> fix section 1.18 -> discuss Supabase first.
+  Session 2026-10-16 (c) — FILE SPLITTING, batch 7 (ClubReport) (tsc/build clean, eslint 0 errors,
+    1 warning, 78 tests pass). 23 rendered states (annual/quarterly/monthly, all periods, Print,
+    Export PDF, mobile, custom org; date frozen) compared before/after: all byte-identical
+    (the first comparison caught that the period select has minWidth 180 and the type select has
+    none — fixed by an optional minWidth prop).
+    · ClubReport.tsx 376 -> 55 lines + reports/parts/ (useClubReport, clubReportShared.ts,
+      clubReportStats.ts [pure getClubReportStats], ClubReportControls, ReportSelectField,
+      ClubReportHeader, ClubReportSummary, ClubReportIncomeStatement, ClubReportFundTable,
+      ClubReportUtilityBreakdown, ClubReportActivity, ClubReportMembership, ClubReportSignatures,
+      ReportSection, ReportStatRow).
+    · components/Icons.tsx: NEW TableIco.PDF (13px). Local IcoPrint -> TableIco.Print.
+      FundReport has an identical local IcoExport — use TableIco.PDF when it is split.
+    · EmployeeReport and FundReport share no section/row components with ClubReport (checked).
+    · NEW tests: clubReport.parts.test.ts (7: stats + period helpers), pages.flows.test.tsx
+      (generate / reset on change / Export PDF).
+    · Bugs only DOCUMENTED, not fixed: B-31 … B-37 (see section 1.18).
+    · STILL TO SPLIT (largest first): Transactions (353), Header (332), ItemDetailContent (326),
+      EmployeeReport (309), Settings (303), Sidebar (300), AddTransaction (295), FundReport (276),
+      Events (273), Projects (268), AddUtility (257).
   Session 2026-10-16 (b) — FILE SPLITTING, batch 6 (Dashboard) (tsc/build clean, eslint 0 errors,
     1 warning, 71 tests pass). 30 rendered states (5 widths, all 8 KPI hovers + click targets,
     custom org labels) compared before/after: all byte-identical.
@@ -16,9 +35,7 @@
       AttendanceChart).
     · NEW tests: dashboard.stats.test.ts (3, stats logic), pages.flows.test.tsx (KPI navigation).
     · Bugs only DOCUMENTED, not fixed: B-24 … B-30 (see section 1.18).
-    · STILL TO SPLIT (largest first): ClubReport (376), Transactions (353), Header (332),
-      ItemDetailContent (326), EmployeeReport (309), Settings (303), Sidebar (300),
-      AddTransaction (295), FundReport (276), Events (273), Projects (268), AddUtility (257).
+    · (superseded by the 2026-10-16 (c) list above)
   Session 2026-10-16 — FILE SPLITTING, batch 5 (Employees) (tsc/build clean, eslint 0 errors,
     1 warning, 67 tests pass). 65 rendered states compared before/after: all byte-identical.
     · Employees.tsx 377 -> 53 lines + employees/parts/ (useEmployees, employeesShared.ts,
@@ -1043,7 +1060,7 @@ Commands (run from website/):
   npm run lint        eslint (0 errors required)
   npx tsc -b          type-check (must be clean)
   npm run build       tsc -b + vite build
-  npm test            vitest run — 71 tests, ~25 s (33 page sweeps + 38 others)
+  npm test            vitest run — 78 tests, ~25 s (33 page sweeps + 45 others)
   npm run test:watch  vitest watch mode
 Before delivering any change: tsc -b, lint, build and npm test must all pass.
 A new page needs NO new test — pages.smoke.test.tsx picks it up. If a page
@@ -1077,7 +1094,8 @@ HIGH — wrong data or missing behavior users can see
         (moved there from Dashboard.tsx in batch 6).
         Effect: charts never change when transactions/funds change. Details: see B-24.
   B-04  Reports hard-code the year 2025.
-        Where: pages/reports/ClubReport.tsx (period options, default period, period reset).
+        Where: pages/reports/parts/clubReportShared.ts (YEARS, getPeriodOptions, getDefaultPeriod).
+        EmployeeReport not checked for the same issue (not verified).
         Fix idea: derive years/periods from the data and the current date.
 
 MEDIUM — wrong or misleading behavior
@@ -1154,6 +1172,27 @@ LOW — cosmetic / cleanup
   B-29  Dashboard BarChart and FundBarChart hard-code "₱" instead of org.currency_symbol.
   B-30  TopContributorsCard bar width divides by topContributors[0].total — NaN% if the top
         total is 0 (edge case; not reachable with current mock data).
+  B-31  ClubReport figures ignore the selected report type/period: getClubReportStats() takes
+        no arguments and sums ALL mock records, so changing Annual/Quarterly/Monthly or the
+        period only changes the labels (e.g. "Period: 2023" shows the same numbers as 2025).
+  B-32  ClubReport "Active Projects" tile shows MOCK_PROJECTS.length (every project, incl.
+        completed/upcoming), not the active ones (ClubReportSummary.tsx).
+  B-33  Printing includes the generator card (selectors, Generate/Print/Export buttons): the
+        print CSS hides ".no-print" (index.css) but no component uses that class anywhere.
+        Same likely applies to EmployeeReport (window.print) — not verified.
+  B-34  ClubReport fund sheet does not reconcile: Total Spent (12,500) is not the Statement's
+        Total Expenses (50,700, which adds 38,200 of utility payments that belong to no fund),
+        and Total Received - Spent (47,400) is not the Current Balance (425,500, a static field
+        with no opening balance). Mock data as of 2026-10-16.
+  B-35  ClubReport classification/status issues (latent with current mock data): contributions
+        tagged to a project/event are counted as "Member Dues", not project/event income; income
+        or expenses in other categories are dropped from the totals; transaction status
+        (pending/rejected) is ignored (same family as B-27); utility expense uses amount_paid of
+        every utility regardless of date.
+  B-36  Report header hard-codes "uniFITS Organization" (ClubReportHeader.tsx; EmployeeReport
+        also contains it) although OrgConfig has a `name` field.
+  B-37  "Export PDF" only shows a success message — no file is produced (ClubReport; the other
+        two reports not verified).
 
 BACKEND-PHASE — handle when Supabase is discussed (do NOT start early)
   B-16  Auth is fake: sessionStorage flag unifits_authed + unifits_user; Login accepts any
@@ -1288,7 +1327,8 @@ unifits/website/
     │   ├── reports/
     │   │   ├── ClubReport.tsx
     │   │   ├── EmployeeReport.tsx
-    │   │   └── FundReport.tsx
+    │   │   ├── FundReport.tsx
+    │   │   └── parts/            (ClubReport sub-components — see Category 19)
     │   ├── settings/
     │   │   ├── Backup.tsx
     │   │   └── Settings.tsx
@@ -1813,6 +1853,19 @@ src/pages/profile/PersonalTransactions.tsx Props: { userId?: string } (defaults 
 src/pages/reports/EmployeeReport.tsx  Props: {}  (print-ready)
 src/pages/reports/FundReport.tsx      Props: {}  (print-ready)
 src/pages/reports/ClubReport.tsx      Props: {}  (print-ready, report type selector)
+  Composition only (55 lines). Include with only the part you change (src/pages/reports/parts/):
+  useClubReport.ts           state: type, period, generated flag, export feedback; resets on change.
+  clubReportShared.ts        REPORT_TYPE_OPTIONS, YEARS/QUARTERS, getPeriodOptions, getDefaultPeriod (B-04).
+  clubReportStats.ts         getClubReportStats(): every figure in the report (B-31, B-34, B-35).
+  ClubReportControls.tsx     generator card; ReportSelectField.tsx = labelled select (minWidth option).
+  ClubReportHeader.tsx       title block + generated date (B-36).
+  ClubReportSummary.tsx      I. Executive Summary (tiles + net banner).
+  ClubReportIncomeStatement.tsx  II. income/expense statement.
+  ClubReportFundTable.tsx    III. fund balance sheet.
+  ClubReportUtilityBreakdown.tsx IV. operational expenses by type.
+  ClubReportActivity.tsx     V. project and event summary (two columns).
+  ClubReportMembership.tsx   VI. membership summary; ClubReportSignatures.tsx = signature footer.
+  ReportSection.tsx · ReportStatRow.tsx   shared section heading and label/value row.
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1878,7 +1931,7 @@ src/test/App.routing.test.tsx
   Include when changing auth/routing in App.tsx.
 
 src/test/pages.flows.test.tsx
-  Behavior tests: Funds edit/save (annual_fee number/null), Utilities edit/save/cancel/filter/delete, Employees filter/search/edit/delete, Dashboard KPI navigation + stats (dashboard.stats.test.ts),
+  Behavior tests: Funds edit/save (annual_fee number/null), Utilities edit/save/cancel/filter/delete, Employees filter/search/edit/delete, Dashboard KPI navigation + stats (dashboard.stats.test.ts), ClubReport flow + stats/period helpers (clubReport.parts.test.ts),
   Attendance mark-all + save, Announcements pagination. Add a flow test when
   changing save/edit logic on a page.
 
