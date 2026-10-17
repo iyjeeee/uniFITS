@@ -6,6 +6,23 @@
   Status: TYPESCRIPT MIGRATION COMPLETE & VERIFIED (2026-09-10)
   NEXT STEPS (owner decision 2026-10-14): finish splitting (bugs found meanwhile are only
     logged in section 1.18, not fixed) -> fix section 1.18 -> discuss Supabase first.
+  Session 2026-10-17 — FILE SPLITTING, batch 8 (Transactions) (tsc/build clean, eslint 0 errors,
+    1 warning, 82 tests pass). 69 rendered states (every filter, search, row detail + Print,
+    delete modals, approve/reject, delete while detail open, mobile, custom org) compared
+    before/after: all byte-identical — including the dropdown hover states, which confirms
+    ui/FilterSelect now renders exactly like the old inline selects.
+    · Transactions.tsx 353 -> 45 lines + transactions/parts/ (useTransactions, transactionsShared.ts,
+      TransactionsKpiStrip, TransactionsToolbar, TransactionsTable, EntryTypeBadge,
+      TransactionReceiptModal, TransactionReceiptContent, DeleteTransactionModal,
+      TransactionDeleteBody).
+    · Reuses components/KpiStrip, TableToolbar (search + Add button) and ui/FilterSelect — no new
+      shared components needed. The Profile page TypeBadge is a different look and was not reused.
+    · NEW tests: transactions.parts.test.ts (3, status normalisation), pages.flows.test.tsx
+      (filter, approve/reject, delete).
+    · Bugs only DOCUMENTED, not fixed: B-38 … B-42 (see section 1.18).
+    · STILL TO SPLIT (largest first): Header (332), ItemDetailContent (326), EmployeeReport (309),
+      Settings (303), Sidebar (300), AddTransaction (295), FundReport (276), Events (273),
+      Projects (268), AddUtility (257).
   Session 2026-10-16 (c) — FILE SPLITTING, batch 7 (ClubReport) (tsc/build clean, eslint 0 errors,
     1 warning, 78 tests pass). 23 rendered states (annual/quarterly/monthly, all periods, Print,
     Export PDF, mobile, custom org; date frozen) compared before/after: all byte-identical
@@ -22,9 +39,7 @@
     · NEW tests: clubReport.parts.test.ts (7: stats + period helpers), pages.flows.test.tsx
       (generate / reset on change / Export PDF).
     · Bugs only DOCUMENTED, not fixed: B-31 … B-37 (see section 1.18).
-    · STILL TO SPLIT (largest first): Transactions (353), Header (332), ItemDetailContent (326),
-      EmployeeReport (309), Settings (303), Sidebar (300), AddTransaction (295), FundReport (276),
-      Events (273), Projects (268), AddUtility (257).
+    · (superseded by the 2026-10-17 list above)
   Session 2026-10-16 (b) — FILE SPLITTING, batch 6 (Dashboard) (tsc/build clean, eslint 0 errors,
     1 warning, 71 tests pass). 30 rendered states (5 widths, all 8 KPI hovers + click targets,
     custom org labels) compared before/after: all byte-identical.
@@ -57,7 +72,7 @@
       (TableToolbar, ToolbarSearch, ToolbarAddButton). Transactions, Projects, Events, Employees
       contain byte-identical copies of this markup -> use these when each is split.
     · components/ui/FilterSelect.tsx restyled to match the dropdown the list pages really render
-      (it had zero users); Utilities is its first user. Transactions still has two inline copies.
+      (it had zero users); Utilities is its first user; Transactions adopted it in batch 8.
     · NEW tests (pages.flows.test.tsx): Utilities cancel-edit, filter + delete flow.
     · (superseded by the 2026-10-16 list above)
   Session 2026-10-13 — FILE SPLITTING, batch 3 (tsc/build clean, eslint 0 errors,
@@ -662,12 +677,12 @@ TableUtils (src/components/TableUtils.tsx)
 
 KpiStrip (src/components/KpiStrip.tsx)
   Default export. Props: kpis [{ label, value, color }], valueSize (default 28).
-  2 columns on mobile/tablet, 4 on desktop; tile hover lift. Used by UtilitiesKpiStrip (22).
+  2 columns on mobile/tablet, 4 on desktop; tile hover lift. Used by Utilities, Employees and Transactions KPI strips.
 
 TableToolbar (src/components/TableToolbar.tsx)
   TableToolbar({ title, subtitle, children }) — card toolbar row (title left, controls right).
   ToolbarSearch({ value, onChange(value) }) — 180px search box. ToolbarAddButton({ onClick,
-  children }) — accent Add button (children = icon + label). Used by UtilitiesToolbar.
+  children }) — accent Add button (children = icon + label). Used by the Utilities, Employees and Transactions toolbars.
   ui/FilterSelect (value, onChange(value), options string|{value,label}) sits next to them.
 
 Icons.tsx (src/components/Icons.tsx)
@@ -1060,7 +1075,7 @@ Commands (run from website/):
   npm run lint        eslint (0 errors required)
   npx tsc -b          type-check (must be clean)
   npm run build       tsc -b + vite build
-  npm test            vitest run — 78 tests, ~25 s (33 page sweeps + 45 others)
+  npm test            vitest run — 82 tests, ~25 s (33 page sweeps + 49 others)
   npm run test:watch  vitest watch mode
 Before delivering any change: tsc -b, lint, build and npm test must all pass.
 A new page needs NO new test — pages.smoke.test.tsx picks it up. If a page
@@ -1145,8 +1160,9 @@ LOW — cosmetic / cleanup
         of org.currency_symbol. AddUtility not checked for the same issues (not verified).
   B-20  TableUtils exports FilterSelect and SearchBar that no page uses and that look
         different from the dropdown/search box every list page renders (add to B-11 cleanup).
-        Projects, Events, Employees, Transactions still hold inline copies of the search box,
-        Add button and KPI strip (components/KpiStrip + TableToolbar now exist for them).
+        Projects and Events still hold inline copies of the search box, Add button, KPI strip
+        and dropdowns (components/KpiStrip + TableToolbar + ui/FilterSelect exist for them;
+        Utilities, Employees and Transactions already use them).
   B-21  EditEmployeeModal.tsx has a hard-coded ROLE_OPTIONS list (President, Treasurer,
         Secretary, Member) but MOCK_ROLES also has "Project Lead" (and RolesPage can add
         roles). A user with another role shows "Member" in the edit form and would be saved
@@ -1193,6 +1209,21 @@ LOW — cosmetic / cleanup
         also contains it) although OrgConfig has a `name` field.
   B-37  "Export PDF" only shows a success message — no file is produced (ClubReport; the other
         two reports not verified).
+  B-38  Transactions page status mapping loses information: stored "cancelled" (and any other
+        value) is shown as "pending", so a cancelled transaction can be approved
+        (transactionsShared.ts: normaliseTransaction). Pinned by a unit test.
+  B-39  Transactions KPI strip (Total Income / Expenses / Net Balance) counts every row
+        including pending and rejected ones, and does not change when a row is rejected
+        (same family as B-27, B-35).
+  B-40  Approve / Reject have no confirmation and no state guard: approving an already
+        approved row (or rejecting a rejected one, or approving a rejected one) shows the
+        success message again; no reason is recorded. Role checks missing (B-02).
+  B-41  Transaction detail is duplicated: pages/profile/parts/TransactionDetailModal.tsx
+        repeats the "Transaction Flow" markup of transactions/parts/TransactionReceiptContent
+        with different wording ("Me" vs "External") and a different type pill
+        (profile TransactionTypeBadge vs ui Badge). Same data, two looks.
+  B-42  TransactionReceiptContent "Transaction Flow" always reads From = member, To Fund, also
+        for expenses (where money leaves the fund). Direction is reversed for expense rows.
 
 BACKEND-PHASE — handle when Supabase is discussed (do NOT start early)
   B-16  Auth is fake: sessionStorage flag unifits_authed + unifits_user; Login accepts any
@@ -1337,7 +1368,7 @@ unifits/website/
     │       ├── AddUtility.tsx
     │       ├── Transactions.tsx
     │       ├── Utilities.tsx
-    │       └── parts/            (Utilities sub-components — see Category 16)
+    │       └── parts/            (Utilities + Transactions sub-components — see Category 16)
     ├── types/
     │   ├── index.ts
     │   ├── announcement.ts
@@ -1790,6 +1821,19 @@ src/pages/funds/EditFund.tsx    Props: { currentUser?: User | null }
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 src/pages/transactions/Transactions.tsx  Props: { currentUser?: User | null }
+  Composition only (45 lines). Ledger with approve/reject/delete, receipt-style row detail.
+  Pieces in src/pages/transactions/parts/ — include the page + only the part you change:
+  useTransactions.ts         all state: list data, filters (reset page 1), paging, KPI totals,
+                             approve / reject / delete (+260 ms delayed feedback), feedback.
+  transactionsShared.ts      TX_PAGE_SIZE, TxRow (3-state status), normaliseTransaction (B-38),
+                             TX_TYPE_OPTIONS / TX_STATUS_OPTIONS, TransactionActionResult.
+  TransactionsKpiStrip.tsx   4 KPIs (components/KpiStrip, size 22).
+  TransactionsToolbar.tsx    title, type + status ui/FilterSelect, search, Add button.
+  TransactionsTable.tsx      status-colored rows, Approve / Reject / Delete icon buttons.
+  EntryTypeBadge.tsx         Contribution / Income / Expense ui Badge.
+  TransactionReceiptModal.tsx    row-click detail InfoModal (Print + Close);
+  TransactionReceiptContent.tsx  its body: header, key-value grid, flow, category + amount.
+  DeleteTransactionModal.tsx     delete confirmation modal; TransactionDeleteBody.tsx = its body.
 src/pages/transactions/AddTransaction.tsx
 src/pages/transactions/Utilities.tsx     Props: { currentUser?: User | null }
   Composition only (45 lines). "Add Utility" button navigates to /transactions/utilities/add.
@@ -1931,7 +1975,7 @@ src/test/App.routing.test.tsx
   Include when changing auth/routing in App.tsx.
 
 src/test/pages.flows.test.tsx
-  Behavior tests: Funds edit/save (annual_fee number/null), Utilities edit/save/cancel/filter/delete, Employees filter/search/edit/delete, Dashboard KPI navigation + stats (dashboard.stats.test.ts), ClubReport flow + stats/period helpers (clubReport.parts.test.ts),
+  Behavior tests: Funds edit/save (annual_fee number/null), Utilities edit/save/cancel/filter/delete, Employees filter/search/edit/delete, Dashboard KPI navigation + stats (dashboard.stats.test.ts), ClubReport flow + stats/period helpers (clubReport.parts.test.ts), Transactions filter/approve/reject/delete + status normalisation (transactions.parts.test.ts),
   Attendance mark-all + save, Announcements pagination. Add a flow test when
   changing save/edit logic on a page.
 

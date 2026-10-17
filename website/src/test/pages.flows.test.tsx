@@ -7,6 +7,7 @@ import Utilities from '../pages/transactions/Utilities'
 import Employees from '../pages/employees/Employees'
 import Dashboard from '../pages/dashboard/Dashboard'
 import ClubReport from '../pages/reports/ClubReport'
+import Transactions from '../pages/transactions/Transactions'
 import Attendance from '../pages/employees/Attendance'
 import Announcements from '../pages/announcements/Announcements'
 import RolesPage from '../pages/employees/RolesPage'
@@ -122,6 +123,25 @@ describe('edit/save flows', () => {
     fireEvent.change(selects()[0], { target: { value: 'quarterly' } })   // type change resets period + hides report
     expect(screen.queryByText(/Statement of Income/)).toBeNull()
     expect(selects()[1].value).toBe('Q1 (Jan–Mar)')
+  })
+
+  it('Transactions: type filter narrows the table; Approve and Reject show feedback; delete removes the row', async () => {
+    mount(<Transactions />)
+    const selects = () => Array.from(document.querySelectorAll('select'))
+    const total = document.querySelectorAll('tbody tr').length
+    fireEvent.change(selects()[0], { target: { value: 'expense' } })
+    expect(document.querySelectorAll('tbody tr').length).toBeLessThan(total)
+    fireEvent.change(selects()[0], { target: { value: 'all' } })
+    fireEvent.click(document.querySelector('button[title="Reject"]') as Element)
+    expect(document.body.textContent).toContain('has been rejected')
+    clickButton(/Got it/)
+    fireEvent.click(document.querySelector('button[title="Approve"]') as Element)
+    expect(document.body.textContent).toContain('approved successfully')
+    clickButton(/Got it/)
+    fireEvent.click(document.querySelector('button[title="Delete"]') as Element)
+    clickButton(/Yes, Delete/)
+    await screen.findByText(/has been permanently removed/)   // feedback appears after a short delay
+    expect(document.querySelectorAll('tbody tr').length).toBe(total - 1)
   })
 
   it('Attendance: marking everyone present and saving updates the tile counts', () => {
