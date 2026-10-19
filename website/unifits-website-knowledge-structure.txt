@@ -6,6 +6,19 @@
   Status: TYPESCRIPT MIGRATION COMPLETE & VERIFIED (2026-09-10)
   NEXT STEPS (owner decision 2026-10-14): finish splitting (bugs found meanwhile are only
     logged in section 1.18, not fixed) -> fix section 1.18 -> discuss Supabase first.
+  Session 2026-10-20 — FILE SPLITTING, batch 12 (Settings) (tsc/build clean, eslint 0 errors,
+    1 warning, 108 tests pass). 54 rendered states (3 widths, focus/blur of every input incl. the
+    disabled one, typing in every field, all backup options, every Save button + acknowledge,
+    the wipe modal and both wipe options, custom org) compared before/after: all byte-identical.
+    · Settings.tsx 303 -> 44 lines + settings/parts/ (useSettings, settingsShared.ts,
+      SystemSettingsCard, LabelsCard, SecurityCard, WipeDataModal, CompactInput, CompactSelect,
+      SettingsActionButton, SettingsWarnIcon).
+    · No other file defines CompactInput / CompactSelect / ActionBtn (checked); Backup.tsx is separate.
+    · The label list is now data (LABEL_FIELDS) and the security defaults a constant.
+    · NEW tests: settings.test.tsx (5). Settings had no tests before.
+    · Bugs only DOCUMENTED, not fixed: B-57 … B-61 (see section 1.18). B-57 and B-58 matter most.
+    · STILL TO SPLIT (largest first): Sidebar (300), AddTransaction (295), FundReport (276),
+      Events (273), Projects (268), AddUtility (257).
   Session 2026-10-19 — FILE SPLITTING, batch 11 (EmployeeReport) (tsc/build clean, eslint 0 errors,
     1 warning, 103 tests pass). 59 rendered states (every member selected, Print, Export confirm /
     cancel / done, All Employees modal, mobile, custom org; plus a second run with 21 extra users
@@ -18,8 +31,7 @@
     · The duplicated Officers/Employees blocks of the modal are now one EmployeeListSection.
     · NEW tests: employeeReport.test.tsx (5: select, print, export flow, modal, pager).
     · Bugs only DOCUMENTED, not fixed: B-51 … B-56 (see section 1.18); B-33/B-36/B-37 updated.
-    · STILL TO SPLIT (largest first): Settings (303), Sidebar (300), AddTransaction (295),
-      FundReport (276), Events (273), Projects (268), AddUtility (257).
+    · (superseded by the 2026-10-20 list above)
   Session 2026-10-18 — FILE SPLITTING, batch 10 (ItemDetailContent) (tsc/build clean, eslint 0 errors,
     1 warning, 98 tests pass). 33 rendered states (every project and event at desktop + mobile
     width, attendance and empty states, photo / no description / no funding / over-funded /
@@ -1116,7 +1128,7 @@ Commands (run from website/):
   npm run lint        eslint (0 errors required)
   npx tsc -b          type-check (must be clean)
   npm run build       tsc -b + vite build
-  npm test            vitest run — 103 tests, ~25 s (33 page sweeps + 70 others)
+  npm test            vitest run — 108 tests, ~25 s (33 page sweeps + 75 others)
   npm run test:watch  vitest watch mode
 Before delivering any change: tsc -b, lint, build and npm test must all pass.
 A new page needs NO new test — pages.smoke.test.tsx picks it up. If a page
@@ -1311,6 +1323,24 @@ LOW — cosmetic / cleanup
         message: string }) exist in employeesShared, utilitiesShared, transactionsShared,
         clubReportShared and employeeReportShared, each followed by `as ModalVariant` casts.
         Replace with one typed ActionResult (variant: ModalVariant) in types/.
+  B-57  SIGNIFICANT — Settings saves nothing: "Update Settings", "Save Labels" and "Save
+        Security Settings" only open a success message. System name, labels and security values
+        live in local state (lost on leaving the page); OrgContext is never updated, so the claim
+        "Terminology labels have been updated throughout the system" is untrue.
+  B-58  SIGNIFICANT — "Wipe All Data" is a placeholder with misleading text: both options only
+        show "All club data has been permanently deleted" / "removed" although nothing is deleted.
+        Each is a single click (no second or typed confirmation) and there is no role check (B-02).
+        When it is made real it needs those safeguards.
+  B-59  Settings security fields have no validation: negative, zero, empty or huge numbers are
+        accepted (no min/max), and after the first edit values become strings (they start as numbers).
+  B-60  Settings details: empty labels are accepted; the logo file input does nothing (and its hint
+        says "PNG or SVG" while accept="image/*"); <label> elements are not linked to their
+        inputs (no htmlFor/id), so clicking a label does not focus the field and screen readers
+        cannot associate them; the system-name fallback 'uniFITS Organization' is hard-coded.
+  B-61  Cleanup: the warning-triangle SVG is copy-pasted in about 10 files at different sizes
+        (ui/ResponseModal, TableUtils, FormWizard, LoginForm, Projects, Events, the Funds /
+        Utilities / Transactions / Employees / Roles delete bodies, SettingsWarnIcon). One WarnIcon
+        with a size prop, and one shared delete-warning banner, would replace them.
 
 BACKEND-PHASE — handle when Supabase is discussed (do NOT start early)
   B-16  Auth is fake: sessionStorage flag unifits_authed + unifits_user; Login accepts any
@@ -1452,7 +1482,8 @@ unifits/website/
     │   │   └── parts/            (ClubReport sub-components — see Category 19)
     │   ├── settings/
     │   │   ├── Backup.tsx
-    │   │   └── Settings.tsx
+    │   │   ├── Settings.tsx
+    │   │   └── parts/            (Settings sub-components — see Category 20)
     │   └── transactions/
     │       ├── AddTransaction.tsx
     │       ├── AddUtility.tsx
@@ -2036,7 +2067,15 @@ src/pages/audit/AuditLogs.tsx      Props: { currentUser?: User | null }
   Clickable rows, action color map, detail InfoModal, responsive grid.
 
 src/pages/settings/Settings.tsx    Props: { currentUser?: User | null }
-  3-col desktop layout, useOrg() for current label values.
+  Composition only (44 lines): 3-col desktop layout (1-col tablet/mobile). Nothing is persisted
+  (B-57, B-58). Include with only the part you change (src/pages/settings/parts/):
+  useSettings.ts             state: system name, labels (from useOrg), security values, wipe modal, response.
+  settingsShared.ts          BACKUP_FREQ_OPTIONS, LABEL_FIELDS (8 label rows), DEFAULT_SECURITY, SettingsResponse, FieldChange.
+  SystemSettingsCard.tsx     system name, read-only currency, logo input (no effect), Update + Wipe buttons.
+  LabelsCard.tsx             the 8 terminology label inputs + Save Labels.
+  SecurityCard.tsx           attempts / lockout / session / backup frequency / retention + Save (B-59).
+  WipeDataModal.tsx          two wipe options, each only shows a message (B-58).
+  CompactInput · CompactSelect · SettingsActionButton · SettingsWarnIcon   small presentational pieces (B-60, B-61).
 
 src/pages/settings/Backup.tsx      Props: {}
   Mock only backup/restore UI. Uses a single generic feedback state
@@ -2091,7 +2130,7 @@ src/test/App.routing.test.tsx
   Include when changing auth/routing in App.tsx.
 
 src/test/pages.flows.test.tsx
-  Behavior tests: Funds edit/save (annual_fee number/null), Utilities edit/save/cancel/filter/delete, Employees filter/search/edit/delete, Dashboard KPI navigation + stats (dashboard.stats.test.ts), ClubReport flow + stats/period helpers (clubReport.parts.test.ts), Transactions filter/approve/reject/delete + status normalisation (transactions.parts.test.ts), Header (header.test.tsx), ItemDetailContent data + rendering (itemDetail.test.tsx), EmployeeReport flows (employeeReport.test.tsx),
+  Behavior tests: Funds edit/save (annual_fee number/null), Utilities edit/save/cancel/filter/delete, Employees filter/search/edit/delete, Dashboard KPI navigation + stats (dashboard.stats.test.ts), ClubReport flow + stats/period helpers (clubReport.parts.test.ts), Transactions filter/approve/reject/delete + status normalisation (transactions.parts.test.ts), Header (header.test.tsx), ItemDetailContent data + rendering (itemDetail.test.tsx), EmployeeReport flows (employeeReport.test.tsx), Settings (settings.test.tsx),
   Attendance mark-all + save, Announcements pagination. Add a flow test when
   changing save/edit logic on a page.
 
