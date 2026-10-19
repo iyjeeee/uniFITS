@@ -6,6 +6,20 @@
   Status: TYPESCRIPT MIGRATION COMPLETE & VERIFIED (2026-09-10)
   NEXT STEPS (owner decision 2026-10-14): finish splitting (bugs found meanwhile are only
     logged in section 1.18, not fixed) -> fix section 1.18 -> discuss Supabase first.
+  Session 2026-10-19 — FILE SPLITTING, batch 11 (EmployeeReport) (tsc/build clean, eslint 0 errors,
+    1 warning, 103 tests pass). 59 rendered states (every member selected, Print, Export confirm /
+    cancel / done, All Employees modal, mobile, custom org; plus a second run with 21 extra users
+    so the modal pagers and page changes are exercised) compared before/after: all byte-identical.
+    · EmployeeReport.tsx 309 -> 37 lines + reports/parts/ (useEmployeeReport, employeeReportShared.ts,
+      EmployeeReportHeader, ReportActionButton, EmployeeReportSidebar, EmployeeReportView,
+      EmployeeInfoSection, EmployeeTransactionsSection, AllEmployeesModal, EmployeeListSection,
+      EmployeeListRow, EmployeeExportModals).
+    · Local IcoExport / IcoPrint / IcoEye replaced by TableIco.PDF / TableIco.Print / BtnIco.View.
+    · The duplicated Officers/Employees blocks of the modal are now one EmployeeListSection.
+    · NEW tests: employeeReport.test.tsx (5: select, print, export flow, modal, pager).
+    · Bugs only DOCUMENTED, not fixed: B-51 … B-56 (see section 1.18); B-33/B-36/B-37 updated.
+    · STILL TO SPLIT (largest first): Settings (303), Sidebar (300), AddTransaction (295),
+      FundReport (276), Events (273), Projects (268), AddUtility (257).
   Session 2026-10-18 — FILE SPLITTING, batch 10 (ItemDetailContent) (tsc/build clean, eslint 0 errors,
     1 warning, 98 tests pass). 33 rendered states (every project and event at desktop + mobile
     width, attendance and empty states, photo / no description / no funding / over-funded /
@@ -21,8 +35,7 @@
     · useBreakpoint() is still called before the `if (!item) return null` (rules of hooks).
     · NEW tests: itemDetail.test.tsx (9: data split/totals, rows, rendering, funding bar, empty hints).
     · Bugs only DOCUMENTED, not fixed: B-47 … B-50 (see section 1.18). B-47 is significant.
-    · STILL TO SPLIT (largest first): EmployeeReport (309), Settings (303), Sidebar (300),
-      AddTransaction (295), FundReport (276), Events (273), Projects (268), AddUtility (257).
+    · (superseded by the 2026-10-19 list above)
   Session 2026-10-17 (b) — FILE SPLITTING, batch 9 (Header) (tsc/build clean, eslint 0 errors,
     1 warning, 89 tests pass). 39 rendered states (hover states, both dropdowns, mark-all-read,
     all-notifications modal + paging, profile links, sign-out flow, guest user, outside click,
@@ -1103,7 +1116,7 @@ Commands (run from website/):
   npm run lint        eslint (0 errors required)
   npx tsc -b          type-check (must be clean)
   npm run build       tsc -b + vite build
-  npm test            vitest run — 98 tests, ~25 s (33 page sweeps + 65 others)
+  npm test            vitest run — 103 tests, ~25 s (33 page sweeps + 70 others)
   npm run test:watch  vitest watch mode
 Before delivering any change: tsc -b, lint, build and npm test must all pass.
 A new page needs NO new test — pages.smoke.test.tsx picks it up. If a page
@@ -1138,7 +1151,7 @@ HIGH — wrong data or missing behavior users can see
         Effect: charts never change when transactions/funds change. Details: see B-24.
   B-04  Reports hard-code the year 2025.
         Where: pages/reports/parts/clubReportShared.ts (YEARS, getPeriodOptions, getDefaultPeriod).
-        EmployeeReport not checked for the same issue (not verified).
+        EmployeeReport has no year/period selector, so it is not affected.
         Fix idea: derive years/periods from the data and the current date.
 
 MEDIUM — wrong or misleading behavior
@@ -1223,7 +1236,8 @@ LOW — cosmetic / cleanup
         completed/upcoming), not the active ones (ClubReportSummary.tsx).
   B-33  Printing includes the generator card (selectors, Generate/Print/Export buttons): the
         print CSS hides ".no-print" (index.css) but no component uses that class anywhere.
-        Same likely applies to EmployeeReport (window.print) — not verified.
+        EmployeeReport has the same problem (verified 2026-10-19): Print calls window.print() on
+        the whole page — sidebar, title card and buttons included — and uses no .no-print class.
   B-34  ClubReport fund sheet does not reconcile: Total Spent (12,500) is not the Statement's
         Total Expenses (50,700, which adds 38,200 of utility payments that belong to no fund),
         and Total Received - Spent (47,400) is not the Current Balance (425,500, a static field
@@ -1233,10 +1247,10 @@ LOW — cosmetic / cleanup
         or expenses in other categories are dropped from the totals; transaction status
         (pending/rejected) is ignored (same family as B-27); utility expense uses amount_paid of
         every utility regardless of date.
-  B-36  Report header hard-codes "uniFITS Organization" (ClubReportHeader.tsx; EmployeeReport
-        also contains it) although OrgConfig has a `name` field.
-  B-37  "Export PDF" only shows a success message — no file is produced (ClubReport; the other
-        two reports not verified).
+  B-36  Report header hard-codes "uniFITS Organization" (ClubReportHeader.tsx and
+        EmployeeReportView.tsx) although OrgConfig has a `name` field.
+  B-37  "Export PDF" only shows a success message — no file is produced (ClubReport and
+        EmployeeReport verified; FundReport not verified).
   B-38  Transactions page status mapping loses information: stored "cancelled" (and any other
         value) is shown as "pending", so a cancelled transaction can be approved
         (transactionsShared.ts: normaliseTransaction). Pinned by a unit test.
@@ -1278,6 +1292,25 @@ LOW — cosmetic / cleanup
         (convoluted); events get no "Type" tile while projects do. The funding-progress block
         also appears in ProjectDetail.tsx and announcements/parts/ActivityDetailContent.tsx
         (same title; whether it is identical is not verified).
+  B-51  EmployeeReport "Export PDF" confirmation promises "all financial contributions and
+        attendance records", but the report contains only member information and the first 6
+        transactions — there is no attendance section.
+  B-52  EmployeeReport All Employees modal paging is inconsistent: ONE page number drives both
+        groups, and the subtitle "Page X of Y" is computed from ALL users (users / 8), not from
+        the larger group. With 27 users it says "of 4" while each group has 2 pages; a group can
+        show an empty page.
+  B-53  EmployeeReport hard-codes "Employee(s)" in the page title, the View All tooltip, the
+        modal title, the group label and the export title (and "officers / members" in the modal
+        subtitle) instead of org.people_label — other labels on the same page do use it.
+  B-54  EmployeeReport "Recent Transactions" = the member's first 6 transactions in array order
+        (not sorted by date), and every amount is drawn green (var(--success)) even for expenses.
+  B-55  On mobile the member list stacks ABOVE the report (reportLayout = '1fr') and selecting a
+        member does not scroll to the report (no scroll code exists). Verified in code only; how
+        far apart they are on a real phone is not verified.
+  B-56  Cleanup: five identical feedback-result interfaces ({ variant: string; title: string;
+        message: string }) exist in employeesShared, utilitiesShared, transactionsShared,
+        clubReportShared and employeeReportShared, each followed by `as ModalVariant` casts.
+        Replace with one typed ActionResult (variant: ModalVariant) in types/.
 
 BACKEND-PHASE — handle when Supabase is discussed (do NOT start early)
   B-16  Auth is fake: sessionStorage flag unifits_authed + unifits_user; Login accepts any
@@ -1970,6 +2003,14 @@ src/pages/profile/PersonalTransactions.tsx Props: { userId?: string } (defaults 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 src/pages/reports/EmployeeReport.tsx  Props: {}  (print-ready)
+  Composition only (37 lines). Include with only the part you change (src/pages/reports/parts/):
+  useEmployeeReport.ts       state: selected member, export modals, All Employees modal + page; derived officers/members/6 transactions.
+  employeeReportShared.ts    LIST_PAGE_SIZE (8), EmployeeReportExportResult.
+  EmployeeReportHeader.tsx   title card + Print / Export PDF (ReportActionButton.tsx = the solid button).
+  EmployeeReportSidebar.tsx  member list (Officers / Employees groups) + View All button.
+  EmployeeReportView.tsx     report card: header (B-36), EmployeeInfoSection.tsx, EmployeeTransactionsSection.tsx (B-54).
+  AllEmployeesModal.tsx      paged modal (B-52); EmployeeListSection.tsx = one group; EmployeeListRow.tsx = one row.
+  EmployeeExportModals.tsx   export confirmation + result ResponseModals (B-51).
 src/pages/reports/FundReport.tsx      Props: {}  (print-ready)
 src/pages/reports/ClubReport.tsx      Props: {}  (print-ready, report type selector)
   Composition only (55 lines). Include with only the part you change (src/pages/reports/parts/):
@@ -2050,7 +2091,7 @@ src/test/App.routing.test.tsx
   Include when changing auth/routing in App.tsx.
 
 src/test/pages.flows.test.tsx
-  Behavior tests: Funds edit/save (annual_fee number/null), Utilities edit/save/cancel/filter/delete, Employees filter/search/edit/delete, Dashboard KPI navigation + stats (dashboard.stats.test.ts), ClubReport flow + stats/period helpers (clubReport.parts.test.ts), Transactions filter/approve/reject/delete + status normalisation (transactions.parts.test.ts), Header (header.test.tsx), ItemDetailContent data + rendering (itemDetail.test.tsx),
+  Behavior tests: Funds edit/save (annual_fee number/null), Utilities edit/save/cancel/filter/delete, Employees filter/search/edit/delete, Dashboard KPI navigation + stats (dashboard.stats.test.ts), ClubReport flow + stats/period helpers (clubReport.parts.test.ts), Transactions filter/approve/reject/delete + status normalisation (transactions.parts.test.ts), Header (header.test.tsx), ItemDetailContent data + rendering (itemDetail.test.tsx), EmployeeReport flows (employeeReport.test.tsx),
   Attendance mark-all + save, Announcements pagination. Add a flow test when
   changing save/edit logic on a page.
 
