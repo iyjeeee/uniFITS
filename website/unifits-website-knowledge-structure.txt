@@ -6,6 +6,23 @@
   Status: TYPESCRIPT MIGRATION COMPLETE & VERIFIED (2026-09-10)
   NEXT STEPS (owner decision 2026-10-14): finish splitting (bugs found meanwhile are only
     logged in section 1.18, not fixed) -> fix section 1.18 -> discuss Supabase first.
+  Session 2026-10-18 — FILE SPLITTING, batch 10 (ItemDetailContent) (tsc/build clean, eslint 0 errors,
+    1 warning, 98 tests pass). 33 rendered states (every project and event at desktop + mobile
+    width, attendance and empty states, photo / no description / no funding / over-funded /
+    no location / no event time, wrong kind, custom org) compared before/after: all byte-identical.
+    · Used by Projects.tsx and Events.tsx modals ONLY (not Funds, not the *Detail pages — checked).
+    · components/ItemDetailContent.tsx 326 -> 65 lines + NEW components/itemDetail/
+      (itemDetailData.ts [pure getItemDetailData + buildDetailRows], itemDetailShared.ts,
+      itemDetailIcons.tsx, ItemHero, DefaultPhoto, ItemInfoGrid, FundingProgress, MiniSection,
+      EmptyHint, ContributionRow, AttendanceRow, TransactionPanel, AttendancePanel,
+      FinancialSummary).
+    · TransactionPanel replaces three copy-pasted panels (contributions / external income /
+      external expense) — only colors, labels and empty text differed.
+    · useBreakpoint() is still called before the `if (!item) return null` (rules of hooks).
+    · NEW tests: itemDetail.test.tsx (9: data split/totals, rows, rendering, funding bar, empty hints).
+    · Bugs only DOCUMENTED, not fixed: B-47 … B-50 (see section 1.18). B-47 is significant.
+    · STILL TO SPLIT (largest first): EmployeeReport (309), Settings (303), Sidebar (300),
+      AddTransaction (295), FundReport (276), Events (273), Projects (268), AddUtility (257).
   Session 2026-10-17 (b) — FILE SPLITTING, batch 9 (Header) (tsc/build clean, eslint 0 errors,
     1 warning, 89 tests pass). 39 rendered states (hover states, both dropdowns, mark-all-read,
     all-notifications modal + paging, profile links, sign-out flow, guest user, outside click,
@@ -18,9 +35,7 @@
     · Local PBtn + paging markup replaced by the shared components/Pagination (identical look).
     · NEW tests: header.test.tsx (7). Header had no tests before.
     · Bugs only DOCUMENTED, not fixed: B-43 … B-46 (see section 1.18); V-01 resolved.
-    · STILL TO SPLIT (largest first): ItemDetailContent (326), EmployeeReport (309), Settings (303),
-      Sidebar (300), AddTransaction (295), FundReport (276), Events (273), Projects (268),
-      AddUtility (257).
+    · (superseded by the 2026-10-18 list above)
   Session 2026-10-17 — FILE SPLITTING, batch 8 (Transactions) (tsc/build clean, eslint 0 errors,
     1 warning, 82 tests pass). 69 rendered states (every filter, search, row detail + Print,
     delete modals, approve/reject, delete while detail open, mobile, custom org) compared
@@ -721,11 +736,11 @@ EditItemModal.tsx
   Shared status options: upcoming/ongoing/completed/cancelled/rejected.
   Props: open, onClose, item (Project|Event), kind, org, onSave.
 
-ItemDetailContent.tsx
+ItemDetailContent.tsx (composition only; pieces in components/itemDetail/)
   Rich detail panel inside Project/Event manage modals (4 extra sections):
     Row A: Member Contributions | Member Attendance
     Row B: External Income      | External Expense
-  Imports MOCK_TRANSACTIONS, MOCK_ATTENDANCES, MOCK_USERS, fmt12.
+  Data comes from itemDetail/itemDetailData.ts (MOCK_TRANSACTIONS, MOCK_ATTENDANCES, fmt12).
   Kind-specific colors: project=#4B5EAA, event=#2E7D52.
   Props: item (Project | Event), org (OrgConfig), kind ('project'|'event').
 
@@ -1088,7 +1103,7 @@ Commands (run from website/):
   npm run lint        eslint (0 errors required)
   npx tsc -b          type-check (must be clean)
   npm run build       tsc -b + vite build
-  npm test            vitest run — 89 tests, ~25 s (33 page sweeps + 56 others)
+  npm test            vitest run — 98 tests, ~25 s (33 page sweeps + 65 others)
   npm run test:watch  vitest watch mode
 Before delivering any change: tsc -b, lint, build and npm test must all pass.
 A new page needs NO new test — pages.smoke.test.tsx picks it up. If a page
@@ -1249,6 +1264,20 @@ LOW — cosmetic / cleanup
         /login when onLogout is not a function) is dead code because onLogout is a required
         prop; Header calls useOrg() without using the result; "View All Activity" sets
         window.location.hash directly (B-09 family).
+  B-47  SIGNIFICANT — ItemDetailContent financials are not scoped to the opened item: they are
+        filtered only by category ("project" / "event"), so EVERY project shows the same
+        contributions (5,000), expenses (12,500) and net balance, and EVERY event shows the same
+        2,500 (verified 2026-10-18). Cause: Transaction has no project_id / event_id field
+        (only category + fund). Needs a data-model change (also before the backend phase).
+  B-48  The funding bar uses the stored item.current_funding while the panels sum transactions,
+        so the two disagree (e.g. "Scholarship Program 2024": funding 200,000 vs total
+        contributions 5,000).
+  B-49  Attendance is matched by title text (record.activity === item.title), not by id: two
+        items with the same title share records and renaming an item detaches its records.
+  B-50  Cleanup: buildDetailRows adds a Status row twice for events and filters the duplicate
+        (convoluted); events get no "Type" tile while projects do. The funding-progress block
+        also appears in ProjectDetail.tsx and announcements/parts/ActivityDetailContent.tsx
+        (same title; whether it is identical is not verified).
 
 BACKEND-PHASE — handle when Supabase is discussed (do NOT start early)
   B-16  Auth is fake: sessionStorage flag unifits_authed + unifits_user; Login accepts any
@@ -1311,7 +1340,8 @@ unifits/website/
     │   ├── EditItemModal.tsx
     │   ├── FundTileCard.tsx
     │   ├── Pagination.tsx
-    │   └── ItemDetailContent.tsx
+    │   ├── ItemDetailContent.tsx
+    │   └── itemDetail/           (ItemDetailContent sub-components — see src/components/ItemDetailContent.tsx)
     ├── constants/
     │   ├── calendar.ts
     │   ├── fundColors.ts
@@ -1608,6 +1638,16 @@ src/components/ItemDetailContent.tsx
   useBreakpoint() is called before the `if (!item) return null` early
   return — must stay in that order (rules of hooks; was previously
   reversed and fixed).
+  Composition only (65 lines). Used by Projects.tsx and Events.tsx. Include with only the part
+  you change (src/components/itemDetail/):
+  itemDetailData.ts      getItemDetailData(item, kind) filters + totals; buildDetailRows() info-grid rows (B-47, B-50).
+  itemDetailShared.ts    KIND_COLOR / KIND_BG (project blue, event green), ATT_COLOR, ItemKind type.
+  ItemHero.tsx           160px banner: photo or default illustration + title/description + status badge.
+  DefaultPhoto.tsx       SVG shown when photo_url is missing.   ItemInfoGrid.tsx   auto-fit info tiles.
+  FundingProgress.tsx    funding bar (only when a target exists) (B-48).
+  TransactionPanel.tsx   header strip + rows + colored total bar (contributions / income / expense).
+  AttendancePanel.tsx    attendance rows matched by title (B-49).   FinancialSummary.tsx   net balance block.
+  MiniSection · EmptyHint · ContributionRow · AttendanceRow   small presentational pieces; itemDetailIcons.tsx = panel icons.
   Include when editing project or event detail content panels.
 
 
@@ -2010,7 +2050,7 @@ src/test/App.routing.test.tsx
   Include when changing auth/routing in App.tsx.
 
 src/test/pages.flows.test.tsx
-  Behavior tests: Funds edit/save (annual_fee number/null), Utilities edit/save/cancel/filter/delete, Employees filter/search/edit/delete, Dashboard KPI navigation + stats (dashboard.stats.test.ts), ClubReport flow + stats/period helpers (clubReport.parts.test.ts), Transactions filter/approve/reject/delete + status normalisation (transactions.parts.test.ts), Header (header.test.tsx),
+  Behavior tests: Funds edit/save (annual_fee number/null), Utilities edit/save/cancel/filter/delete, Employees filter/search/edit/delete, Dashboard KPI navigation + stats (dashboard.stats.test.ts), ClubReport flow + stats/period helpers (clubReport.parts.test.ts), Transactions filter/approve/reject/delete + status normalisation (transactions.parts.test.ts), Header (header.test.tsx), ItemDetailContent data + rendering (itemDetail.test.tsx),
   Attendance mark-all + save, Announcements pagination. Add a flow test when
   changing save/edit logic on a page.
 
