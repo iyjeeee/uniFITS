@@ -6,6 +6,20 @@
   Status: TYPESCRIPT MIGRATION COMPLETE & VERIFIED (2026-09-10)
   NEXT STEPS (owner decision 2026-10-14): finish splitting (bugs found meanwhile are only
     logged in section 1.18, not fixed) -> fix section 1.18 -> discuss Supabase first.
+  Session 2026-10-22 — FILE SPLITTING, batch 14 (AddTransaction) (tsc/build clean, eslint 0 errors,
+    1 warning, 130 tests pass). 52 rendered states (validation error on every step, every card,
+    every dependent select, five payment methods, three complete paths to Record, negative / zero /
+    decimal amounts, Back, mobile, custom org) compared before/after: all byte-identical.
+    · AddTransaction.tsx 295 -> 64 lines + transactions/parts/ (useAddTransaction, addTransactionShared.ts,
+      SourceStep, PaymentStep, EntryTypeStep, CategoryStep, AmountStep, ReviewStep,
+      TransactionLivePreview, TransactionToggleCard, AddTransactionIcons).
+    · Live preview and Review rows were near-duplicates -> one getSummaryRows(form, org, review).
+    · AddTransaction's ToggleCard is NOT the same as AddUtility's (min-width, gap, font sizes,
+      sublabel) — kept separate; unify with a variant when AddUtility is split.
+    · NEW tests: addTransaction.test.tsx (9: summary rows, per-step validation, Back, dependent
+      reset, full path to Record).
+    · Bugs only DOCUMENTED, not fixed: B-66 … B-70 (see section 1.18).
+    · STILL TO SPLIT (largest first): FundReport (276), Events (273), Projects (268), AddUtility (257).
   Session 2026-10-21 — FILE SPLITTING, batch 13 (Sidebar) (tsc/build clean, eslint 0 errors,
     1 warning, 121 tests pass). 90 rendered states (19 routes for active detection, every item
     hover, every sub-menu open/hover/close, switching menus, sub/leaf clicks, collapse button,
@@ -19,8 +33,7 @@
     · The sidebar has NO role-based items (an earlier remark about "role-based items" was wrong).
     · NEW tests: sidebar.test.tsx (13). Sidebar had no tests before.
     · Bugs only DOCUMENTED, not fixed: B-62 … B-65 (see section 1.18). B-63 is visible on screen.
-    · STILL TO SPLIT (largest first): AddTransaction (295), FundReport (276), Events (273),
-      Projects (268), AddUtility (257).
+    · (superseded by the 2026-10-22 list above)
   Session 2026-10-20 — FILE SPLITTING, batch 12 (Settings) (tsc/build clean, eslint 0 errors,
     1 warning, 108 tests pass). 54 rendered states (3 widths, focus/blur of every input incl. the
     disabled one, typing in every field, all backup options, every Save button + acknowledge,
@@ -1142,7 +1155,7 @@ Commands (run from website/):
   npm run lint        eslint (0 errors required)
   npx tsc -b          type-check (must be clean)
   npm run build       tsc -b + vite build
-  npm test            vitest run — 121 tests, ~25 s (33 page sweeps + 88 others)
+  npm test            vitest run — 130 tests, ~25 s (33 page sweeps + 97 others)
   npm run test:watch  vitest watch mode
 Before delivering any change: tsc -b, lint, build and npm test must all pass.
 A new page needs NO new test — pages.smoke.test.tsx picks it up. If a page
@@ -1371,6 +1384,23 @@ LOW — cosmetic / cleanup
   B-65  Sidebar does not open the sub-menu of the current route: on /employees/add the Employees
         row is highlighted but its sub-menu is closed until clicked (verified in snapshots), and a
         sub-item is marked active only on an exact path match (e.g. not on /employees/123).
+  B-66  AddTransaction "Record Transaction" saves nothing: it only opens "Transaction Recorded!"
+        and then goes to /transactions, where the new row never appears (no data is written
+        anywhere). AddUtility and the other Add* pages not verified for the same.
+  B-67  The project / event chosen in the Category step (activity_id) is never shown in the Live
+        Preview or the Review step, and the Fund row is blank for project/event categories — the
+        user cannot confirm which activity the money is for.
+  B-68  AddTransaction has no cross-field rules: an External source can be a Contribution, an
+        Officer can record Income, a Utility category is allowed with a Contribution, etc.
+        Amount has no maximum and notes no length limit. (Zero and negative amounts ARE blocked.)
+  B-69  AddTransaction text: the error reads "Please select a Employee." with the default label
+        (grammar breaks with org labels); "Officer", "External / Sponsor" and the payment-method
+        icons/subtitles are hard-coded by method NAME (a new method gets a generic card); the success
+        title "Transaction Recorded!" ignores org.transaction_label while the button uses it.
+  B-70  Cleanup: two different ToggleCard components exist (AddTransaction's TransactionToggleCard
+        and AddUtility's) with different min-width, gap and font sizes; a single shared card with a
+        variant should replace them when AddUtility is split. The same "Add*" wizard
+        pattern is repeated in six pages (FormWizard shares only StepSidebar/FieldError/StepBanner).
 
 BACKEND-PHASE — handle when Supabase is discussed (do NOT start early)
   B-16  Auth is fake: sessionStorage flag unifits_authed + unifits_user; Login accepts any
@@ -2013,6 +2043,14 @@ src/pages/transactions/Transactions.tsx  Props: { currentUser?: User | null }
   TransactionReceiptContent.tsx  its body: header, key-value grid, flow, category + amount.
   DeleteTransactionModal.tsx     delete confirmation modal; TransactionDeleteBody.tsx = its body.
 src/pages/transactions/AddTransaction.tsx
+  Composition only (64 lines): 3-col wizard (steps | form | live preview). Include with only the part
+  you change (src/pages/transactions/parts/):
+  useAddTransaction.ts       step, form, errors, option lists, per-step validators, pick() for card selections
+                             (with dependent resets), handleContinue / handleBack.
+  addTransactionShared.ts    ADD_TX_STEPS, EMPTY_TX_FORM, getSummaryRows (preview + review).
+  SourceStep · PaymentStep · EntryTypeStep · CategoryStep · AmountStep · ReviewStep   one component per step.
+  TransactionToggleCard.tsx  selectable card (own look, see B-70);  AddTransactionIcons.tsx = 18px card icons.
+  TransactionLivePreview.tsx right-hand summary panel (hidden on mobile). Nothing is saved on Record (B-66).
 src/pages/transactions/Utilities.tsx     Props: { currentUser?: User | null }
   Composition only (45 lines). "Add Utility" button navigates to /transactions/utilities/add.
   Pieces in src/pages/transactions/parts/ — include the page + only the part you change:
@@ -2169,7 +2207,7 @@ src/test/App.routing.test.tsx
   Include when changing auth/routing in App.tsx.
 
 src/test/pages.flows.test.tsx
-  Behavior tests: Funds edit/save (annual_fee number/null), Utilities edit/save/cancel/filter/delete, Employees filter/search/edit/delete, Dashboard KPI navigation + stats (dashboard.stats.test.ts), ClubReport flow + stats/period helpers (clubReport.parts.test.ts), Transactions filter/approve/reject/delete + status normalisation (transactions.parts.test.ts), Header (header.test.tsx), ItemDetailContent data + rendering (itemDetail.test.tsx), EmployeeReport flows (employeeReport.test.tsx), Settings (settings.test.tsx), Sidebar (sidebar.test.tsx),
+  Behavior tests: Funds edit/save (annual_fee number/null), Utilities edit/save/cancel/filter/delete, Employees filter/search/edit/delete, Dashboard KPI navigation + stats (dashboard.stats.test.ts), ClubReport flow + stats/period helpers (clubReport.parts.test.ts), Transactions filter/approve/reject/delete + status normalisation (transactions.parts.test.ts), Header (header.test.tsx), ItemDetailContent data + rendering (itemDetail.test.tsx), EmployeeReport flows (employeeReport.test.tsx), Settings (settings.test.tsx), Sidebar (sidebar.test.tsx), AddTransaction wizard (addTransaction.test.tsx),
   Attendance mark-all + save, Announcements pagination. Add a flow test when
   changing save/edit logic on a page.
 
