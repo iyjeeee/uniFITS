@@ -1,5 +1,5 @@
 // parts/EmployeeListRow.tsx — One employee row (avatar, name, ID · department, role pill, status) inside the All Employees modal
-import { StatusBadge, Avatar } from '../../../components/ui'
+import { StatusBadge, Avatar, TypePill } from '../../../components/ui'
 import type { User } from '../../../types'
 
 export default function EmployeeListRow({ u }: { u: User }) {
@@ -10,7 +10,7 @@ export default function EmployeeListRow({ u }: { u: User }) {
         <div style={{ fontWeight: 600, fontSize: 13.5 }}>{u.full_name}</div>
         <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1 }}>{u.employee_number} · {u.department || '—'}</div>
       </div>
-      <span style={{ padding: '3px 10px', borderRadius: 20, background: '#4B5EAA', color: '#fff', fontSize: 11, fontWeight: 700 }}>{u.role}</span>
+      <TypePill>{u.role}</TypePill>
       <StatusBadge status={u.status} />
     </div>
   )

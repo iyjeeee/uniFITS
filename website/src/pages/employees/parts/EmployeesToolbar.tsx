@@ -1,9 +1,9 @@
 // parts/EmployeesToolbar.tsx — Table card toolbar: title, role + status filters, search, Import and Add buttons
+import { NativeFilterSelect } from '../../../components/ui'
 import { TableToolbar, ToolbarSearch, ToolbarAddButton } from '../../../components/TableToolbar'
 import { TableIco } from '../../../components/Icons'
 import { useOrg } from '../../../context/OrgContext'
 import { capitalize } from '../../../utils/formatters'
-import EmployeesFilterSelect from './EmployeesFilterSelect'
 import { IcoUpload } from './EmployeesIcons'
 
 interface Props {
@@ -18,9 +18,9 @@ export default function EmployeesToolbar({ total, typeFilter, typeOptions, onTyp
   return (
     <TableToolbar title={`${org.people_label} Data Table`} subtitle={`${total} records · click any row for details`}>
       {/* Type filter — by role */}
-      <EmployeesFilterSelect value={typeFilter} onChange={onTypeChange} options={typeOptions.map((t) => ({ value: t, label: t === 'all' ? 'All Types' : t }))} />
+      <NativeFilterSelect value={typeFilter} onChange={onTypeChange} options={typeOptions.map((t) => ({ value: t, label: t === 'all' ? 'All Types' : t }))} />
       {/* Status filter */}
-      <EmployeesFilterSelect value={statusFilter} onChange={onStatusChange} options={statusOptions.map((s) => ({ value: s, label: s === 'all' ? 'All Status' : capitalize(s) }))} />
+      <NativeFilterSelect value={statusFilter} onChange={onStatusChange} options={statusOptions.map((s) => ({ value: s, label: s === 'all' ? 'All Status' : capitalize(s) }))} />
       <ToolbarSearch value={search} onChange={onSearchChange} />
       {/* Import — opens InfoModal */}
       <button onClick={onImport}

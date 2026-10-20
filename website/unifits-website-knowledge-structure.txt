@@ -6,6 +6,26 @@
   Status: TYPESCRIPT MIGRATION COMPLETE & VERIFIED (2026-09-10)
   NEXT STEPS (owner decision 2026-10-14): finish splitting (bugs found meanwhile are only
     logged in section 1.18, not fixed) -> fix section 1.18 -> discuss Supabase first.
+  Session 2026-10-23 — FILE SPLITTING, batch 15 (Projects) (tsc/build clean, eslint 0 errors,
+    1 warning, 141 tests pass). 68 rendered states (3 widths, every filter value, search, hovers,
+    each row's detail / edit / delete, edit + save, edit + cancel, approve, reject, delayed delete,
+    all deleted, custom org) compared before/after: all byte-identical.
+    · Projects.tsx 268 -> 46 lines + NEW projects/parts/ (useProjects, projectsShared.ts,
+      ProjectsKpiStrip, ProjectsToolbar, ProjectsTable, ProjectDetailModal, DeleteProjectModal,
+      ProjectDeleteBody).
+    · NEW shared pieces (components/ui, re-exported from ui/index):
+        NativeFilterSelect — the native dropdown that Employees, Projects and Events share
+          (byte-identical styling, checked); MOVED from employees/parts/EmployeesFilterSelect.
+        TypePill — the #4B5EAA type/role pill (was copied in 3 files).
+      Components/Icons.tsx: NEW BtnIco.Reject (14px, 2.5 stroke; Events has the same local icon).
+      Equivalence of each moved piece was proven by rendering old and new side by side.
+    · Employees was adjusted to use them: employees/parts/EmployeeRolePill.tsx and
+      EmployeesFilterSelect.tsx are DELETED (see DELETE-THESE-FILES.txt); EmployeesTable,
+      EmployeeDetailContent, EmployeesToolbar and reports/parts/EmployeeListRow now import the shared ones.
+    · NEW tests: projects.test.tsx (5), sharedListParts.test.tsx (6: KpiStrip, TableToolbar, search,
+      add button, both filter selects, TypePill).
+    · Bugs only DOCUMENTED, not fixed: B-71 … B-73 (see section 1.18).
+    · STILL TO SPLIT (largest first): FundReport (276), Events (273), AddUtility (257).
   Session 2026-10-22 — FILE SPLITTING, batch 14 (AddTransaction) (tsc/build clean, eslint 0 errors,
     1 warning, 130 tests pass). 52 rendered states (validation error on every step, every card,
     every dependent select, five payment methods, three complete paths to Record, negative / zero /
@@ -19,7 +39,7 @@
     · NEW tests: addTransaction.test.tsx (9: summary rows, per-step validation, Back, dependent
       reset, full path to Record).
     · Bugs only DOCUMENTED, not fixed: B-66 … B-70 (see section 1.18).
-    · STILL TO SPLIT (largest first): FundReport (276), Events (273), Projects (268), AddUtility (257).
+    · (superseded by the 2026-10-23 list above)
   Session 2026-10-21 — FILE SPLITTING, batch 13 (Sidebar) (tsc/build clean, eslint 0 errors,
     1 warning, 121 tests pass). 90 rendered states (19 routes for active detection, every item
     hover, every sub-menu open/hover/close, switching menus, sub/leaf clicks, collapse button,
@@ -757,17 +777,19 @@ TableUtils (src/components/TableUtils.tsx)
 
 KpiStrip (src/components/KpiStrip.tsx)
   Default export. Props: kpis [{ label, value, color }], valueSize (default 28).
-  2 columns on mobile/tablet, 4 on desktop; tile hover lift. Used by Utilities, Employees and Transactions KPI strips.
+  2 columns on mobile/tablet, 4 on desktop; tile hover lift. Used by the Utilities, Employees, Transactions and Projects KPI strips.
 
 TableToolbar (src/components/TableToolbar.tsx)
   TableToolbar({ title, subtitle, children }) — card toolbar row (title left, controls right).
   ToolbarSearch({ value, onChange(value) }) — 180px search box. ToolbarAddButton({ onClick,
   children }) — accent Add button (children = icon + label). Used by the Utilities, Employees and Transactions toolbars.
-  ui/FilterSelect (value, onChange(value), options string|{value,label}) sits next to them.
+  ui/FilterSelect (value, onChange(value), options string|{value,label}) sits next to them (chevron look:
+  Utilities, Transactions). ui/NativeFilterSelect (value, onChange(value), options {value,label}[]) is the
+  native look used by Employees, Projects (and Events when split). ui/TypePill({children}) = blue type/role pill.
 
 Icons.tsx (src/components/Icons.tsx)
   BtnIco (14px) — toolbar/modal button icons:
-    Save, Edit, Delete, Cancel, Close, Plus, Check, PDF,
+    Save, Edit, Delete, Cancel, Close, Plus, Check, Reject, PDF,
     Print, Export, Shield, View, Arrow, Back
   TableIco (13px) — table action column icons:
     Delete, Approve, Reject, Plus, Edit, Save, Print
@@ -1155,7 +1177,7 @@ Commands (run from website/):
   npm run lint        eslint (0 errors required)
   npx tsc -b          type-check (must be clean)
   npm run build       tsc -b + vite build
-  npm test            vitest run — 130 tests, ~25 s (33 page sweeps + 97 others)
+  npm test            vitest run — 141 tests, ~25 s (33 page sweeps + 108 others)
   npm run test:watch  vitest watch mode
 Before delivering any change: tsc -b, lint, build and npm test must all pass.
 A new page needs NO new test — pages.smoke.test.tsx picks it up. If a page
@@ -1240,16 +1262,17 @@ LOW — cosmetic / cleanup
         of org.currency_symbol. AddUtility not checked for the same issues (not verified).
   B-20  TableUtils exports FilterSelect and SearchBar that no page uses and that look
         different from the dropdown/search box every list page renders (add to B-11 cleanup).
-        Projects and Events still hold inline copies of the search box, Add button, KPI strip
-        and dropdowns (components/KpiStrip + TableToolbar + ui/FilterSelect exist for them;
-        Utilities, Employees and Transactions already use them).
+        Only Events still holds inline copies of the search box, Add button, KPI strip and
+        dropdowns (components/KpiStrip + TableToolbar + ui/NativeFilterSelect exist for it;
+        Utilities, Employees, Transactions and Projects already use them).
   B-21  EditEmployeeModal.tsx has a hard-coded ROLE_OPTIONS list (President, Treasurer,
         Secretary, Member) but MOCK_ROLES also has "Project Lead" (and RolesPage can add
         roles). A user with another role shows "Member" in the edit form and would be saved
         as Member. No mock user currently has such a role, so it is not visible yet.
-  B-22  Employees filter dropdowns are native selects (no chevron) while the Utilities
-        dropdowns use the custom chevron look (ui/FilterSelect) — inconsistent UI between
-        list pages. Left as-is in the split (EmployeesFilterSelect); unify in step B.
+  B-22  Two dropdown looks exist: Employees, Projects and Events use native selects without a
+        chevron (ui/NativeFilterSelect), Utilities and Transactions use the custom chevron look
+        (ui/FilterSelect) — inconsistent UI between list pages. Left as-is in the splits; unify
+        in step B (then one of the two ui components can go).
   B-23  Employees Import modal is UI only: Browse File / Import File / template link do
         nothing (no parsing, no upload). Incomplete feature, not a regression.
   B-24  Dashboard chart data is wrong/unrelated to the records (extends B-03, verified against
@@ -1401,6 +1424,17 @@ LOW — cosmetic / cleanup
         and AddUtility's) with different min-width, gap and font sizes; a single shared card with a
         variant should replace them when AddUtility is split. The same "Add*" wizard
         pattern is repeated in six pages (FormWizard shares only StepSidebar/FieldError/StepBanner).
+  B-71  Projects Approve / Reject have no state guard and a questionable meaning: "Approve" sets
+        any project to Ongoing (a Completed or Cancelled project is reopened, and an Upcoming one
+        starts before its start date); "Reject" sets any project to Cancelled (also a Completed one).
+        Same family as B-40. No role check (B-02).
+  B-72  Projects wording is not org-aware: KPI label "Overall Projects", table headers, and the
+        messages "Project Approved / Rejected / Updated / Deleted", modal title "Delete Project"
+        and the delete-body labels hard-code "Project" while the toolbar and Add button use
+        org.project_label (same family as B-53).
+  B-73  Projects table and delete body call formatCurrency(amount) without org.currency_symbol,
+        and the funding value is drawn green whenever current >= target (always true when the
+        target is 0). EditItemModal labels "Target Funding (₱)" with a fixed peso sign (see B-19).
 
 BACKEND-PHASE — handle when Supabase is discussed (do NOT start early)
   B-16  Auth is fake: sessionStorage flag unifits_authed + unifits_user; Login accepts any
@@ -1445,7 +1479,7 @@ unifits/website/
     │   ├── ui/
     │   │   ├── index.tsx            (re-exports everything below)
     │   │   ├── Avatar.tsx · Badge.tsx · Button.tsx · Card.tsx
-    │   │   ├── DataTable.tsx · EmptyState.tsx · FilterSelect.tsx
+    │   │   ├── DataTable.tsx · EmptyState.tsx · FilterSelect.tsx · NativeFilterSelect.tsx · TypePill.tsx
     │   │   ├── FormFields.tsx       (Input, Select, Textarea)
     │   │   ├── InfoModal.tsx        (InfoModal + legacy Modal alias)
     │   │   ├── KpiCard.tsx · PageHeader.tsx · ResponseModal.tsx
@@ -1535,7 +1569,8 @@ unifits/website/
     │   │   ├── AddProject.tsx
     │   │   ├── EditProject.tsx
     │   │   ├── ProjectDetail.tsx
-    │   │   └── Projects.tsx
+    │   │   ├── Projects.tsx
+    │   │   └── parts/            (Projects sub-components — see Category on Projects.tsx)
     │   ├── reports/
     │   │   ├── ClubReport.tsx
     │   │   ├── EmployeeReport.tsx
@@ -1959,9 +1994,7 @@ src/pages/employees/Employees.tsx
   employeesShared.ts         EMPLOYEE_PAGE_SIZE, EmployeeActionResult.
   EmployeesKpiStrip.tsx      Total / Active / Inactive / Officers (uses components/KpiStrip).
   EmployeesToolbar.tsx       title, role + status filters, search, Import and Add buttons.
-  EmployeesFilterSelect.tsx  native filter dropdown (no chevron — see B-22).
   EmployeesTable.tsx         table, status-colored rows, mailto link, Delete-only actions.
-  EmployeeRolePill.tsx       blue role badge (table + detail hero).
   EmployeeDetailModal.tsx    row-click detail InfoModal; Edit hands off to EditEmployeeModal.
   EmployeeDetailContent.tsx  profile hero + detail grid (3 cols desktop / 2 mobile).
   ImportEmployeesModal.tsx   import InfoModal (UI only — B-23); EmployeesIcons.tsx = upload icons.
@@ -1994,6 +2027,14 @@ src/pages/employees/Attendance.tsx — Props: none (ignores currentUser)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 src/pages/projects/Projects.tsx       Props: { currentUser?: User | null }
+  Composition only (46 lines). Include with only the part you change (src/pages/projects/parts/):
+  useProjects.ts          state: list data, filters (reset page 1), paging, detail/edit/delete modals,
+                          approve (-> ongoing) / reject (-> cancelled) / delete (+260 ms feedback) / save edit (B-71).
+  projectsShared.ts       PROJECT_PAGE_SIZE, ProjectActionResult.   ProjectsKpiStrip.tsx   4 KPIs (components/KpiStrip).
+  ProjectsToolbar.tsx     title, type + status ui/NativeFilterSelect, search, Add button.
+  ProjectsTable.tsx       status-colored rows, funding mini-bar, Approve / Reject / Delete icon buttons (B-73).
+  ProjectDetailModal.tsx  row-click detail InfoModal (components/ItemDetailContent); footer Edit + Close.
+  DeleteProjectModal.tsx  delete confirmation; ProjectDeleteBody.tsx = its body.
 src/pages/projects/AddProject.tsx     Props: { currentUser?: User | null }
 src/pages/projects/EditProject.tsx    Props: { currentUser?: User | null }
 src/pages/projects/ProjectDetail.tsx  Props: { currentUser?: User | null }
@@ -2207,7 +2248,7 @@ src/test/App.routing.test.tsx
   Include when changing auth/routing in App.tsx.
 
 src/test/pages.flows.test.tsx
-  Behavior tests: Funds edit/save (annual_fee number/null), Utilities edit/save/cancel/filter/delete, Employees filter/search/edit/delete, Dashboard KPI navigation + stats (dashboard.stats.test.ts), ClubReport flow + stats/period helpers (clubReport.parts.test.ts), Transactions filter/approve/reject/delete + status normalisation (transactions.parts.test.ts), Header (header.test.tsx), ItemDetailContent data + rendering (itemDetail.test.tsx), EmployeeReport flows (employeeReport.test.tsx), Settings (settings.test.tsx), Sidebar (sidebar.test.tsx), AddTransaction wizard (addTransaction.test.tsx),
+  Behavior tests: Funds edit/save (annual_fee number/null), Utilities edit/save/cancel/filter/delete, Employees filter/search/edit/delete, Dashboard KPI navigation + stats (dashboard.stats.test.ts), ClubReport flow + stats/period helpers (clubReport.parts.test.ts), Transactions filter/approve/reject/delete + status normalisation (transactions.parts.test.ts), Header (header.test.tsx), ItemDetailContent data + rendering (itemDetail.test.tsx), EmployeeReport flows (employeeReport.test.tsx), Settings (settings.test.tsx), Sidebar (sidebar.test.tsx), AddTransaction wizard (addTransaction.test.tsx), Projects flows (projects.test.tsx), shared list components (sharedListParts.test.tsx),
   Attendance mark-all + save, Announcements pagination. Add a flow test when
   changing save/edit logic on a page.
 

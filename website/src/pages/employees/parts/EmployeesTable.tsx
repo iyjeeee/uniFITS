@@ -1,11 +1,10 @@
 // parts/EmployeesTable.tsx — Employees data table (status-colored rows, mailto link, Delete-only action column)
-import { StatusBadge, Avatar } from '../../../components/ui'
+import { StatusBadge, Avatar, TypePill } from '../../../components/ui'
 import { IconBtn } from '../../../components/TableUtils'
 import { BtnIco } from '../../../components/Icons'
 import { formatDate } from '../../../api/mockData'
 import { rowStyle, rowHoverBg } from '../../../constants/tableColors'
 import { EMPLOYEE_PAGE_SIZE } from './employeesShared'
-import EmployeeRolePill from './EmployeeRolePill'
 import type { User } from '../../../types'
 
 interface Props { rows: User[]; page: number; onRowClick: (u: User) => void; onDelete: (u: User) => void }
@@ -41,7 +40,7 @@ export default function EmployeesTable({ rows, page, onRowClick, onDelete }: Pro
                 </div>
               </td>
               <td style={{ padding: '10px 14px' }}>
-                <EmployeeRolePill role={r.role} />
+                <TypePill>{r.role}</TypePill>
               </td>
               <td style={{ padding: '10px 14px' }}>
                 <a href={`mailto:${r.email}`} onClick={e => e.stopPropagation()} style={{ color: 'var(--accent)', fontSize: 13 }}>{r.email}</a>
