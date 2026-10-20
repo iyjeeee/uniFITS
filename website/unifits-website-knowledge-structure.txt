@@ -6,6 +6,21 @@
   Status: TYPESCRIPT MIGRATION COMPLETE & VERIFIED (2026-09-10)
   NEXT STEPS (owner decision 2026-10-14): finish splitting (bugs found meanwhile are only
     logged in section 1.18, not fixed) -> fix section 1.18 -> discuss Supabase first.
+  Session 2026-10-21 — FILE SPLITTING, batch 13 (Sidebar) (tsc/build clean, eslint 0 errors,
+    1 warning, 121 tests pass). 90 rendered states (19 routes for active detection, every item
+    hover, every sub-menu open/hover/close, switching menus, sub/leaf clicks, collapse button,
+    collapsed desktop, mobile open/closed, custom labels) compared before/after: all byte-identical.
+    The first comparison caught a real difference: the collapse button's hover state originally
+    lived in the whole Sidebar (hovering re-rendered it and refreshed the active highlight); it is
+    kept in useSidebarNav on purpose to preserve that.
+    · components/Sidebar.tsx 300 -> 48 lines + NEW components/sidebar/ (useSidebarNav.ts,
+      sidebarNav.ts [types + buildNav], sidebarStyles.ts [typed CSSProperties, no more casts],
+      NavIcon, SidebarBrand, SidebarNavItem, SidebarCollapseButton).
+    · The sidebar has NO role-based items (an earlier remark about "role-based items" was wrong).
+    · NEW tests: sidebar.test.tsx (13). Sidebar had no tests before.
+    · Bugs only DOCUMENTED, not fixed: B-62 … B-65 (see section 1.18). B-63 is visible on screen.
+    · STILL TO SPLIT (largest first): AddTransaction (295), FundReport (276), Events (273),
+      Projects (268), AddUtility (257).
   Session 2026-10-20 — FILE SPLITTING, batch 12 (Settings) (tsc/build clean, eslint 0 errors,
     1 warning, 108 tests pass). 54 rendered states (3 widths, focus/blur of every input incl. the
     disabled one, typing in every field, all backup options, every Save button + acknowledge,
@@ -17,8 +32,7 @@
     · The label list is now data (LABEL_FIELDS) and the security defaults a constant.
     · NEW tests: settings.test.tsx (5). Settings had no tests before.
     · Bugs only DOCUMENTED, not fixed: B-57 … B-61 (see section 1.18). B-57 and B-58 matter most.
-    · STILL TO SPLIT (largest first): Sidebar (300), AddTransaction (295), FundReport (276),
-      Events (273), Projects (268), AddUtility (257).
+    · (superseded by the 2026-10-21 list above)
   Session 2026-10-19 — FILE SPLITTING, batch 11 (EmployeeReport) (tsc/build clean, eslint 0 errors,
     1 warning, 103 tests pass). 59 rendered states (every member selected, Print, Export confirm /
     cancel / done, All Employees modal, mobile, custom org; plus a second run with 21 extra users
@@ -1128,7 +1142,7 @@ Commands (run from website/):
   npm run lint        eslint (0 errors required)
   npx tsc -b          type-check (must be clean)
   npm run build       tsc -b + vite build
-  npm test            vitest run — 108 tests, ~25 s (33 page sweeps + 75 others)
+  npm test            vitest run — 121 tests, ~25 s (33 page sweeps + 88 others)
   npm run test:watch  vitest watch mode
 Before delivering any change: tsc -b, lint, build and npm test must all pass.
 A new page needs NO new test — pages.smoke.test.tsx picks it up. If a page
@@ -1341,6 +1355,22 @@ LOW — cosmetic / cleanup
         (ui/ResponseModal, TableUtils, FormWizard, LoginForm, Projects, Events, the Funds /
         Utilities / Transactions / Employees / Roles delete bodies, SettingsWarnIcon). One WarnIcon
         with a size prop, and one shared delete-warning banner, would replace them.
+  B-62  Collapsed desktop sidebar: clicking an item that has sub-items toggles a sub-menu that is
+        never drawn (sub-items need the labels visible), so "Add …" / "Manage …" pages cannot be
+        reached until the sidebar is expanded. Verified in snapshots. (Also, a sub-menu opened while
+        collapsed is already open when the sidebar is expanded again.)
+  B-63  VISIBLE — plural labels are built as label + "s": with the default org the menu shows
+        "Utilitys" and "Manage Utilitys"; a label like "Entry" or "Activity" gives "Entrys" /
+        "Activitys". Same pattern in many places: sidebarNav.ts (7 items), KPI strips (Funds,
+        Transactions, Utilities "Total Utilitys", Employees), DashboardKpiRows, ActivityOverviewCard,
+        FundReport, EmployeeReportSidebar. Fix: add plural labels to OrgConfig (or a pluralize helper).
+  B-64  Sidebar leftovers: the `navigate` prop is declared (SidebarProps) but never used — the
+        sidebar sets window.location.hash itself (B-09 family); NavItemDef.badge is never set by
+        buildNav (dead feature); "Club Report", "Roles & Permissions", "Audit Logs", "Announcements"
+        and the "uniFITS" brand are hard-coded while other entries use org labels (B-36 family).
+  B-65  Sidebar does not open the sub-menu of the current route: on /employees/add the Employees
+        row is highlighted but its sub-menu is closed until clicked (verified in snapshots), and a
+        sub-item is marked active only on an exact path match (e.g. not on /employees/123).
 
 BACKEND-PHASE — handle when Supabase is discussed (do NOT start early)
   B-16  Auth is fake: sessionStorage flag unifits_authed + unifits_user; Login accepts any
@@ -1397,6 +1427,7 @@ unifits/website/
     │   ├── Header.tsx
     │   ├── header/               (Header sub-components — see Category on Header.tsx)
     │   ├── Sidebar.tsx
+    │   ├── sidebar/              (Sidebar sub-components — see src/components/Sidebar.tsx)
     │   ├── Icons.tsx
     │   ├── TableUtils.tsx
     │   ├── EditEmployeeModal.tsx
@@ -1623,8 +1654,16 @@ src/layouts/AppLayout.tsx
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 src/components/Sidebar.tsx
-  Responsive nav sidebar. 4 nav sections using OrgContext labels.
-  Full/collapsed/mobile modes, sub-menus, longest-prefix active detection.
+  Responsive nav sidebar — composition only (48 lines). 4 nav sections using OrgContext labels.
+  Full/collapsed/mobile modes, sub-menus, longest-prefix active detection. Include with only the
+  part you change (src/components/sidebar/):
+  sidebarNav.ts            NavItemDef/NavSection types + buildNav(org): THE place to add/rename menu items (B-63).
+  useSidebarNav.ts         state (open sub-menu, hovered row, collapse-button hover), isActive() longest-prefix
+                           logic, click handlers (leaf/sub navigate by hash; mobile also closes the drawer).
+  sidebarStyles.ts         all style objects/functions (shell width/transform per mode, rows, pips, badges, footer).
+  SidebarBrand.tsx         62px brand bar ("uF" + "uniFITS", wordmark hidden when collapsed).
+  SidebarNavItem.tsx       one row (pip, icon, label, badge, chevron) + its sub-items when open and expanded.
+  NavIcon.tsx              18px SVG icon;  SidebarCollapseButton.tsx   footer Collapse button (desktop only).
   Include when changing nav items, sidebar styling, or branding.
 
 src/components/Header.tsx
@@ -2130,7 +2169,7 @@ src/test/App.routing.test.tsx
   Include when changing auth/routing in App.tsx.
 
 src/test/pages.flows.test.tsx
-  Behavior tests: Funds edit/save (annual_fee number/null), Utilities edit/save/cancel/filter/delete, Employees filter/search/edit/delete, Dashboard KPI navigation + stats (dashboard.stats.test.ts), ClubReport flow + stats/period helpers (clubReport.parts.test.ts), Transactions filter/approve/reject/delete + status normalisation (transactions.parts.test.ts), Header (header.test.tsx), ItemDetailContent data + rendering (itemDetail.test.tsx), EmployeeReport flows (employeeReport.test.tsx), Settings (settings.test.tsx),
+  Behavior tests: Funds edit/save (annual_fee number/null), Utilities edit/save/cancel/filter/delete, Employees filter/search/edit/delete, Dashboard KPI navigation + stats (dashboard.stats.test.ts), ClubReport flow + stats/period helpers (clubReport.parts.test.ts), Transactions filter/approve/reject/delete + status normalisation (transactions.parts.test.ts), Header (header.test.tsx), ItemDetailContent data + rendering (itemDetail.test.tsx), EmployeeReport flows (employeeReport.test.tsx), Settings (settings.test.tsx), Sidebar (sidebar.test.tsx),
   Attendance mark-all + save, Announcements pagination. Add a flow test when
   changing save/edit logic on a page.
 
