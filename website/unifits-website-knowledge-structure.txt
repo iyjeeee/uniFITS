@@ -6,6 +6,18 @@
   Status: TYPESCRIPT MIGRATION COMPLETE & VERIFIED (2026-09-10)
   NEXT STEPS (owner decision 2026-10-14): finish splitting (bugs found meanwhile are only
     logged in section 1.18, not fixed) -> fix section 1.18 -> discuss Supabase first.
+  Session 2026-10-25 — FILE SPLITTING, batch 17 (FundReport) (tsc/build clean, eslint 0 errors,
+    1 warning, 155 tests pass). 24 rendered states (4 widths, KPI hover, every fund's detail incl.
+    funds WITH contributors and funds with none, mobile detail, export confirm / cancel / done / ack,
+    custom org) compared before/after: all byte-identical.
+    · FundReport.tsx 276 -> 44 lines + reports/parts/ (useFundReport, fundReportData.ts [pure
+      getFundContributions], FundReportKpiStrip, FundTileSection [replaces two copy-pasted sections],
+      FundDetailModal, FundDetailContent, FundContributionsList, FundExportModals, FundReportIcons).
+    · IcoExport -> TableIco.PDF. The KPI strip was NOT replaced by components/KpiStrip: it differs
+      (4 columns on tablet vs 2, no line-height) — kept local, see B-76.
+    · NEW tests: fundReport.test.tsx (6: contributions data, KPIs, sections, detail, export flow).
+    · Bugs only DOCUMENTED, not fixed: B-76, B-77; B-33 and B-37 updated.
+    · STILL TO SPLIT: AddUtility (257).
   Session 2026-10-24 — FILE SPLITTING, batch 16 (Events) (tsc/build clean, eslint 0 errors,
     1 warning, 149 tests pass). 63 rendered states (same scenario as Projects, plus every title-
     keyword category) compared before/after: all byte-identical.
@@ -17,7 +29,7 @@
       KpiStrip / TableToolbar / dropdown components; no inline copies are left.
     · NEW tests: events.test.tsx (8: category rule, KPIs, filter/search, approve/reject, edit, delete).
     · Bugs only DOCUMENTED, not fixed: B-74, B-75; B-71 / B-72 / B-73 extended to Events.
-    · STILL TO SPLIT (largest first): FundReport (276), AddUtility (257).
+    · (superseded by the 2026-10-25 list above)
   Session 2026-10-23 — FILE SPLITTING, batch 15 (Projects) (tsc/build clean, eslint 0 errors,
     1 warning, 141 tests pass). 68 rendered states (3 widths, every filter value, search, hovers,
     each row's detail / edit / delete, edit + save, edit + cancel, approve, reject, delayed delete,
@@ -1189,7 +1201,7 @@ Commands (run from website/):
   npm run lint        eslint (0 errors required)
   npx tsc -b          type-check (must be clean)
   npm run build       tsc -b + vite build
-  npm test            vitest run — 149 tests, ~25 s (33 page sweeps + 116 others)
+  npm test            vitest run — 155 tests, ~25 s (33 page sweeps + 122 others)
   npm run test:watch  vitest watch mode
 Before delivering any change: tsc -b, lint, build and npm test must all pass.
 A new page needs NO new test — pages.smoke.test.tsx picks it up. If a page
@@ -1311,6 +1323,8 @@ LOW — cosmetic / cleanup
         print CSS hides ".no-print" (index.css) but no component uses that class anywhere.
         EmployeeReport has the same problem (verified 2026-10-19): Print calls window.print() on
         the whole page — sidebar, title card and buttons included — and uses no .no-print class.
+        FundReport has no Print button at all (verified 2026-10-25), so despite its "print-ready"
+        label in this document it cannot be printed from the page.
   B-34  ClubReport fund sheet does not reconcile: Total Spent (12,500) is not the Statement's
         Total Expenses (50,700, which adds 38,200 of utility payments that belong to no fund),
         and Total Received - Spent (47,400) is not the Current Balance (425,500, a static field
@@ -1322,8 +1336,9 @@ LOW — cosmetic / cleanup
         every utility regardless of date.
   B-36  Report header hard-codes "uniFITS Organization" (ClubReportHeader.tsx and
         EmployeeReportView.tsx) although OrgConfig has a `name` field.
-  B-37  "Export PDF" only shows a success message — no file is produced (ClubReport and
-        EmployeeReport verified; FundReport not verified).
+  B-37  "Export PDF" only shows a success message — no file is produced (ClubReport, EmployeeReport
+        and FundReport all verified). FundReport's message is generic ("Fund Report PDF has been
+        generated") even when started from one fund's detail.
   B-38  Transactions page status mapping loses information: stored "cancelled" (and any other
         value) is shown as "pending", so a cancelled transaction can be approved
         (transactionsShared.ts: normaliseTransaction). Pinned by a unit test.
@@ -1458,6 +1473,15 @@ LOW — cosmetic / cleanup
         the delete body, both modals, the table and the toolbar differ only in a few columns and
         labels. A generic list-page building block (columns + labels as props) would replace both;
         do this in the fix phase after B-71 … B-74 are decided.
+  B-76  FundReport's KPI strip is a different component from the other list pages' KpiStrip:
+        4 columns on tablet (others 2), no line-height on the value, unused bg/border fields in
+        its data. Unify the look (then use components/KpiStrip) in step B.
+  B-77  FundReport detail: contributions are matched by fund NAME (t.fund === fund.name), so a
+        renamed fund loses its history; every transaction status is counted (B-27 family);
+        "x of N members have contributed" counts all users including inactive ones and hard-codes
+        "members" (org.people_label elsewhere on the same page); Currency falls back to a fixed
+        "PHP"; the Inactive KPI counts any status other than "active"; "Funds … for All {label}s"
+        uses the naive plural (B-63).
 
 BACKEND-PHASE — handle when Supabase is discussed (do NOT start early)
   B-16  Auth is fake: sessionStorage flag unifits_authed + unifits_user; Login accepts any
@@ -1599,7 +1623,7 @@ unifits/website/
     │   │   ├── ClubReport.tsx
     │   │   ├── EmployeeReport.tsx
     │   │   ├── FundReport.tsx
-    │   │   └── parts/            (ClubReport sub-components — see Category 19)
+    │   │   └── parts/            (ClubReport, EmployeeReport and FundReport sub-components — see Category 19)
     │   ├── settings/
     │   │   ├── Backup.tsx
     │   │   ├── Settings.tsx
@@ -2192,7 +2216,15 @@ src/pages/reports/EmployeeReport.tsx  Props: {}  (print-ready)
   EmployeeReportView.tsx     report card: header (B-36), EmployeeInfoSection.tsx, EmployeeTransactionsSection.tsx (B-54).
   AllEmployeesModal.tsx      paged modal (B-52); EmployeeListSection.tsx = one group; EmployeeListRow.tsx = one row.
   EmployeeExportModals.tsx   export confirmation + result ResponseModals (B-51).
-src/pages/reports/FundReport.tsx      Props: {}  (print-ready)
+src/pages/reports/FundReport.tsx      Props: {}  (no Print button, see B-33)
+  Composition only (44 lines). Include with only the part you change (src/pages/reports/parts/):
+  useFundReport.ts           state: fund open in the detail modal, export confirmation, export feedback; required/optional lists.
+  FundReportKpiStrip.tsx     4 KPIs (own markup, differs from components/KpiStrip — B-76).
+  FundTileSection.tsx        icon + title + count + grid of components/FundTileCard (used for required AND optional funds).
+  FundDetailModal.tsx        detail InfoModal (accent by required/optional), footer Export PDF + Close;
+  FundDetailContent.tsx      its body: balance hero, 3-col detail grid, FundContributionsList.tsx (ranked rows, no-contribution chips).
+  fundReportData.ts          getFundContributions(fund): per-member totals matched by fund NAME (B-77).
+  FundExportModals.tsx       export confirmation + result ResponseModals;  FundReportIcons.tsx = lock / globe icons.
 src/pages/reports/ClubReport.tsx      Props: {}  (print-ready, report type selector)
   Composition only (55 lines). Include with only the part you change (src/pages/reports/parts/):
   useClubReport.ts           state: type, period, generated flag, export feedback; resets on change.
@@ -2280,7 +2312,7 @@ src/test/App.routing.test.tsx
   Include when changing auth/routing in App.tsx.
 
 src/test/pages.flows.test.tsx
-  Behavior tests: Funds edit/save (annual_fee number/null), Utilities edit/save/cancel/filter/delete, Employees filter/search/edit/delete, Dashboard KPI navigation + stats (dashboard.stats.test.ts), ClubReport flow + stats/period helpers (clubReport.parts.test.ts), Transactions filter/approve/reject/delete + status normalisation (transactions.parts.test.ts), Header (header.test.tsx), ItemDetailContent data + rendering (itemDetail.test.tsx), EmployeeReport flows (employeeReport.test.tsx), Settings (settings.test.tsx), Sidebar (sidebar.test.tsx), AddTransaction wizard (addTransaction.test.tsx), Projects flows (projects.test.tsx), shared list components (sharedListParts.test.tsx), Events flows + category rule (events.test.tsx),
+  Behavior tests: Funds edit/save (annual_fee number/null), Utilities edit/save/cancel/filter/delete, Employees filter/search/edit/delete, Dashboard KPI navigation + stats (dashboard.stats.test.ts), ClubReport flow + stats/period helpers (clubReport.parts.test.ts), Transactions filter/approve/reject/delete + status normalisation (transactions.parts.test.ts), Header (header.test.tsx), ItemDetailContent data + rendering (itemDetail.test.tsx), EmployeeReport flows (employeeReport.test.tsx), Settings (settings.test.tsx), Sidebar (sidebar.test.tsx), AddTransaction wizard (addTransaction.test.tsx), Projects flows (projects.test.tsx), shared list components (sharedListParts.test.tsx), Events flows + category rule (events.test.tsx), FundReport (fundReport.test.tsx),
   Attendance mark-all + save, Announcements pagination. Add a flow test when
   changing save/edit logic on a page.
 
