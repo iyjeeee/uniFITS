@@ -1,7 +1,6 @@
 // parts/CategoryStep.tsx — Step 4: fund / project / event / utility cards + the dependent fund or activity select
 import { SectionDivider, Select } from '../../../components/ui'
-import { FieldError } from '../../../components/FormWizard'
-import TransactionToggleCard from './TransactionToggleCard'
+import { FieldError, ToggleCard } from '../../../components/FormWizard'
 import { IcoFund, IcoProject, IcoEvent, IcoUtility } from './AddTransactionIcons'
 import type { OrgConfig } from '../../../types'
 
@@ -13,10 +12,10 @@ export default function CategoryStep({ form, errors, org, onPick, onChange, fund
       <SectionDivider label="Category & Activity" />
       <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-muted)' }}>What does this transaction belong to?</p>
       <div style={{ display: 'grid' as const, gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
-        <TransactionToggleCard icon={<IcoFund />}    label={`${org.fund_label}`}                   sublabel="Fund or wallet transaction"   value="fund"    current={form.category} hasError={!!errors.category} onClick={(v) => onPick('category', v, { activity_id: '', fund_id: '' })} />
-        <TransactionToggleCard icon={<IcoProject />} label={`${org.project_label}`}                sublabel="Project-related transaction"  value="project" current={form.category} hasError={!!errors.category} onClick={(v) => onPick('category', v, { activity_id: '', fund_id: '' })} />
-        <TransactionToggleCard icon={<IcoEvent />}   label={`${org.event_label}`}                  sublabel="Event-related transaction"    value="event"   current={form.category} hasError={!!errors.category} onClick={(v) => onPick('category', v, { activity_id: '', fund_id: '' })} />
-        <TransactionToggleCard icon={<IcoUtility />} label={`${org.utility_label || 'Utility'}`}  sublabel="Operational expense"          value="utility" current={form.category} hasError={!!errors.category} onClick={(v) => onPick('category', v, { activity_id: '', fund_id: '' })} />
+        <ToggleCard icon={<IcoFund />}    label={`${org.fund_label}`}                   sublabel="Fund or wallet transaction"   value="fund"    current={form.category} hasError={!!errors.category} onClick={(v) => onPick('category', v, { activity_id: '', fund_id: '' })} />
+        <ToggleCard icon={<IcoProject />} label={`${org.project_label}`}                sublabel="Project-related transaction"  value="project" current={form.category} hasError={!!errors.category} onClick={(v) => onPick('category', v, { activity_id: '', fund_id: '' })} />
+        <ToggleCard icon={<IcoEvent />}   label={`${org.event_label}`}                  sublabel="Event-related transaction"    value="event"   current={form.category} hasError={!!errors.category} onClick={(v) => onPick('category', v, { activity_id: '', fund_id: '' })} />
+        <ToggleCard icon={<IcoUtility />} label={`${org.utility_label || 'Utility'}`}  sublabel="Operational expense"          value="utility" current={form.category} hasError={!!errors.category} onClick={(v) => onPick('category', v, { activity_id: '', fund_id: '' })} />
       </div>
       <FieldError msg={errors.category} />
       {/* Secondary selectors with validation feedback */}

@@ -1,9 +1,8 @@
 // parts/PaymentStep.tsx — Step 2: payment method cards (icon + subtitle per method name)
 import type { ReactNode } from 'react'
 import { SectionDivider } from '../../../components/ui'
-import { FieldError } from '../../../components/FormWizard'
+import { FieldError, ToggleCard } from '../../../components/FormWizard'
 import { MOCK_PAYMENT_METHODS } from '../../../api/mockData'
-import TransactionToggleCard from './TransactionToggleCard'
 import { IcoCash, IcoPhone, IcoBank, IcoCard, IcoCheque } from './AddTransactionIcons'
 
 interface Props { form: Record<string, string>; errors: Record<string, string>; onPick: (key: string, value: string, reset?: Record<string, string>) => void }
@@ -18,7 +17,7 @@ export default function PaymentStep({ form, errors, onPick }: Props) {
           const icons: Record<string, ReactNode> = { 'Cash': <IcoCash />, 'GCash': <IcoPhone />, 'Bank Transfer': <IcoBank />, 'PayMaya': <IcoCard />, 'Cheque': <IcoCheque /> }
           const subs: Record<string, string> = { 'Cash': 'Physical cash handover', 'GCash': 'GCash mobile wallet', 'Bank Transfer': 'Direct bank deposit', 'PayMaya': 'PayMaya e-wallet', 'Cheque': 'Cheque payment' }
           return (
-            <TransactionToggleCard key={m.id} icon={icons[m.name] || <IcoCard />} label={m.name} sublabel={subs[m.name] || ''} value={m.id} current={form.payment_method_id} hasError={!!errors.payment_method_id} onClick={(v) => onPick('payment_method_id', v)} />
+            <ToggleCard key={m.id} icon={icons[m.name] || <IcoCard />} label={m.name} sublabel={subs[m.name] || ''} value={m.id} current={form.payment_method_id} hasError={!!errors.payment_method_id} onClick={(v) => onPick('payment_method_id', v)} />
           )
         })}
       </div>

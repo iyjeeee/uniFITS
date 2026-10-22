@@ -1,4 +1,5 @@
-// components/FormWizard.tsx — Shared multi-step form pieces used by all Add* pages
+// components/FormWizard.tsx — Shared multi-step form pieces used by the Add* pages (step sidebar, field error, banner, selectable card, live preview)
+import type { ReactNode } from 'react'
 export interface StepSidebarProps { steps: string[]; current: number }   // current = zero-based active step
 export interface FieldErrorProps { msg?: string }                        // renders nothing when empty
 export interface StepBannerProps { errors: Record<string, string> }      // field name → message
@@ -47,6 +48,61 @@ export function StepBanner({ errors }: StepBannerProps) {
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--danger)', marginBottom: 4 }}>Please fix the following before continuing:</div>
         {msgs.map((m, i) => <div key={i} style={{ fontSize: 12.5, color: 'var(--danger)', lineHeight: 1.5 }}>• {m}</div>)}
       </div>
+    </div>
+  )
+}
+
+/* ── ToggleCard — selectable card; error border when nothing is chosen. variant "choice" = AddTransaction look (sublabel,
+      min-width 0), "category" = AddUtility look (3-column category grid, min-width 45%). The two looks differ on purpose (see bug log). */
+export interface ToggleCardProps {
+  label: string; sublabel?: string; icon: ReactNode; value: string; current: string
+  onClick: (value: string) => void; hasError?: boolean; variant?: 'choice' | 'category'
+}
+
+export function ToggleCard({ label, sublabel, icon, value, current, onClick, hasError, variant = 'choice' }: ToggleCardProps) {
+  const active = current === value
+  const border = `2px solid ${active ? 'var(--accent)' : hasError ? 'var(--danger)' : 'var(--border-card)'}`
+  const background = active ? 'var(--accent-light)' : 'var(--white)'
+  if (variant === 'category') {
+    return (
+      <button onClick={() => onClick(value)} style={{
+        flex: 1, minWidth: '45%', padding: '14px 12px', borderRadius: 12, cursor: 'pointer' as const,
+        fontFamily: 'var(--font-body)', textAlign: 'left' as const, display: 'flex' as const, flexDirection: 'column' as const, gap: 6,
+        border, background, transition: 'all .15s',
+      }}>
+        <div style={{ color: active ? 'var(--accent)' : 'var(--text-muted)' }}>{icon}</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: active ? 'var(--accent)' : 'var(--text-primary)' }}>{label}</div>
+      </button>
+    )
+  }
+  return (
+    <button
+      onClick={() => onClick(value)}
+      style={{
+        flex: 1, minWidth: 0, padding: '14px 12px', borderRadius: 12, cursor: 'pointer' as const,
+        fontFamily: 'var(--font-body)', textAlign: 'left' as const,
+        border,
+        background,
+        transition: 'all .15s', display: 'flex' as const, flexDirection: 'column' as const, gap: 4,
+      }}>
+      <div style={{ fontSize: 18, lineHeight: 1, color: active ? 'var(--accent)' : 'var(--text-muted)' }}>{icon}</div>
+      <div style={{ fontSize: 13.5, fontWeight: 700, color: active ? 'var(--accent)' : 'var(--text-primary)', marginTop: 2 }}>{label}</div>
+      {sublabel && <div style={{ fontSize: 12, color: active ? 'var(--accent)' : 'var(--text-muted)', lineHeight: 1.4 }}>{sublabel}</div>}
+    </button>
+  )
+}
+
+/* ── WizardPreview — right-hand "Live Preview" panel: label / value rows, dimmed dash for empty values */
+export function WizardPreview({ rows }: { rows: [string, string][] }) {
+  return (
+    <div>
+      <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '.07em', marginBottom: 14 }}>Live Preview</div>
+      {rows.map(([k, v]) => (
+        <div key={k} style={{ display: 'flex' as const, justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid var(--border-inner)', fontSize: 12.5, gap: 8 }}>
+          <span style={{ color: 'var(--text-muted)', flexShrink: 0 }}>{k}</span>
+          <span style={{ color: v && v !== '—' ? 'var(--text-primary)' : 'var(--border-card)', fontWeight: v && v !== '—' ? 500 : 400, textAlign: 'right' as const }}>{v}</span>
+        </div>
+      ))}
     </div>
   )
 }

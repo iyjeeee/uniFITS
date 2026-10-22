@@ -3,16 +3,15 @@
 // Composition only; state/validation in parts/useAddTransaction, one component per step in parts/.
 import { Button, Card, ResponseModal } from '../../components/ui'
 import useBreakpoint from '../../hooks/useBreakpoint'
-import { StepSidebar, StepBanner } from '../../components/FormWizard'
+import { StepSidebar, StepBanner, WizardPreview } from '../../components/FormWizard'
 import useAddTransaction from './parts/useAddTransaction'
-import { ADD_TX_STEPS } from './parts/addTransactionShared'
+import { ADD_TX_STEPS, getSummaryRows } from './parts/addTransactionShared'
 import SourceStep from './parts/SourceStep'
 import PaymentStep from './parts/PaymentStep'
 import EntryTypeStep from './parts/EntryTypeStep'
 import CategoryStep from './parts/CategoryStep'
 import AmountStep from './parts/AmountStep'
 import ReviewStep from './parts/ReviewStep'
-import TransactionLivePreview from './parts/TransactionLivePreview'
 
 export default function AddTransaction() {
   const { isMobile } = useBreakpoint()
@@ -53,7 +52,7 @@ export default function AddTransaction() {
       {/* RIGHT — Live Preview (hidden on mobile) */}
       {!isMobile && (
         <Card style={{ padding: 20 }}>
-          <TransactionLivePreview form={form} org={org} />
+          <WizardPreview rows={getSummaryRows(form, org, false)} />
         </Card>
       )}
     </div>

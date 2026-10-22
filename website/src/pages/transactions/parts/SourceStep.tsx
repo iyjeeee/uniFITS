@@ -1,7 +1,6 @@
 // parts/SourceStep.tsx — Step 1: who the transaction is from (member / officer / external) + member select
 import { SectionDivider, Select } from '../../../components/ui'
-import { FieldError } from '../../../components/FormWizard'
-import TransactionToggleCard from './TransactionToggleCard'
+import { FieldError, ToggleCard } from '../../../components/FormWizard'
 import { IcoMember, IcoOfficer, IcoGlobe } from './AddTransactionIcons'
 import type { OrgConfig } from '../../../types'
 
@@ -13,9 +12,9 @@ export default function SourceStep({ form, errors, org, onPick, onChange, userOp
       <SectionDivider label="Transaction Source" />
       <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-muted)' }}>Who is this transaction from?</p>
       <div style={{ display: 'flex' as const, gap: 10, flexWrap: 'wrap' }}>
-        <TransactionToggleCard icon={<IcoMember />}  label={org.people_label}  sublabel="Regular member contribution"  value="member"   current={form.source} hasError={!!errors.source} onClick={(v) => onPick('source', v, { user_id: '' })} />
-        <TransactionToggleCard icon={<IcoOfficer />} label="Officer"            sublabel="Officer or admin transaction" value="officer"  current={form.source} hasError={!!errors.source} onClick={(v) => onPick('source', v, { user_id: '' })} />
-        <TransactionToggleCard icon={<IcoGlobe />}   label="External / Sponsor" sublabel="Outside donor or sponsor"    value="external" current={form.source} hasError={!!errors.source} onClick={(v) => onPick('source', v, { user_id: '' })} />
+        <ToggleCard icon={<IcoMember />}  label={org.people_label}  sublabel="Regular member contribution"  value="member"   current={form.source} hasError={!!errors.source} onClick={(v) => onPick('source', v, { user_id: '' })} />
+        <ToggleCard icon={<IcoOfficer />} label="Officer"            sublabel="Officer or admin transaction" value="officer"  current={form.source} hasError={!!errors.source} onClick={(v) => onPick('source', v, { user_id: '' })} />
+        <ToggleCard icon={<IcoGlobe />}   label="External / Sponsor" sublabel="Outside donor or sponsor"    value="external" current={form.source} hasError={!!errors.source} onClick={(v) => onPick('source', v, { user_id: '' })} />
       </div>
       <FieldError msg={errors.source} />
       {(form.source === 'member' || form.source === 'officer') && (
