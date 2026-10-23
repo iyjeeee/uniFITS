@@ -6,8 +6,25 @@
   Status: TYPESCRIPT MIGRATION COMPLETE & VERIFIED (2026-09-10)
   NEXT STEPS (owner decision 2026-10-14): finish splitting (bugs found meanwhile are only
     logged in section 1.18, not fixed) -> fix section 1.18 -> discuss Supabase first.
+  Session 2026-10-28 — DATA MODEL FOUNDATION: owner's R-FITS draft revised into docs/database/schema.sql v2.1
+    (multi-tenant, approvals, derived balances) + schema.tests.sql (38 pass). See section 1.19. No app code changed yet.
+    (Note: this doc says 177 tests after batch 19; a full run of the delivered ZIP counted 171 in 23 files - not reconciled.)
+  Session 2026-10-27 — STEP B (BUG FIXES), batch 19: B-47 FIXED. (tsc clean, eslint 0 errors,
+    1 warning, 177 tests pass.) Owner decisions: fix order = handoff section 6B phases 1-7;
+    NO mock data store (Supabase replaces mock data) -> features that need a backend are DISABLED
+    for now, not faked; real PDF export comes after the bug fixes; B-01 uses a query param
+    (#/employees/details?id=5), ROUTES table unchanged.
+    · Transaction has optional project_id / event_id (types/transaction.ts); mock transactions 3 and 6
+      -> project '1', transaction 4 -> event '1' (links inferred from their descriptions).
+    · itemDetailData.ts: new belongsToItem(); getItemDetailData filters by id, not by category.
+    · ProjectDetail.tsx / EventDetail.tsx now use getItemDetailData (they had their own copy of the
+      unscoped filter, and their "External Income" total showed contributions + income).
+    · NEW tests: detailPages.test.tsx (3) + 3 in itemDetail.test.tsx.
+    · FINDING for B-01: no page links to /employees/details|edit, /projects/detail|edit,
+      /events/detail|edit or /funds/edit — the lists open modals — so those 7 routes are reachable
+      only by typing the hash.
   Session 2026-10-26 — FILE SPLITTING, batch 18 (AddUtility) — LAST FILE OF THE SPLITTING LIST
-    (tsc/build clean, eslint 0 errors, 1 warning, 171 tests pass). AddUtility: 44 rendered states
+    (tsc/build clean, eslint 0 errors, 1 warning, 171 tests pass at that time). AddUtility: 44 rendered states
     (every category card, "Other" + custom type, every validation error, future date, zero / over-paid /
     negative amounts, every status, three complete paths, each category to review, Back, mobile,
     custom org) compared before/after: all byte-identical. Because this batch also changed
@@ -446,7 +463,7 @@ TYPE FILE LOCATIONS
   src/types/project.ts       Project, ProjectType types
   src/types/event.ts         Event types
   src/types/fund.ts          Fund types
-  src/types/transaction.ts   Transaction, Utility types
+  src/types/transaction.ts   Transaction (incl. project_id / event_id links), Utility types
   src/types/attendance.ts    Attendance types
   src/types/announcement.ts  Announcement types
   src/types/audit.ts         AuditLog types
@@ -1223,7 +1240,7 @@ Commands (run from website/):
   npm run lint        eslint (0 errors required)
   npx tsc -b          type-check (must be clean)
   npm run build       tsc -b + vite build
-  npm test            vitest run — 171 tests, ~25 s (33 page sweeps + 138 others)
+  npm test            vitest run — 177 tests (33 page sweeps + 144 others)
   npm run test:watch  vitest watch mode
 Before delivering any change: tsc -b, lint, build and npm test must all pass.
 A new page needs NO new test — pages.smoke.test.tsx picks it up. If a page
@@ -1242,7 +1259,8 @@ the owner BEFORE any Supabase work (never start it unprompted).
 Every entry below was checked against the code (2026-10-14). "Where" = files.
 
 HIGH — wrong data or missing behavior users can see
-  B-01  Detail/Edit pages always show record 1.
+  B-01  Detail/Edit pages always show record 1. (Step B plan: pass the id as a query param,
+        #/employees/details?id=5; no page currently links to these routes — see batch 19 note.)
         Where: EmployeeDetails, EditEmployee, EditFund, EventDetail, ProjectDetail,
         Profile, EditProfile, PersonalTransactions (prop defaults to '1').
         Why: App.tsx only passes currentUser + navigate, never an id. Effect: "My
@@ -1388,7 +1406,8 @@ LOW — cosmetic / cleanup
         /login when onLogout is not a function) is dead code because onLogout is a required
         prop; Header calls useOrg() without using the result; "View All Activity" sets
         window.location.hash directly (B-09 family).
-  B-47  SIGNIFICANT — ItemDetailContent financials are not scoped to the opened item: they are
+  B-47  FIXED (batch 19, 2026-10-27) — see the session note at the top. Original report:
+        SIGNIFICANT — ItemDetailContent financials are not scoped to the opened item: they are
         filtered only by category ("project" / "event"), so EVERY project shows the same
         contributions (5,000), expenses (12,500) and net balance, and EVERY event shows the same
         2,500 (verified 2026-10-18). Cause: Transaction has no project_id / event_id field
@@ -1528,6 +1547,91 @@ TO VERIFY (suspected, not yet checked)
         read works; the notification DATA is static mock (see B-43).
   V-02  Responsive layouts (tablet/mobile) were never checked in a real browser; tests run
         in jsdom only (no visual/layout checks).
+
+
+  1.19  DATA MODEL BLUEPRINT (multi-tenant) — STATUS: schema reference DONE and tested; APP CODE NOT YET CHANGED
+
+  Decisions in force (owner): the owner's R-FITS draft schema is the base; multi-tenant (org_id) from the
+  start; approvals are a real pending/approved/rejected workflow; whether someone may approve their OWN
+  entries depends on role (Admin yes, Secretary yes, Treasurer no); no mock data store — features that need a
+  backend get DISABLED until Supabase; Supabase itself is still NOT decided (auth, RLS, backups = later).
+
+  Files (reference only — NOT applied to any database, no Supabase code exists):
+    docs/database/schema.sql        v2.1: 20 tables, 4 views, 37 permissions, seed_org_defaults(). Loads clean on PostgreSQL 16.
+    docs/database/schema.tests.sql  38 self-checking tests (tenant isolation, soft-delete uniques, one active role,
+                                    transaction context, attendance, review/self-approval, balances, utilities, seeds).
+                                    Run: psql -d <empty db> -f schema.sql, then -f schema.tests.sql. Result: 38 pass, 0 fail.
+                                    Mutation check done: removing 3 safeguards made 4 tests fail (tests are not vacuous).
+
+  Entity map (DB table -> TS type -> mock array -> what must change in the app)
+    organizations     -> OrgConfig (types/org.ts)        -> DEFAULT_ORG (OrgContext)
+        add plural labels (*_label_plural) so "Utilitys" (B-63) cannot happen; add id/slug/timezone/plan only if needed.
+    users             -> User (types/user.ts)            -> MOCK_USERS
+        role (name string) -> role_id (name resolved from roles); joined -> joined_date; add date_of_birth (AddEmployee
+        already collects it), username, middle_name, address_street/barangay (optional); full_name stays DERIVED.
+        status: 'active'|'inactive' stay valid; schema also allows delinquent/suspended/expelled.
+    roles, user_roles, permissions, role_permissions -> Role, Permission -> MOCK_ROLES
+        Permission union 34 -> 37 keys: REMOVE delete_transaction (ledger rows are voided, never deleted);
+        ADD view_attendance, view_utilities, void_transaction, approve_own_entries. The transaction "Delete" action becomes "Void".
+        Mock roles today: President, Secretary, Treasurer, Member, Project Lead. Schema seeds Admin, Secretary, Treasurer,
+        Auditor, Member -> owner decides names (President vs Admin; Project Lead stays a custom, non-system role).
+    announcements     -> Announcement                    -> MOCK_ANNOUNCEMENTS
+        content -> body; created_by name string -> user id (name resolved); add image_url (optional).
+    projects          -> Project                         -> MOCK_PROJECTS
+        status loses 'rejected' (becomes approval_status); add approval_status, reviewed_by/at, rejection_reason;
+        current_funding becomes DERIVED (view project_financials); created_by id.
+    events            -> AppEvent                        -> MOCK_EVENTS
+        same as projects, plus event_type (B-74); current_funding DERIVED (view event_financials).
+    attendances       -> Attendance                      -> MOCK_ATTENDANCES
+        user_name / activity (title) / recorded_by (name) -> ids: project_id OR event_id, recorded_by id (B-49).
+        One row per person + activity + date.
+    funds             -> Fund                            -> MOCK_FUNDS
+        balance DERIVED (view fund_balances); remove currency (org currency applies); created_by id.
+    payment_methods   -> PaymentMethodOption             -> MOCK_PAYMENT_METHODS
+        PaymentMethod literal union -> string from the table (defaults: Cash, GCash, Bank Transfer, PayMaya, Cheque).
+    utilities         -> Utility                         -> MOCK_UTILITIES
+        Utility becomes the BILL: expense_type, total_amount, due_date (was payment_date), paid_to, notes, fund_id.
+        amount_paid and status are DERIVED from approved payments (view utility_balances) -> they cannot contradict (B-19/B-78).
+        MOCK_TRANSACTIONS needs matching category 'utility' payment rows so derived values equal today's numbers.
+    transactions      -> Transaction                     -> MOCK_TRANSACTIONS (14 rows, all 'completed' today)
+        fund (name) -> fund_id; payment_method (string) -> payment_method_id; user_name DERIVED; keep project_id/event_id;
+        add utility_id, reviewed_by/at, rejection_reason; description + notes kept.
+        EntryType gains refund, opening_balance; TransactionCategory gains utility; TransactionStatus -> pending/approved/rejected/voided.
+    audit_logs        -> AuditLog                        -> MOCK_AUDIT_LOGS
+        user (name string) -> user_id; add record_id, old/new values; actions gain approve/reject/void.
+    backup_jobs       -> BackupJob                       -> MOCK_BACKUP_JOBS
+        status gains 'pending'; trigger gains 'pre_update'; created_by -> id (null = System).
+    settings, notifications -> no TS type yet (Settings page state; B-43 static notifications).
+    sessions, login_attempts + auth columns on users -> AUTH: undecided, depends on the Supabase discussion.
+
+  Rules the whole app must follow once implemented
+    Direction: income, contribution, opening_balance = inflow (+); expense, refund = outflow (-). Amount is always > 0.
+    Counted in balances/totals: APPROVED, not deleted. Pending, rejected and voided never count (B-27/B-35/B-39 family).
+    Status mapping of today's data: completed -> approved, pending -> pending, failed -> rejected, cancelled -> voided.
+    Project/event "funding raised" = contributions + external income (approved). Refunds on a project/event are
+    OPEN: net_balance in the views subtracts them, current_funding does not — owner to confirm the definition.
+    Approval: new project/event/transaction = pending. Reviewer needs approve_project / approve_event / approve_transaction;
+    reviewing your OWN entry also needs approve_own_entries (DB trigger enforces it). Default roles (editable per org):
+    Admin = all 37; Secretary = approve project/event + approve_own_entries, no approve_transaction; Treasurer =
+    approve_transaction but NO approve_own_entries; Auditor read-only + audit logs; Member = view projects/events/announcements.
+    Utility payments are ledger transactions (category utility, entry expense/refund) and need approval like any other.
+    Dates: transaction_date, received_date, due_date, attendance_date are DATE (Manila day cannot shift).
+    Money: NUMERIC(15,2) in the DB; the frontend keeps numbers (PHP).
+
+  Not decided / for owner review
+    1. Role names (President vs Admin) and the default permission sets above (assumptions, editable per org).
+    2. Refunds in project/event funding (see Rules).
+    3. Org-level fields the UI needs later: onboarding, org switching, subdomains are NOT part of this foundation.
+    4. Overpaying a utility (payments > bill) is not blocked by the DB; the app must validate it.
+
+  Implementation order (each step: failing test first, then tsc + eslint + build + full tests green)
+    P1a types + mock data for transactions/funds/utilities (ids, status set, derived balances) — owner approval needed first
+    P1b projects/events (approval_status, event_type, derived funding) incl. B-74, B-71
+    P1c attendance by ids (B-49); users/roles by id (B-21); announcements
+    P1d B-01: pass record id via query param (#/employees/details?id=5); ROUTES table unchanged; "not found" state
+    Then phases 2-7 of the agreed fix order. B-47 is already fixed (batch 19: belongsToItem matches by project_id/event_id).
+    Items needing a backend are DISABLED until Supabase: Add* saving (B-66/B-78), Settings persistence (B-57),
+    Wipe All Data (B-58), Import (B-23), live notifications (B-43). Real PDF export (B-37/B-51) comes after the bug fixes.
 
 
 ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
@@ -1891,7 +1995,7 @@ src/components/ItemDetailContent.tsx
   reversed and fixed).
   Composition only (65 lines). Used by Projects.tsx and Events.tsx. Include with only the part
   you change (src/components/itemDetail/):
-  itemDetailData.ts      getItemDetailData(item, kind) filters + totals; buildDetailRows() info-grid rows (B-47, B-50).
+  itemDetailData.ts      belongsToItem() + getItemDetailData(item, kind) filter by project_id/event_id + totals; buildDetailRows() info-grid rows (B-47, B-50).
   itemDetailShared.ts    KIND_COLOR / KIND_BG (project blue, event green), ATT_COLOR, ItemKind type.
   ItemHero.tsx           160px banner: photo or default illustration + title/description + status badge.
   DefaultPhoto.tsx       SVG shown when photo_url is missing.   ItemInfoGrid.tsx   auto-fit info tiles.
@@ -2120,7 +2224,7 @@ src/pages/projects/Projects.tsx       Props: { currentUser?: User | null }
   DeleteProjectModal.tsx  delete confirmation; ProjectDeleteBody.tsx = its body.
 src/pages/projects/AddProject.tsx     Props: { currentUser?: User | null }
 src/pages/projects/EditProject.tsx    Props: { currentUser?: User | null }
-src/pages/projects/ProjectDetail.tsx  Props: { currentUser?: User | null }
+src/pages/projects/ProjectDetail.tsx  (uses getItemDetailData) Props: { currentUser?: User | null }
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -2138,7 +2242,7 @@ src/pages/events/Events.tsx       Props: { currentUser?: User | null }
   DeleteEventModal.tsx   delete confirmation; EventDeleteBody.tsx = its body.
 src/pages/events/AddEvent.tsx     Props: { currentUser?: User | null }
 src/pages/events/EditEvent.tsx    Props: { currentUser?: User | null }
-src/pages/events/EventDetail.tsx  Props: { currentUser?: User | null }
+src/pages/events/EventDetail.tsx  (uses getItemDetailData) Props: { currentUser?: User | null }
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -2353,10 +2457,18 @@ src/test/App.routing.test.tsx
   Include when changing auth/routing in App.tsx.
 
 src/test/pages.flows.test.tsx
-  Behavior tests: Funds edit/save (annual_fee number/null), Utilities edit/save/cancel/filter/delete, Employees filter/search/edit/delete, Dashboard KPI navigation + stats (dashboard.stats.test.ts), ClubReport flow + stats/period helpers (clubReport.parts.test.ts), Transactions filter/approve/reject/delete + status normalisation (transactions.parts.test.ts), Header (header.test.tsx), ItemDetailContent data + rendering (itemDetail.test.tsx), EmployeeReport flows (employeeReport.test.tsx), Settings (settings.test.tsx), Sidebar (sidebar.test.tsx), AddTransaction wizard (addTransaction.test.tsx), Projects flows (projects.test.tsx), shared list components (sharedListParts.test.tsx), Events flows + category rule (events.test.tsx), FundReport (fundReport.test.tsx), AddUtility wizard (addUtility.test.tsx), shared wizard pieces (formWizard.test.tsx),
+  Behavior tests: Funds edit/save (annual_fee number/null), Utilities edit/save/cancel/filter/delete, Employees filter/search/edit/delete, Dashboard KPI navigation + stats (dashboard.stats.test.ts), ClubReport flow + stats/period helpers (clubReport.parts.test.ts), Transactions filter/approve/reject/delete + status normalisation (transactions.parts.test.ts), Header (header.test.tsx), ItemDetailContent data + rendering + B-47 scoping (itemDetail.test.tsx), Project/Event detail pages (detailPages.test.tsx), EmployeeReport flows (employeeReport.test.tsx), Settings (settings.test.tsx), Sidebar (sidebar.test.tsx), AddTransaction wizard (addTransaction.test.tsx), Projects flows (projects.test.tsx), shared list components (sharedListParts.test.tsx), Events flows + category rule (events.test.tsx), FundReport (fundReport.test.tsx), AddUtility wizard (addUtility.test.tsx), shared wizard pieces (formWizard.test.tsx),
   Attendance mark-all + save, Announcements pagination. Add a flow test when
   changing save/edit logic on a page.
 
+
+  CATEGORY 22B — DATABASE REFERENCE (docs only — not runtime, not applied to any database)
+
+FILE: docs/database/schema.sql
+DESCRIPTION: Revised multi-tenant PostgreSQL schema v2.1 (20 tables, 4 derived-number views, 37 permissions, seed_org_defaults()). Include when designing types/mock data, the data layer, or the Supabase discussion.
+
+FILE: docs/database/schema.tests.sql
+DESCRIPTION: 38 self-checking tests that prove the schema's rules (isolation, approvals, balances). Include when changing schema.sql.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   CATEGORY 23 — NEVER INCLUDE IN PROMPTS
