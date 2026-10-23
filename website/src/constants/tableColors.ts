@@ -1,6 +1,6 @@
 // constants/tableColors.ts — Single source of truth for all table status colors
 // Covers: active/inactive, completed/cancelled, paid/unpaid/partial,
-//         present/absent/late/excused, ongoing/upcoming, pending/approved/rejected
+//         present/absent/late/excused, ongoing/upcoming, pending/approved/rejected/voided
 // Edit here → changes propagate to ALL manage pages automatically
 import type { CSSProperties } from 'react'
 
@@ -20,6 +20,8 @@ export const STATUS_BORDER: StatusColorMap = {
   /* Red family — error / rejected */
   inactive: '#C0392B', cancelled: '#C0392B', rejected: '#C0392B',
   unpaid:   '#C0392B', absent:    '#C0392B', failed:   '#C0392B',
+  /* Grey -- voided (kept in the ledger, never counted) */
+  voided: '#6B7280',
 }
 
 /* STATUS_BG — tinted row hover background matching the border color family */
@@ -33,6 +35,7 @@ export const STATUS_BG: StatusColorMap = {
   inactive:  'rgba(192,57,43,.12)',  cancelled: 'rgba(192,57,43,.12)',
   rejected:  'rgba(192,57,43,.12)',  unpaid:    'rgba(192,57,43,.12)',
   absent:    'rgba(192,57,43,.12)',  failed:    'rgba(192,57,43,.12)',
+  voided:    'rgba(107,114,128,.12)',
 }
 
 /* STATUS_ACCENT — CSS variable string for InfoModal accentColor prop */
@@ -42,6 +45,7 @@ export const STATUS_ACCENT: StatusColorMap = {
   ongoing:   'var(--accent)',
   upcoming:  'var(--warning)', pending:   'var(--warning)',
   inactive:  'var(--danger)',  cancelled: 'var(--danger)',  rejected:  'var(--danger)',
+  voided:    'var(--text-secondary)',
 }
 
 /** rowStyle — base <tr> inline style: left colored border + cursor + transition */

@@ -70,3 +70,23 @@ describe('ItemDetailContent', () => {
     expect(screen.getByText('No attendance records found for this activity.')).toBeTruthy()
   })
 })
+
+describe('B-47 — financials are scoped to the opened item (project_id / event_id)', () => {
+  it('a project only sees its own transactions; another project sees none of them', () => {
+    const own = getItemDetailData(MOCK_PROJECTS[0], 'project')
+    expect(own.memberContribs.map(t => t.id)).toEqual(['3'])
+    expect(own.externalExpense.map(t => t.id)).toEqual(['6'])
+    expect(own.totalContrib).toBe(5000); expect(own.totalExtExp).toBe(12500)
+    const other = getItemDetailData(MOCK_PROJECTS[1], 'project')
+    expect(other.memberContribs).toEqual([]); expect(other.externalExpense).toEqual([])
+    expect(other.netBalance).toBe(0)
+  })
+  it('an event only sees its own transactions', () => {
+    expect(getItemDetailData(MOCK_EVENTS[0], 'event').memberContribs.map(t => t.id)).toEqual(['4'])
+    expect(getItemDetailData(MOCK_EVENTS[1], 'event').memberContribs).toEqual([])
+  })
+  it('a project id never matches an event with the same id', () => {
+    const tx = MOCK_TRANSACTIONS.find(t => t.project_id === '1')
+    expect(tx?.event_id ?? null).toBeNull()
+  })
+})

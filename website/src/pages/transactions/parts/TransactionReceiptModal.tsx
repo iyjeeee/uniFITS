@@ -5,9 +5,9 @@ import { formatDate } from '../../../api/mockData'
 import { useOrg } from '../../../context/OrgContext'
 import { modalAccentColor } from '../../../constants/tableColors'
 import TransactionReceiptContent from './TransactionReceiptContent'
-import type { TxRow } from './transactionsShared'
+import type { Transaction } from '../../../types'
 
-export default function TransactionReceiptModal({ item, onClose }: { item: TxRow | null; onClose: () => void }) {
+export default function TransactionReceiptModal({ item, onClose }: { item: Transaction | null; onClose: () => void }) {
   const org = useOrg()
   return (
     <InfoModal

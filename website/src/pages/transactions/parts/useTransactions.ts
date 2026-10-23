@@ -2,18 +2,19 @@
 import { useState } from 'react'
 import { MOCK_TRANSACTIONS } from '../../../api/mockData'
 import { useOrg } from '../../../context/OrgContext'
-import { TX_PAGE_SIZE, normaliseTransaction } from './transactionsShared'
-import type { TxRow, TransactionActionResult } from './transactionsShared'
+import { TX_PAGE_SIZE } from './transactionsShared'
+import type { TransactionActionResult } from './transactionsShared'
+import type { Transaction } from '../../../types'
 
 export default function useTransactions() {
   const org = useOrg()
-  const [data,         setData]         = useState(MOCK_TRANSACTIONS.map(normaliseTransaction))
+  const [data,         setData]         = useState<Transaction[]>(MOCK_TRANSACTIONS)
   const [search,       setSearch]       = useState('')
   const [typeFilter,   setTypeFilter]   = useState('all')   // filter by entry_type
   const [statusFilter, setStatusFilter] = useState('all')   // filter by status
   const [page,         setPage]         = useState(1)
-  const [viewItem,     setViewItem]     = useState<TxRow | null>(null)    // tx open in detail modal
-  const [deleteItem,   setDeleteItem]   = useState<TxRow | null>(null)    // tx pending deletion
+  const [viewItem,     setViewItem]     = useState<Transaction | null>(null)    // tx open in detail modal
+  const [deleteItem,   setDeleteItem]   = useState<Transaction | null>(null)    // tx pending deletion
   const [actionResult, setActionResult] = useState<TransactionActionResult | null>(null)    // feedback modal
 
   /* Filter setters reset to page 1 */
@@ -35,13 +36,13 @@ export default function useTransactions() {
   const paged      = filtered.slice((page - 1) * TX_PAGE_SIZE, page * TX_PAGE_SIZE)
 
   /* Approve — sets status to approved */
-  function handleApprove(tx: TxRow) {
+  function handleApprove(tx: Transaction) {
     setData(prev => prev.map((t) => t.id === tx.id ? { ...t, status: 'approved' } : t))
     setActionResult({ variant: 'success', title: `${org.transaction_label} Approved`, message: `Transaction ${tx.reference_number} has been approved successfully.` })
   }
 
   /* Reject — sets status to rejected */
-  function handleReject(tx: TxRow) {
+  function handleReject(tx: Transaction) {
     setData(prev => prev.map((t) => t.id === tx.id ? { ...t, status: 'rejected' } : t))
     setActionResult({ variant: 'danger', title: `${org.transaction_label} Rejected`, message: `Transaction ${tx.reference_number} has been rejected.` })
   }

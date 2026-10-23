@@ -3,9 +3,9 @@ import { formatCurrency, formatDate } from '../../../api/mockData'
 import { useOrg } from '../../../context/OrgContext'
 import useBreakpoint from '../../../hooks/useBreakpoint'
 import EntryTypeBadge from './EntryTypeBadge'
-import type { TxRow } from './transactionsShared'
+import type { Transaction } from '../../../types'
 
-export default function TransactionReceiptContent({ tx }: { tx: TxRow }) {
+export default function TransactionReceiptContent({ tx }: { tx: Transaction }) {
   const org = useOrg()
   const { isMobile } = useBreakpoint()
   return (

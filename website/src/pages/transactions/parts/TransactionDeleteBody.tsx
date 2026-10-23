@@ -1,10 +1,9 @@
 // parts/TransactionDeleteBody.tsx — Delete confirmation content: warning banner + transaction summary rows
 import { formatCurrency } from '../../../api/mockData'
 import { capitalize } from '../../../utils/formatters'
-import type { OrgConfig } from '../../../types'
-import type { TxRow } from './transactionsShared'
+import type { OrgConfig, Transaction } from '../../../types'
 
-export default function TransactionDeleteBody({ tx, org }: { tx: TxRow; org: OrgConfig }) {
+export default function TransactionDeleteBody({ tx, org }: { tx: Transaction; org: OrgConfig }) {
   return (
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 16 }}>
       <div style={{ padding: '14px 16px', borderRadius: 10, background: '#fdecea', border: '1.5px solid rgba(192,57,43,.30)', display: 'flex' as const, gap: 10, alignItems: 'flex-start' }}>

@@ -6,10 +6,14 @@
   Status: TYPESCRIPT MIGRATION COMPLETE & VERIFIED (2026-09-10)
   NEXT STEPS (owner decision 2026-10-14): finish splitting (bugs found meanwhile are only
     logged in section 1.18, not fixed) -> fix section 1.18 -> discuss Supabase first.
-  Session 2026-10-28 — DATA MODEL FOUNDATION: owner's R-FITS draft revised into docs/database/schema.sql v2.1
+  Session 2026-10-23 — DATA MODEL FOUNDATION: owner's R-FITS draft revised into docs/database/schema.sql v2.1
     (multi-tenant, approvals, derived balances) + schema.tests.sql (38 pass). See section 1.19. No app code changed yet.
-    (Note: this doc says 177 tests after batch 19; a full run of the delivered ZIP counted 171 in 23 files - not reconciled.)
-  Session 2026-10-27 — STEP B (BUG FIXES), batch 19: B-47 FIXED. (tsc clean, eslint 0 errors,
+    P1a step 1 DONE: TransactionStatus pending/approved/rejected/voided (types, 6 mock rows, filters, colours), shim removed.
+    Visible effect: pages that print a transaction's raw status now say "Approved" (was "Completed"): Dashboard, Profile,
+    My Transactions, Employee Report. 177 tests pass, tsc/build clean, eslint 0 errors, 1 warning.
+    NOTE: the owner's uploaded website.zip had 171 tests = WITHOUT batch 19; the 177 count includes batch 19 (+6 tests).
+    This delivery includes batch 19 + step 1 + docs/database as one ZIP (diff against the uploaded ZIP).
+  Session 2026-10-27 (date as found, later than the real date; NOT VERIFIED) — STEP B (BUG FIXES), batch 19: B-47 FIXED. (tsc clean, eslint 0 errors,
     1 warning, 177 tests pass.) Owner decisions: fix order = handoff section 6B phases 1-7;
     NO mock data store (Supabase replaces mock data) -> features that need a backend are DISABLED
     for now, not faked; real PDF export comes after the bug fixes; B-01 uses a query param
@@ -1379,9 +1383,9 @@ LOW — cosmetic / cleanup
   B-37  "Export PDF" only shows a success message — no file is produced (ClubReport, EmployeeReport
         and FundReport all verified). FundReport's message is generic ("Fund Report PDF has been
         generated") even when started from one fund's detail.
-  B-38  Transactions page status mapping loses information: stored "cancelled" (and any other
-        value) is shown as "pending", so a cancelled transaction can be approved
-        (transactionsShared.ts: normaliseTransaction). Pinned by a unit test.
+  B-38  FIXED (P1a step 1): the shim normaliseTransaction/TxRow is gone. TransactionStatus is now
+        pending/approved/rejected/voided end to end (types, mock data, filters, colours); "voided"
+        is no longer shown as "pending". (Transactions KPIs still ignore status: see B-39/B-27.)
   B-39  Transactions KPI strip (Total Income / Expenses / Net Balance) counts every row
         including pending and rejected ones, and does not change when a row is rejected
         (same family as B-27, B-35).
@@ -1625,11 +1629,16 @@ TO VERIFY (suspected, not yet checked)
     4. Overpaying a utility (payments > bill) is not blocked by the DB; the app must validate it.
 
   Implementation order (each step: failing test first, then tsc + eslint + build + full tests green)
-    P1a types + mock data for transactions/funds/utilities (ids, status set, derived balances) — owner approval needed first
+    P1a types + mock data for transactions/funds/utilities, in small steps:
+        1 status set pending/approved/rejected/voided ........ DONE
+        2 fund by id (fund_id on transactions + utilities)
+        3 fund balance derived (remove stored balance + currency)
+        4 utility = bill; amount_paid/status derived from approved payment transactions
+        5 payment method by id
     P1b projects/events (approval_status, event_type, derived funding) incl. B-74, B-71
     P1c attendance by ids (B-49); users/roles by id (B-21); announcements
     P1d B-01: pass record id via query param (#/employees/details?id=5); ROUTES table unchanged; "not found" state
-    Then phases 2-7 of the agreed fix order. B-47 is already fixed (batch 19: belongsToItem matches by project_id/event_id).
+    Then phases 2-7 of the agreed fix order. B-47 is fixed by batch 19 (belongsToItem matches by project_id/event_id) - included in this delivery.
     Items needing a backend are DISABLED until Supabase: Add* saving (B-66/B-78), Settings persistence (B-57),
     Wipe All Data (B-58), Import (B-23), live notifications (B-43). Real PDF export (B-37/B-51) comes after the bug fixes.
 
@@ -2269,8 +2278,8 @@ src/pages/transactions/Transactions.tsx  Props: { currentUser?: User | null }
   Pieces in src/pages/transactions/parts/ — include the page + only the part you change:
   useTransactions.ts         all state: list data, filters (reset page 1), paging, KPI totals,
                              approve / reject / delete (+260 ms delayed feedback), feedback.
-  transactionsShared.ts      TX_PAGE_SIZE, TxRow (3-state status), normaliseTransaction (B-38),
-                             TX_TYPE_OPTIONS / TX_STATUS_OPTIONS, TransactionActionResult.
+  transactionsShared.ts      TX_PAGE_SIZE, TX_TYPE_OPTIONS / TX_STATUS_OPTIONS (incl. voided),
+                             TransactionActionResult. (TxRow/normaliseTransaction removed: rows are Transaction.)
   TransactionsKpiStrip.tsx   4 KPIs (components/KpiStrip, size 22).
   TransactionsToolbar.tsx    title, type + status ui/FilterSelect, search, Add button.
   TransactionsTable.tsx      status-colored rows, Approve / Reject / Delete icon buttons.

@@ -4,23 +4,17 @@ import { capitalize } from '../../utils/formatters'
 import type { ItemKind } from './itemDetailShared'
 import type { Project, AppEvent, OrgConfig, Transaction, Attendance } from '../../types'
 
-// getItemDetailData — contributions / external income / expenses of the item's category, attendance by title, and the totals
+// belongsToItem — true when the transaction is linked (project_id / event_id) to this exact item
+export function belongsToItem(t: Transaction, item: Project | AppEvent, kind: ItemKind): boolean {
+  return kind === 'project' ? t.project_id === item.id : t.event_id === item.id
+}
+
+// getItemDetailData — contributions / external income / expenses linked to the item, attendance by title, and the totals
 export function getItemDetailData(item: Project | AppEvent, kind: ItemKind) {
-  const isProject = kind === 'project'
-  const memberContribs = MOCK_TRANSACTIONS.filter((t: Transaction) =>
-    t.user_id !== null &&
-    t.entry_type === 'contribution' &&
-    (isProject ? t.category === 'project' : t.category === 'event')
-  )
-  const externalIncome = MOCK_TRANSACTIONS.filter((t: Transaction) =>
-    t.user_id === null &&
-    t.entry_type === 'income' &&
-    (isProject ? t.category === 'project' : t.category === 'event')
-  )
-  const externalExpense = MOCK_TRANSACTIONS.filter((t: Transaction) =>
-    t.entry_type === 'expense' &&
-    (isProject ? t.category === 'project' : t.category === 'event')
-  )
+  const scoped = MOCK_TRANSACTIONS.filter((t: Transaction) => belongsToItem(t, item, kind))
+  const memberContribs  = scoped.filter((t) => t.user_id !== null && t.entry_type === 'contribution')
+  const externalIncome  = scoped.filter((t) => t.user_id === null && t.entry_type === 'income')
+  const externalExpense = scoped.filter((t) => t.entry_type === 'expense')
   const attendanceRecords = MOCK_ATTENDANCES.filter((r: Attendance) => r.activity === item.title)
   const totalContrib = memberContribs.reduce((s, t) => s + t.amount, 0)
   const totalExtInc  = externalIncome.reduce((s, t) => s + t.amount, 0)

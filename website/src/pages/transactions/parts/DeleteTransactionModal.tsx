@@ -3,9 +3,9 @@ import { InfoModal } from '../../../components/ui'
 import { BtnIco } from '../../../components/Icons'
 import { useOrg } from '../../../context/OrgContext'
 import TransactionDeleteBody from './TransactionDeleteBody'
-import type { TxRow } from './transactionsShared'
+import type { Transaction } from '../../../types'
 
-interface Props { item: TxRow | null; onClose: () => void; onConfirm: () => void }
+interface Props { item: Transaction | null; onClose: () => void; onConfirm: () => void }
 
 export default function DeleteTransactionModal({ item, onClose, onConfirm }: Props) {
   const org = useOrg()

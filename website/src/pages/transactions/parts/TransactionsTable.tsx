@@ -7,9 +7,9 @@ import { useOrg } from '../../../context/OrgContext'
 import { rowStyle, rowHoverBg } from '../../../constants/tableColors'
 import { TX_PAGE_SIZE } from './transactionsShared'
 import EntryTypeBadge from './EntryTypeBadge'
-import type { TxRow } from './transactionsShared'
+import type { Transaction } from '../../../types'
 
-interface Props { rows: TxRow[]; page: number; onRowClick: (t: TxRow) => void; onApprove: (t: TxRow) => void; onReject: (t: TxRow) => void; onDelete: (t: TxRow) => void }
+interface Props { rows: Transaction[]; page: number; onRowClick: (t: Transaction) => void; onApprove: (t: Transaction) => void; onReject: (t: Transaction) => void; onDelete: (t: Transaction) => void }
 
 export default function TransactionsTable({ rows, page, onRowClick, onApprove, onReject, onDelete }: Props) {
   const org = useOrg()

@@ -1,8 +1,8 @@
 // types/transaction.ts — Transaction, Utility, and PaymentMethod type definitions
 
-export type EntryType = 'contribution' | 'income' | 'expense'
-export type TransactionCategory = 'fund' | 'project' | 'event'
-export type TransactionStatus = 'completed' | 'pending' | 'failed' | 'cancelled'
+export type EntryType = 'contribution' | 'income' | 'expense' | 'refund' | 'opening_balance'   // inflow: contribution/income/opening_balance; outflow: expense/refund
+export type TransactionCategory = 'fund' | 'project' | 'event' | 'utility'
+export type TransactionStatus = 'pending' | 'approved' | 'rejected' | 'voided'   // only 'approved' counts in totals (rule applied from the numbers phase)
 export type PaymentMethod = 'Cash' | 'GCash' | 'Bank Transfer' | 'PayMaya' | 'Cheque'
 export type UtilityStatus = 'paid' | 'unpaid' | 'partial'
 
@@ -14,6 +14,8 @@ export interface Transaction {
   entry_type: EntryType
   category: TransactionCategory
   fund: string                // fund name string
+  project_id?: string | null  // set when category is 'project' (FK to projects.id)
+  event_id?: string | null    // set when category is 'event' (FK to events.id)
   amount: number              // PHP amount
   payment_method: PaymentMethod
   reference_number: string    // 'TXN-YYYYMMDD-XXXX'

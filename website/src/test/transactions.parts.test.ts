@@ -1,22 +1,24 @@
-// transactions.parts.test.ts — status normalisation used by the Transactions page
+// transactions.parts.test.ts -- transaction status set used by mock data and the Transactions page filters
 import { describe, it, expect } from 'vitest'
-import { normaliseTransaction } from '../pages/transactions/parts/transactionsShared'
+import { TX_STATUS_OPTIONS } from '../pages/transactions/parts/transactionsShared'
 import { MOCK_TRANSACTIONS } from '../api/mockData'
+import { STATUS_BORDER, STATUS_BG, STATUS_ACCENT } from '../constants/tableColors'
+import type { TransactionStatus } from '../types'
 
-describe('normaliseTransaction', () => {
-  const base = MOCK_TRANSACTIONS[0]
-  it('maps completed -> approved and failed -> rejected', () => {
-    expect(normaliseTransaction({ ...base, status: 'completed' }).status).toBe('approved')
-    expect(normaliseTransaction({ ...base, status: 'failed' }).status).toBe('rejected')
+const ALL_STATUSES: TransactionStatus[] = ['pending', 'approved', 'rejected', 'voided']
+
+describe('transaction statuses', () => {
+  it('every mock transaction uses the pending/approved/rejected/voided set', () => {
+    for (const t of MOCK_TRANSACTIONS) expect(ALL_STATUSES).toContain(t.status)
   })
-  it('maps pending and cancelled -> pending (cancelled is not preserved — see bug log)', () => {
-    expect(normaliseTransaction({ ...base, status: 'pending' }).status).toBe('pending')
-    expect(normaliseTransaction({ ...base, status: 'cancelled' }).status).toBe('pending')
+  it('the status filter offers every status', () => {
+    for (const s of ALL_STATUSES) expect(TX_STATUS_OPTIONS).toContain(s)
   })
-  it('keeps every other field', () => {
-    const row = normaliseTransaction(base)
-    expect(row.id).toBe(base.id)
-    expect(row.amount).toBe(base.amount)
-    expect(row.reference_number).toBe(base.reference_number)
+  it('every status has a row border, hover tint and modal accent colour', () => {
+    for (const s of ALL_STATUSES) {
+      expect(STATUS_BORDER[s]).toBeTruthy()
+      expect(STATUS_BG[s]).toBeTruthy()
+      expect(STATUS_ACCENT[s]).toBeTruthy()
+    }
   })
 })
