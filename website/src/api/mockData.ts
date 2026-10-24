@@ -3,11 +3,11 @@
 // Backend base URL: import.meta.env.VITE_API_URL (see .env.example)
 import type {
   User, Role, Announcement, Project, AppEvent,
-  Fund, FundWithBalance, Transaction, Utility, PaymentMethodOption,
+  Fund, FundWithBalance, Transaction, Utility, UtilityWithBalance, PaymentMethodOption,
   Attendance, AuditLog, BackupJob,
 } from '../types'
 import { parseDate } from '../utils/formatters'
-import { fundBalance } from '../utils/ledger'
+import { fundBalance, utilityPaid, utilityStatus } from '../utils/ledger'
 
 // ── Helper formatters ─────────────────────────────────────────────────────────
 // NOTE: prefer utils/formatters.ts for new code.
@@ -58,6 +58,14 @@ export function getFundName(fundId: string | null | undefined): string {
 /** getFundsWithBalance -- funds with their DERIVED balance (approved transactions only); mirrors the fund_balances view */
 export function getFundsWithBalance(): FundWithBalance[] {
   return MOCK_FUNDS.map((f) => ({ ...f, balance: fundBalance(f.id, MOCK_TRANSACTIONS) }))
+}
+
+/** getUtilitiesWithBalance -- bills with DERIVED paid amount + status (approved payments only); mirrors the utility_balances view */
+export function getUtilitiesWithBalance(): UtilityWithBalance[] {
+  return MOCK_UTILITIES.map((u) => {
+    const amount_paid = utilityPaid(u.id, MOCK_TRANSACTIONS)
+    return { ...u, amount_paid, status: utilityStatus(u.total_amount, amount_paid) }
+  })
 }
 
 // ── MOCK_USERS ────────────────────────────────────────────────────────────────
@@ -123,20 +131,25 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
   { id: '5', user_id: null, user_name: null,                entry_type: 'income',       category: 'fund',    fund_id: '3',           amount: 50000, payment_method: 'Bank Transfer', reference_number: 'TXN-20250310-0005', transaction_date: '2025-03-10', status: 'approved', description: 'Corporate sponsor payment' },
   { id: '6', user_id: '5', user_name: 'Carlos Villanueva', entry_type: 'expense',      category: 'project', fund_id: '2',         project_id: '1', amount: 12500, payment_method: 'Cash',          reference_number: 'TXN-20250312-0006', transaction_date: '2025-03-12', status: 'approved', description: 'Medical supplies purchase' },
   // Opening balances: carry each fund's balance forward so balances can be DERIVED from approved entries
-  { id: '7', user_id: null, user_name: null, entry_type: 'opening_balance', category: 'fund', fund_id: '1', amount: 82600, payment_method: null, reference_number: 'TXN-20250101-0007', transaction_date: '2025-01-01', status: 'approved', description: 'Opening balance -- Membership Dues Fund' },
+  { id: '7', user_id: null, user_name: null, entry_type: 'opening_balance', category: 'fund', fund_id: '1', amount: 95800, payment_method: null, reference_number: 'TXN-20250101-0007', transaction_date: '2025-01-01', status: 'approved', description: 'Opening balance -- Membership Dues Fund' },
   { id: '8', user_id: null, user_name: null, entry_type: 'opening_balance', category: 'fund', fund_id: '2', amount: 53000, payment_method: null, reference_number: 'TXN-20250101-0008', transaction_date: '2025-01-01', status: 'approved', description: 'Opening balance -- Project Fund' },
-  { id: '9', user_id: null, user_name: null, entry_type: 'opening_balance', category: 'fund', fund_id: '3', amount: 72500, payment_method: null, reference_number: 'TXN-20250101-0009', transaction_date: '2025-01-01', status: 'approved', description: 'Opening balance -- Event Fund' },
+  { id: '9', user_id: null, user_name: null, entry_type: 'opening_balance', category: 'fund', fund_id: '3', amount: 97500, payment_method: null, reference_number: 'TXN-20250101-0009', transaction_date: '2025-01-01', status: 'approved', description: 'Opening balance -- Event Fund' },
   { id: '10', user_id: null, user_name: null, entry_type: 'opening_balance', category: 'fund', fund_id: '4', amount: 20000, payment_method: null, reference_number: 'TXN-20250101-0010', transaction_date: '2025-01-01', status: 'approved', description: 'Opening balance -- Emergency Fund' },
   { id: '11', user_id: null, user_name: null, entry_type: 'opening_balance', category: 'fund', fund_id: '5', amount: 150000, payment_method: null, reference_number: 'TXN-20250101-0011', transaction_date: '2025-01-01', status: 'approved', description: 'Opening balance -- Building Fund' },
+  // Utility bill payments (ledger entries): paid amount / status of each bill are DERIVED from these
+  { id: '12', user_id: null, user_name: null, entry_type: 'expense', category: 'utility', fund_id: '1', utility_id: '1', amount: 3500, payment_method: 'Bank Transfer', reference_number: 'TXN-20250305-0012', transaction_date: '2025-03-05', status: 'approved', description: 'Electricity Bill payment (Meralco)' },
+  { id: '13', user_id: null, user_name: null, entry_type: 'expense', category: 'utility', fund_id: '1', utility_id: '2', amount: 2200, payment_method: 'Bank Transfer', reference_number: 'TXN-20250308-0013', transaction_date: '2025-03-08', status: 'approved', description: 'Internet Service payment (PLDT)' },
+  { id: '14', user_id: null, user_name: null, entry_type: 'expense', category: 'utility', fund_id: '1', utility_id: '3', amount: 7500, payment_method: 'Bank Transfer', reference_number: 'TXN-20250315-0014', transaction_date: '2025-03-15', status: 'approved', description: 'Office Rent partial payment (GreenLeaf Properties)' },
+  { id: '15', user_id: null, user_name: null, entry_type: 'expense', category: 'utility', fund_id: '3', utility_id: '5', amount: 25000, payment_method: 'Bank Transfer', reference_number: 'TXN-20250228-0015', transaction_date: '2025-02-28', status: 'approved', description: 'Venue Rental payment (Manila Hotel)' },
 ]
 
 // ── MOCK_UTILITIES ────────────────────────────────────────────────────────────
 export const MOCK_UTILITIES: Utility[] = [
-  { id: '1', expense_type: 'Electricity Bill', total_amount: 3500,  amount_paid: 3500,  payment_date: '2025-03-05', paid_to: 'Meralco',              fund_id: '1', status: 'paid',    notes: 'March 2025 electricity' },
-  { id: '2', expense_type: 'Internet Service', total_amount: 2200,  amount_paid: 2200,  payment_date: '2025-03-08', paid_to: 'PLDT',                 fund_id: '1', status: 'paid',    notes: 'Fiber plan monthly' },
-  { id: '3', expense_type: 'Office Rent',      total_amount: 15000, amount_paid: 7500,  payment_date: '2025-03-15', paid_to: 'GreenLeaf Properties', fund_id: '1', status: 'partial', notes: 'Q1 partial payment' },
-  { id: '4', expense_type: 'Water Bill',       total_amount: 850,   amount_paid: 0,     payment_date: '2025-03-20', paid_to: 'Maynilad',             fund_id: '1', status: 'unpaid',  notes: null },
-  { id: '5', expense_type: 'Venue Rental',     total_amount: 25000, amount_paid: 25000, payment_date: '2025-02-28', paid_to: 'Manila Hotel',         fund_id: '3',           status: 'paid',    notes: 'For Annual Gala Night venue deposit' },
+  { id: '1', expense_type: 'Electricity Bill', total_amount: 3500,  due_date: '2025-03-05', paid_to: 'Meralco',              fund_id: '1', notes: 'March 2025 electricity' },
+  { id: '2', expense_type: 'Internet Service', total_amount: 2200,  due_date: '2025-03-08', paid_to: 'PLDT',                 fund_id: '1', notes: 'Fiber plan monthly' },
+  { id: '3', expense_type: 'Office Rent',      total_amount: 15000, due_date: '2025-03-15', paid_to: 'GreenLeaf Properties', fund_id: '1', notes: 'Q1 partial payment' },
+  { id: '4', expense_type: 'Water Bill',       total_amount: 850,   due_date: '2025-03-20', paid_to: 'Maynilad',             fund_id: '1', notes: null },
+  { id: '5', expense_type: 'Venue Rental',     total_amount: 25000, due_date: '2025-02-28', paid_to: 'Manila Hotel',         fund_id: '3',           notes: 'For Annual Gala Night venue deposit' },
 ]
 
 // ── MOCK_ATTENDANCES ──────────────────────────────────────────────────────────

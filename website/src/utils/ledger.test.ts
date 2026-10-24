@@ -1,6 +1,6 @@
 // ledger.test.ts -- money maths and balance rules (direction, approved-only, exact sums, overdraw guard)
 import { describe, it, expect } from 'vitest'
-import { signedAmount, isReceipt, sumMoney, fundBalance, overdrawOnApprove } from './ledger'
+import { signedAmount, isReceipt, sumMoney, fundBalance, overdrawOnApprove, utilityPaid, utilityStatus } from './ledger'
 import type { Transaction, EntryType, TransactionStatus } from '../types'
 
 let n = 0
@@ -68,5 +68,25 @@ describe('overdrawOnApprove', () => {
     const inflow = tx('income', 1, 'pending'); const noFund = tx('expense', 999999, 'pending', null)
     expect(overdrawOnApprove(inflow, [...base, inflow]).overdraws).toBe(false)
     expect(overdrawOnApprove(noFund, [...base, noFund]).overdraws).toBe(false)
+  })
+})
+
+describe('utilityPaid / utilityStatus', () => {
+  const pay = (utility_id: string, entry_type: EntryType, amount: number, status: TransactionStatus = 'approved'): Transaction =>
+    ({ ...tx(entry_type, amount, status, 'F1'), category: 'utility', utility_id })
+  it('paid = approved expense payments minus approved refunds of THAT bill only', () => {
+    const all = [pay('U1', 'expense', 400), pay('U1', 'expense', 100.1), pay('U1', 'refund', 50), pay('U1', 'expense', 999, 'pending'),
+      pay('U1', 'expense', 999, 'rejected'), pay('U1', 'expense', 999, 'voided'), pay('U2', 'expense', 7), tx('expense', 5000)]
+    expect(utilityPaid('U1', all)).toBe(450.1)
+    expect(utilityPaid('U2', all)).toBe(7)
+    expect(utilityPaid('none', all)).toBe(0)
+  })
+  it('status follows the paid amount against the bill', () => {
+    expect(utilityStatus(1000, 0)).toBe('unpaid')
+    expect(utilityStatus(1000, 0.01)).toBe('partial')
+    expect(utilityStatus(1000, 999.99)).toBe('partial')
+    expect(utilityStatus(1000, 1000)).toBe('paid')
+    expect(utilityStatus(1000, 1200)).toBe('paid')     // overpayment still reads as paid
+    expect(utilityStatus(1000, -50)).toBe('unpaid')    // refunds beyond payments never go negative
   })
 })

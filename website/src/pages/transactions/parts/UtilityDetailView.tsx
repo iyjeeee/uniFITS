@@ -2,7 +2,7 @@
 import type { ReactNode } from 'react'
 import { formatCurrency, formatDate, getFundName } from '../../../api/mockData'
 import { useOrg } from '../../../context/OrgContext'
-import type { Utility } from '../../../types'
+import type { UtilityWithBalance } from '../../../types'
 
 // SectionLabel — small uppercase heading above each block
 function SectionLabel({ children }: { children: ReactNode }) {
@@ -21,7 +21,7 @@ function Tile({ label, bg = 'var(--neutral-light)', border = '1px solid var(--bo
 
 const valueStyle = { fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)' }
 
-export default function UtilityDetailView({ item }: { item: Utility }) {
+export default function UtilityDetailView({ item }: { item: UtilityWithBalance }) {
   const org = useOrg()
   const remaining = item.total_amount - item.amount_paid
   const pctPaid   = item.total_amount > 0 ? Math.round((item.amount_paid / item.total_amount) * 100) : 0
@@ -58,7 +58,7 @@ export default function UtilityDetailView({ item }: { item: Utility }) {
       <div>
         <SectionLabel>Payment Information</SectionLabel>
         <div style={{ display: 'grid' as const, gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <Tile label="Payment Date"><div style={valueStyle}>{formatDate(item.payment_date)}</div></Tile>
+          <Tile label="Due Date"><div style={valueStyle}>{formatDate(item.due_date)}</div></Tile>
           <Tile label="Status">
             <div style={{ fontSize: 13.5, fontWeight: 700, color: item.status === 'paid' ? 'var(--success)' : item.status === 'partial' ? 'var(--warning)' : 'var(--danger)' }}>
               {item.status.charAt(0).toUpperCase() + item.status.slice(1)}

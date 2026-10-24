@@ -3,8 +3,8 @@ import type { Utility } from '../../../types'
 
 export const UTILITY_PAGE_SIZE = 10
 
-// Edit form — amounts stay string|number: stored values are numbers, the inputs yield strings (converted on save)
-export type UtilityEditForm = Omit<Utility, 'total_amount' | 'amount_paid'> & { total_amount: number | string; amount_paid: number | string }
+// Edit form - BILL fields only (paid amount and status are derived from approved payments); the amount input yields a string (converted on save)
+export type UtilityEditForm = Omit<Utility, 'total_amount'> & { total_amount: number | string }
 
 // ActionResult — feedback shown in the ResponseModal after save/delete
 export interface UtilityActionResult { variant: string; title: string; message: string }

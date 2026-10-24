@@ -16,6 +16,7 @@ export interface Transaction {
   fund_id: string | null      // FK to funds.id (required when category is 'fund'); name via getFundName()
   project_id?: string | null  // set when category is 'project' (FK to projects.id)
   event_id?: string | null    // set when category is 'event' (FK to events.id)
+  utility_id?: string | null  // set when category is 'utility' (FK to utilities.id) - a payment of that bill
   amount: number              // PHP amount
   payment_method: PaymentMethod | null   // null for opening balances (no payment took place)
   reference_number: string    // 'TXN-YYYYMMDD-XXXX'
@@ -25,18 +26,19 @@ export interface Transaction {
   notes?: string | null       // optional free-text note (not in mock data yet)
 }
 
-// Utility — matches MOCK_UTILITIES + backend utilities table (org expenses)
+// Utility - the BILL; matches MOCK_UTILITIES + backend utilities table. Payments are transactions (category 'utility')
 export interface Utility {
   id: string
   expense_type: string        // e.g. 'Electricity Bill', 'Office Rent'
   total_amount: number        // PHP amount billed
-  amount_paid: number         // PHP amount paid so far
-  payment_date: string        // 'YYYY-MM-DD'
+  due_date: string            // 'YYYY-MM-DD' - when the bill is due (payments carry their own dates)
   paid_to: string             // vendor/payee name
   fund_id: string | null      // FK to funds.id -- fund this bill is paid from; name via getFundName()
-  status: UtilityStatus
   notes: string | null
 }
+
+// UtilityWithBalance -- bill + DERIVED paid amount and status (mirrors the utility_balances view); never stored
+export type UtilityWithBalance = Utility & { amount_paid: number; status: UtilityStatus }
 
 // PaymentMethod option — matches MOCK_PAYMENT_METHODS
 export interface PaymentMethodOption {

@@ -2,9 +2,9 @@
 import { useOrg } from '../../../context/OrgContext'
 import KpiStrip from '../../../components/KpiStrip'
 import { formatCurrency } from '../../../api/mockData'
-import type { Utility } from '../../../types'
+import type { UtilityWithBalance } from '../../../types'
 
-export default function UtilitiesKpiStrip({ data }: { data: Utility[] }) {
+export default function UtilitiesKpiStrip({ data }: { data: UtilityWithBalance[] }) {
   const org = useOrg()
   const totalOwed   = data.reduce((s, u) => s + u.total_amount, 0)
   const totalPaid   = data.reduce((s, u) => s + u.amount_paid, 0)

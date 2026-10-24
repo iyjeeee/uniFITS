@@ -7,7 +7,7 @@ export type { Project, ProjectStatus, ProjectType } from './project'
 export type { AppEvent, EventStatus } from './event'
 export type { Fund, FundWithBalance, FundType, FundStatus, PaymentFrequency } from './fund'
 export type {
-  Transaction, Utility, PaymentMethodOption,
+  Transaction, Utility, UtilityWithBalance, PaymentMethodOption,
   EntryType, TransactionCategory, TransactionStatus,
   PaymentMethod, UtilityStatus,
 } from './transaction'

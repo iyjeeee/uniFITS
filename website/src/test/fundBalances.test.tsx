@@ -7,7 +7,7 @@ import Funds from '../pages/funds/Funds'
 import useTransactions from '../pages/transactions/parts/useTransactions'
 import { getDashboardStats } from '../pages/dashboard/parts/dashboardStats'
 import { getClubReportStats } from '../pages/reports/parts/clubReportStats'
-import { MOCK_FUNDS, MOCK_TRANSACTIONS, getFundsWithBalance, formatCurrency } from '../api/mockData'
+import { MOCK_FUNDS, MOCK_TRANSACTIONS, MOCK_UTILITIES, getFundsWithBalance, getUtilitiesWithBalance, formatCurrency } from '../api/mockData'
 import type { Transaction } from '../types'
 
 // Balances shown BEFORE they became derived (stored values) -- derived numbers must reproduce them exactly
@@ -47,16 +47,18 @@ describe('derived fund balances', () => {
     expect(d.totalBalance).toBe(425500)
     expect(d.totalIncome).toBe(received)
     expect(d.totalExpense).toBe(spent)
-    expect(d.totalTransactions).toBe(6)   // the 5 opening balances are setup entries, not transactions people made
+    expect(d.totalExpense).toBe(getClubReportStats().totalExpense)   // Dashboard and Club Report now agree (utility bills included)
+    expect(d.totalTransactions).toBe(10)   // 6 original + 4 utility payments; the 5 opening balances are setup entries
     const { result } = renderHook(() => useTransactions(), { wrapper })
     expect(result.current.totalIncome).toBe(received)
     expect(result.current.totalExpense).toBe(spent)
     const club = getClubReportStats()
     expect(club.totalFundBalance).toBe(425500)
     const rows = Object.fromEntries(club.fundRows.map((r) => [r.id, [r.received, r.spent]]))
-    expect(rows['1']).toEqual([2400, 0]); expect(rows['2']).toEqual([5000, 12500]); expect(rows['3']).toEqual([52500, 0])
+    expect(rows['1']).toEqual([2400, 13200]); expect(rows['2']).toEqual([5000, 12500]); expect(rows['3']).toEqual([52500, 25000])   // spent now includes utility bills paid from the fund
     expect(rows['4']).toEqual([0, 0]);    expect(rows['5']).toEqual([0, 0])
     for (const r of club.fundRows) expect(r.balance).toBe(OLD_BALANCES[r.id])
+    expect(club.fundRows.reduce((sum, r) => sum + r.spent, 0)).toBe(club.totalExpense)   // fund sheet 'Total Spent' = statement 'Total Expenses' (50,700)
   })
 })
 
@@ -93,5 +95,28 @@ describe('approving an expense is blocked when the fund cannot cover it', () => 
     act(() => result.current.handleApprove(b))
     expect(result.current.data.find((x) => x.id === 't-a')?.status).toBe('approved')
     expect(result.current.data.find((x) => x.id === 't-b')?.status).toBe('pending')
+  })
+})
+
+describe('utilities are bills; paid amount and status are derived from approved payments', () => {
+  it('derived values reproduce the previous stored ones exactly', () => {
+    const got = Object.fromEntries(getUtilitiesWithBalance().map((u) => [u.id, [u.amount_paid, u.status]]))
+    expect(got).toEqual({ '1': [3500, 'paid'], '2': [2200, 'paid'], '3': [7500, 'partial'], '4': [0, 'unpaid'], '5': [25000, 'paid'] })
+  })
+  it('a bill has no stored paid amount or status, and every payment points at a real bill and fund', () => {
+    for (const u of MOCK_UTILITIES) { expect('amount_paid' in u).toBe(false); expect('status' in u).toBe(false) }
+    const payments = MOCK_TRANSACTIONS.filter((t) => t.category === 'utility')
+    expect(payments).toHaveLength(4)
+    for (const p of payments) {
+      const bill = MOCK_UTILITIES.find((u) => u.id === p.utility_id)
+      expect(bill).toBeTruthy()
+      expect(p.entry_type).toBe('expense'); expect(p.status).toBe('approved')
+      expect(p.fund_id).toBe(bill?.fund_id)            // the payment leaves the fund the bill is charged to
+    }
+  })
+  it('club report utility expense is unchanged (38,200) and now matches the payments in the ledger', () => {
+    const club = getClubReportStats()
+    expect(club.utilityExpense).toBe(38200)
+    expect(MOCK_TRANSACTIONS.filter((t) => t.category === 'utility').reduce((s, t) => s + t.amount, 0)).toBe(38200)
   })
 })

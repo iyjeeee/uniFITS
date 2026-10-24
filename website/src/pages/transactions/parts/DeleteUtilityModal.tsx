@@ -3,9 +3,9 @@ import { InfoModal } from '../../../components/ui'
 import { BtnIco } from '../../../components/Icons'
 import { useOrg } from '../../../context/OrgContext'
 import UtilityDeleteBody from './UtilityDeleteBody'
-import type { Utility } from '../../../types'
+import type { UtilityWithBalance } from '../../../types'
 
-interface Props { item: Utility | null; onClose: () => void; onConfirm: () => void }
+interface Props { item: UtilityWithBalance | null; onClose: () => void; onConfirm: () => void }
 
 export default function DeleteUtilityModal({ item, onClose, onConfirm }: Props) {
   const org = useOrg()

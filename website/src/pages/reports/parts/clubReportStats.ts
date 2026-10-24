@@ -1,5 +1,5 @@
 // parts/clubReportStats.ts — Club report figures from the mock records (income, expenses, member/project/event stats, fund rows)
-import { MOCK_USERS, MOCK_PROJECTS, MOCK_EVENTS, MOCK_TRANSACTIONS, MOCK_UTILITIES, getFundsWithBalance } from '../../../api/mockData'
+import { MOCK_USERS, MOCK_PROJECTS, MOCK_EVENTS, MOCK_TRANSACTIONS, getFundsWithBalance, getUtilitiesWithBalance } from '../../../api/mockData'
 import { isReceipt, sumMoney } from '../../../utils/ledger'
 
 export function getClubReportStats() {
@@ -16,7 +16,8 @@ export function getClubReportStats() {
   // Expenses
   const projectExpense      = MOCK_TRANSACTIONS.filter((t) => t.category === 'project' && t.entry_type === 'expense').reduce((s, t) => s + t.amount, 0)
   const eventExpense        = MOCK_TRANSACTIONS.filter((t) => t.category === 'event'   && t.entry_type === 'expense').reduce((s, t) => s + t.amount, 0)
-  const utilityExpense      = MOCK_UTILITIES.reduce((s, u) => s + u.amount_paid, 0)
+  const utilities           = getUtilitiesWithBalance()   // paid amount derived from approved payments
+  const utilityExpense      = sumMoney(utilities.map((u) => u.amount_paid))
   const totalExpense        = projectExpense + eventExpense + utilityExpense
   const netSurplus          = totalIncome - totalExpense
 
@@ -32,7 +33,7 @@ export function getClubReportStats() {
   const upcomingEvents      = MOCK_EVENTS.filter((e) => e.status === 'upcoming').length
 
   // Utility breakdown
-  const utilByType = MOCK_UTILITIES.reduce((acc: Record<string, number>, u) => {
+  const utilByType = utilities.reduce((acc: Record<string, number>, u) => {
     acc[u.expense_type] = (acc[u.expense_type] || 0) + u.amount_paid
     return acc
   }, {} as Record<string, number>)

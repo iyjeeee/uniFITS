@@ -6,9 +6,9 @@ import { formatCurrency, formatDate, getFundName } from '../../../api/mockData'
 import { useOrg } from '../../../context/OrgContext'
 import { rowStyle, rowHoverBg } from '../../../constants/tableColors'
 import { UTILITY_PAGE_SIZE } from './utilitiesShared'
-import type { Utility } from '../../../types'
+import type { UtilityWithBalance } from '../../../types'
 
-interface Props { rows: Utility[]; page: number; onRowClick: (u: Utility) => void; onDelete: (u: Utility) => void }
+interface Props { rows: UtilityWithBalance[]; page: number; onRowClick: (u: UtilityWithBalance) => void; onDelete: (u: UtilityWithBalance) => void }
 
 export default function UtilitiesTable({ rows, page, onRowClick, onDelete }: Props) {
   const org = useOrg()
@@ -38,7 +38,7 @@ export default function UtilitiesTable({ rows, page, onRowClick, onDelete }: Pro
                 <td style={{ padding: '10px 14px', fontWeight: 600 }}>{formatCurrency(u.total_amount, org.currency_symbol)}</td>
                 <td style={{ padding: '10px 14px', color: 'var(--success)', fontWeight: 600 }}>{formatCurrency(u.amount_paid, org.currency_symbol)}</td>
                 <td style={{ padding: '10px 14px', color: remaining > 0 ? 'var(--danger)' : 'var(--success)', fontWeight: 600 }}>{formatCurrency(remaining, org.currency_symbol)}</td>
-                <td style={{ padding: '10px 14px', color: 'var(--text-muted)' }}>{formatDate(u.payment_date)}</td>
+                <td style={{ padding: '10px 14px', color: 'var(--text-muted)' }}>{formatDate(u.due_date)}</td>
                 <td style={{ padding: '10px 14px' }}>{u.paid_to || '—'}</td>
                 <td style={{ padding: '10px 14px', fontSize: 12.5 }}>{getFundName(u.fund_id)}</td>
                 <td style={{ padding: '10px 14px' }}><StatusBadge status={u.status} /></td>

@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest'
 import { getClubReportStats } from '../pages/reports/parts/clubReportStats'
 import { getPeriodOptions, getDefaultPeriod, YEARS, QUARTERS } from '../pages/reports/parts/clubReportShared'
-import { MOCK_UTILITIES, MOCK_FUNDS } from '../api/mockData'
+import { getUtilitiesWithBalance, MOCK_FUNDS } from '../api/mockData'
 
 describe('getClubReportStats', () => {
   const s = getClubReportStats()
@@ -15,7 +15,7 @@ describe('getClubReportStats', () => {
 
   it('utility breakdown sums to the utility expense (amount paid)', () => {
     expect(Object.values(s.utilByType).reduce((a, b) => a + b, 0)).toBe(s.utilityExpense)
-    expect(s.utilityExpense).toBe(MOCK_UTILITIES.reduce((a, u) => a + u.amount_paid, 0))
+    expect(s.utilityExpense).toBe(getUtilitiesWithBalance().reduce((a, u) => a + u.amount_paid, 0))
   })
 
   it('has one fund row per fund and the balance total matches', () => {

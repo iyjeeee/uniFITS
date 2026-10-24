@@ -22,6 +22,7 @@
         isReceipt (income|contribution; opening balance and refund are NOT receipts), fundBalance, overdrawOnApprove.
       - 5 opening_balance rows (ids 7-11, 2025-01-01, approved, no member, payment_method null) carry each fund's old balance:
         82,600 / 53,000 / 72,500 / 20,000 / 150,000 -> derived balances equal the previous ones exactly (total 425,500).
+        (Step 4 later raised two of them to 95,800 [Membership Dues] and 97,500 [Event] to cover bills paid from those funds.)
       - Approving an outflow that would take its fund below zero is blocked in the Transactions page (danger message);
         exactly zero is allowed. Same rule enforced in the DB (schema v2.2).
       - Transaction.payment_method is now PaymentMethod | null (null for opening balances; shown as the dash).
@@ -30,6 +31,23 @@
       - Visible change: the Transactions list shows 11 records (5 opening balances, 2 pages). All other pages unchanged.
       - Tests: 199 pass in 27 files (new: utils/ledger.test.ts, test/fundBalances.test.tsx, entryTypeLabel; two old
         assertions updated because they assumed every transaction is income or expense / every row is on one page).
+    P1a step 4 DONE: a Utility is now the BILL (expense_type, total_amount, due_date [was payment_date], paid_to, fund_id, notes).
+      amount_paid and status are DERIVED from APPROVED payment transactions (category 'utility', utility_id, entry expense;
+      refund reduces): utilityPaid/utilityStatus in utils/ledger.ts, getUtilitiesWithBalance() in mockData (mirrors the
+      utility_balances view), type UtilityWithBalance. Status: unpaid (0), partial, paid (>= total).
+      - 4 payment rows added (ids 12-15, Bank Transfer - the method is MADE UP mock data): Electricity 3,500 / Internet 2,200 /
+        Rent 7,500 (partial) / Venue 25,000 -> derived paid + status equal the old stored values exactly (Water unpaid).
+      - Payments leave the bill's fund, so the openings of Membership Dues (95,800) and Event (97,500) were raised by 13,200
+        and 25,000: fund balances are unchanged (85,000 / 45,500 / 125,000 / 20,000 / 150,000).
+      - Edit Utility form edits the BILL only: Amount Paid and Status inputs removed (read-only note explains); the date is
+        "Due Date". Saving a new total keeps the paid amount and recomputes the status. (Add Utility form unchanged, still UI-only.)
+      - Visible changes: Transactions list 15 records and Total Expenses 12,500 -> 50,700 / Net 47,400 -> 9,200 (utility bills
+        are expenses); Dashboard Total Expenses 12,500 -> 50,700 and Total Transactions 6 -> 10 (Dashboard now equals the Club
+        Report's total expense); Club Report fund table "Spent": Membership Dues 0 -> 13,200, Event 0 -> 25,000 (fund Total
+        Spent = statement Total Expenses 50,700); utility detail/edit date label "Payment Date" -> "Due Date" (the table header
+        already said Due Date).
+      - Tests: 208 pass in 28 files (new: test/utilityBills.test.tsx; utility cases in ledger.test.ts / fundBalances.test.tsx).
+        The old overpay/status rules (B-19/B-78) now only apply to the Add form (UI-only until Supabase).
     NOTE: the owner's uploaded website.zip had 171 tests = WITHOUT batch 19; the 177 count includes batch 19 (+6 tests).
     This delivery includes batch 19 + step 1 + docs/database as one ZIP (diff against the uploaded ZIP).
   Session 2026-10-27 (date as found, later than the real date; NOT VERIFIED) — STEP B (BUG FIXES), batch 19: B-47 FIXED. (tsc clean, eslint 0 errors,
@@ -486,7 +504,7 @@ TYPE FILE LOCATIONS
   src/types/project.ts       Project, ProjectType types
   src/types/event.ts         Event types
   src/types/fund.ts          Fund types (+ FundWithBalance = Fund + derived balance)
-  src/types/transaction.ts   Transaction (incl. project_id / event_id links), Utility types
+  src/types/transaction.ts   Transaction (incl. project_id / event_id / utility_id links), Utility (the bill) + UtilityWithBalance (derived paid/status)
   src/types/attendance.ts    Attendance types
   src/types/announcement.ts  Announcement types
   src/types/audit.ts         AuditLog types
@@ -1028,7 +1046,7 @@ MOCK_EVENTS → Event[] (multiple)
 
 MOCK_FUNDS → Fund[]
 MOCK_TRANSACTIONS → Transaction[]
-MOCK_UTILITIES → Utility[]
+MOCK_UTILITIES → Utility[] (bills only; paid/status via getUtilitiesWithBalance())
 MOCK_ATTENDANCES → Attendance[]
 MOCK_AUDIT_LOGS → AuditLog[]
 
@@ -1343,7 +1361,8 @@ LOW — cosmetic / cleanup
         exist under src/ (a shell brace expansion that did not run) — delete them.
         The original upload also contained a stale dist/ folder; build output must not be
         committed or zipped.
-  B-19  Utilities edit form: no validation. Amount Paid may exceed Total, amounts may be
+  B-19  PART FIXED (P1a step 4): the edit form no longer has Amount Paid or Status (derived). STILL OPEN: Total Amount has
+        no validation (may be negative/0, an emptied input saves as 0). Original report: Amount Paid may exceed Total, amounts may be
         negative, an emptied number input saves as 0, and Status is chosen by hand so it can
         contradict the amounts (e.g. "paid" with 0 paid). Labels also hard-code "(₱)" instead
         of org.currency_symbol. AddUtility not checked for the same issues (not verified).
@@ -1388,10 +1407,10 @@ LOW — cosmetic / cleanup
         the whole page — sidebar, title card and buttons included — and uses no .no-print class.
         FundReport has no Print button at all (verified 2026-10-25), so despite its "print-ready"
         label in this document it cannot be printed from the page.
-  B-34  ClubReport fund sheet does not reconcile: Total Spent (12,500) is not the Statement's
-        Total Expenses (50,700, which adds 38,200 of utility payments that belong to no fund),
-        and Total Received - Spent (47,400) is not the Current Balance (425,500, a static field
-        with no opening balance). Mock data as of 2026-10-16.
+  B-34  PART FIXED (P1a steps 3-4): fund sheet Total Spent now equals the Statement's Total Expenses (50,700; utility
+        payments are ledger entries charged to the bill's fund) and Current Balance is derived. STILL OPEN: Total Received -
+        Spent (9,200) is not the Current Balance (425,500) because the sheet has no Opening Balance column
+        (balance = opening + received - spent). Mock data as of 2026-10-25.
   B-35  ClubReport classification/status issues (latent with current mock data): contributions
         tagged to a project/event are counted as "Member Dues", not project/event income; income
         or expenses in other categories are dropped from the totals; transaction status
@@ -1549,7 +1568,7 @@ LOW — cosmetic / cleanup
         "members" (org.people_label elsewhere on the same page); Currency falls back to a fixed
         "PHP"; the Inactive KPI counts any status other than "active"; "Funds … for All {label}s"
         uses the naive plural (B-63).
-  B-78  AddUtility has no status/amount consistency rule: Status is chosen by hand, so "Paid" with
+  B-78  (UI-only form; paid/status are derived once saving exists.) AddUtility has no status/amount consistency rule: Status is chosen by hand, so "Paid" with
         0 paid (verified 2026-10-26) or "Unpaid" with an amount paid is accepted (same family as
         B-19). "Record Utility" saves nothing (B-66). The category card shows "Internet" while the
         stored value is "Internet Service".
@@ -1663,7 +1682,7 @@ TO VERIFY (suspected, not yet checked)
         1 status set pending/approved/rejected/voided ........ DONE
         2 fund by id (fund_id on transactions + utilities) ........ DONE
         3 fund balance derived (remove stored balance + currency) ........ DONE (+ opening balances, approve guard, schema v2.2)
-        4 utility = bill; amount_paid/status derived from approved payment transactions
+        4 utility = bill; amount_paid/status derived from approved payment transactions ........ DONE
         5 payment method by id
     P1b projects/events (approval_status, event_type, derived funding) incl. B-74, B-71
     P1c attendance by ids (B-49); users/roles by id (B-21); announcements
@@ -2092,6 +2111,9 @@ src/utils/ledger.ts
 src/utils/ledger.test.ts
   Unit tests for ledger.ts (directions, approved-only, exact sums, overdraw guard). Include when changing ledger.ts.
 
+src/test/utilityBills.test.tsx
+  Edit Utility form edits the bill only (no Amount Paid/Status, Due Date, status follows a new total, paid never changes).
+
 src/test/fundBalances.test.tsx
   Derived balances reproduce the old stored numbers; opening balances never count as income/expense/contributions; the
   approve guard blocks overdrafts (hook-level, incl. two spends that fit alone but not together).
@@ -2341,16 +2363,16 @@ src/pages/transactions/AddTransaction.tsx
 src/pages/transactions/Utilities.tsx     Props: { currentUser?: User | null }
   Composition only (45 lines). "Add Utility" button navigates to /transactions/utilities/add.
   Pieces in src/pages/transactions/parts/ — include the page + only the part you change:
-  useUtilities.ts            all state: list data, filters (changing one resets page 1), paging,
+  useUtilities.ts            all state (data = getUtilitiesWithBalance(); save keeps paid, recomputes status): list data, filters (changing one resets page 1), paging,
                              detail/edit/cancel/save, delete (+260 ms delayed feedback), feedback.
-  utilitiesShared.ts         UTILITY_PAGE_SIZE, UtilityEditForm (amounts string|number),
+  utilitiesShared.ts         UTILITY_PAGE_SIZE, UtilityEditForm (bill fields only; total string|number),
                              UtilityActionResult, UTILITY_STATUS_OPTIONS.
   UtilitiesKpiStrip.tsx      4 KPIs from the list (uses components/KpiStrip, valueSize 22).
   UtilitiesToolbar.tsx       title, type + status filters (ui/FilterSelect), search, Add button.
   UtilitiesTable.tsx         table, status-colored rows, Delete-only action column.
   UtilityDetailModal.tsx     detail InfoModal; switches view/edit; title/accent per mode.
   UtilityDetailView.tsx      read-only detail (progress bar, tiles, breakdown, notes).
-  UtilityEditFields.tsx      inline edit form (fund options from MOCK_FUNDS).
+  UtilityEditFields.tsx      inline edit form for the BILL (no Amount Paid/Status: derived; fund options from MOCK_FUNDS).
   UtilityDetailFooter.tsx    Save/Cancel (edit) or Edit/Close (view) buttons.
   DeleteUtilityModal.tsx     delete confirmation modal + footer; UtilityDeleteBody.tsx = its body.
   Parts have no own route; pages.smoke.test skips **/parts/**.

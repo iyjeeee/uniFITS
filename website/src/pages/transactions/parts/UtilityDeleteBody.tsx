@@ -1,9 +1,9 @@
 // parts/UtilityDeleteBody.tsx — Delete confirmation content: warning banner + record summary rows
 import { formatCurrency } from '../../../api/mockData'
 import { capitalize } from '../../../utils/formatters'
-import type { Utility, OrgConfig } from '../../../types'
+import type { UtilityWithBalance, OrgConfig } from '../../../types'
 
-export default function UtilityDeleteBody({ item, org }: { item: Utility; org: OrgConfig }) {
+export default function UtilityDeleteBody({ item, org }: { item: UtilityWithBalance; org: OrgConfig }) {
   return (
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 16 }}>
       <div style={{ padding: '14px 16px', borderRadius: 10, background: '#fdecea', border: '1.5px solid rgba(192,57,43,.30)', display: 'flex' as const, gap: 10, alignItems: 'flex-start' }}>
