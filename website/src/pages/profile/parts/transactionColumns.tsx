@@ -12,7 +12,7 @@ export function buildTransactionColumns(org: OrgConfig): Column<Transaction>[] {
     { label: 'Amount',      key: 'amt',  render: (r) => <span style={{ fontWeight: 700, color: r.entry_type === 'expense' ? 'var(--danger)' : 'var(--success)' }}>{formatCurrency(r.amount, org.currency_symbol)}</span> },
     { label: 'Category',    key: 'cat', accessor: 'category', render: (r) => <Badge variant="neutral">{r.category.charAt(0).toUpperCase() + r.category.slice(1)}</Badge> },
     { label: 'Description', key: 'desc', accessor: 'description', render: (r) => <span style={{ fontSize: 13 }}>{r.description || '—'}</span> },
-    { label: 'Method',      key: 'mth', accessor: 'payment_method', render: (r) => <span style={{ fontSize: 13 }}>{r.payment_method}</span> },
+    { label: 'Method',      key: 'mth', accessor: 'payment_method', render: (r) => <span style={{ fontSize: 13 }}>{r.payment_method ?? '—'}</span> },
     { label: 'Reference',   key: 'ref',  render: (r) => <code style={{ fontSize: 11, color: 'var(--text-primary)', fontFamily: 'monospace' }}>{r.reference_number}</code> },
     { label: 'Status',      key: 'st',   render: (r) => <StatusBadge status={r.status} /> },
   ]

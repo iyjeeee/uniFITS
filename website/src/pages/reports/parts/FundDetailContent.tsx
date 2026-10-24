@@ -4,10 +4,10 @@ import useBreakpoint from '../../../hooks/useBreakpoint'
 import { capitalize } from '../../../utils/formatters'
 import { getFundContributions } from './fundReportData'
 import FundContributionsList from './FundContributionsList'
-import type { Fund, OrgConfig } from '../../../types'
+import type { FundWithBalance, OrgConfig } from '../../../types'
 
 // useBreakpoint() is called here (not in the page) because sub-components cannot read a parent's variables
-export default function FundDetailContent({ fund, org }: { fund: Fund; org: OrgConfig }) {
+export default function FundDetailContent({ fund, org }: { fund: FundWithBalance; org: OrgConfig }) {
   const { isMobile } = useBreakpoint()
   const accentC = fund.is_required ? 'var(--accent)' : 'var(--info)'
   const bgC     = fund.is_required ? 'var(--accent-light)' : 'var(--info-light)'
@@ -38,7 +38,7 @@ export default function FundDetailContent({ fund, org }: { fund: Fund; org: OrgC
           ['Annual Fee',    fund.annual_fee ? formatCurrency(fund.annual_fee, org.currency_symbol) : '—'],
           ['Balance',       formatCurrency(fund.balance, org.currency_symbol)],
           ['Managed by',    fund.created_by || '—'],
-          ['Currency',      fund.currency || 'PHP'],
+          ['Currency',      org.currency_code],
         ].map(([k, v]) => (
           <div key={k} style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--neutral-light)', border: '1px solid var(--border-card)' }}>
             <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '.07em', marginBottom: 4 }}>{k}</div>

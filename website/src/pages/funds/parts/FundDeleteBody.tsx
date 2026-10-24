@@ -1,9 +1,9 @@
 // parts/FundDeleteBody.tsx — Delete confirmation body
 import { formatCurrency } from '../../../api/mockData'
-import type { Fund, OrgConfig } from '../../../types'
+import type { FundWithBalance, OrgConfig } from '../../../types'
 
 /* ── Delete body ─────────────────────────────────────────────────── */
-export default function DeleteBody({ fund, org }: { fund: Fund; org: OrgConfig }) {
+export default function DeleteBody({ fund, org }: { fund: FundWithBalance; org: OrgConfig }) {
   return (
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 16 }}>
       <div style={{ padding: '14px 16px', borderRadius: 10, background: '#fdecea', border: '1.5px solid rgba(192,57,43,.30)', display: 'flex' as const, gap: 10, alignItems: 'flex-start' }}>

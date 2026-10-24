@@ -1,16 +1,17 @@
 // parts/useFundReport.ts — Fund report state: fund open in the detail modal, export confirmation, export feedback
 import { useState } from 'react'
-import { MOCK_FUNDS } from '../../../api/mockData'
-import type { Fund } from '../../../types'
+import { getFundsWithBalance } from '../../../api/mockData'
+import type { FundWithBalance } from '../../../types'
 
 // FundExportResult — feedback shown after Export PDF
 export interface FundExportResult { variant: string; title: string; message: string }
 
 export default function useFundReport() {
-  const required = MOCK_FUNDS.filter((f) => f.is_required)
-  const optional = MOCK_FUNDS.filter((f) => !f.is_required)
+  const funds    = getFundsWithBalance()   // balances derived from approved transactions
+  const required = funds.filter((f) => f.is_required)
+  const optional = funds.filter((f) => !f.is_required)
 
-  const [viewFund,     setViewFund]     = useState<Fund | null>(null)  // fund open in detail modal
+  const [viewFund,     setViewFund]     = useState<FundWithBalance | null>(null)  // fund open in detail modal
   const [showExport,   setShowExport]   = useState(false) // export PDF confirmation
   const [exportResult, setExportResult] = useState<FundExportResult | null>(null)  // export feedback
 
@@ -22,5 +23,5 @@ export default function useFundReport() {
     setExportResult({ variant: 'success', title: 'PDF Exported', message: `Fund Report PDF has been generated and is ready to download.` })
   }
 
-  return { required, optional, viewFund, setViewFund, showExport, setShowExport, exportResult, setExportResult, startExport, handleExport }
+  return { funds, required, optional, viewFund, setViewFund, showExport, setShowExport, exportResult, setExportResult, startExport, handleExport }
 }

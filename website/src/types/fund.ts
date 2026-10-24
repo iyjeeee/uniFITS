@@ -12,9 +12,10 @@ export interface Fund {
   fund_type: FundType
   is_required: boolean        // true = all members must contribute
   status: FundStatus
-  balance: number             // current PHP balance
-  currency: string            // always 'PHP'
   created_by: string          // full name string
   payment_frequency: PaymentFrequency
   annual_fee: number | null   // PHP amount, null if not applicable
 }
+
+// FundWithBalance -- Fund + derived balance (mirrors the fund_balances view): approved transactions only, never stored
+export type FundWithBalance = Fund & { balance: number }

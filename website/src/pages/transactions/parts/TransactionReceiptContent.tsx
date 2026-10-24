@@ -22,7 +22,7 @@ export default function TransactionReceiptContent({ tx }: { tx: Transaction }) {
           ['Date',           formatDate(tx.transaction_date)],
           ['Member',         tx.user_name || 'External'],
           ['Status',         tx.status.charAt(0).toUpperCase() + tx.status.slice(1)],
-          ['Payment Method', tx.payment_method],
+          ['Payment Method', tx.payment_method ?? '—'],
           ['Fund',           getFundName(tx.fund_id)],
         ].map(([k, v]) => (
           <div key={k}>

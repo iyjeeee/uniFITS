@@ -1,6 +1,6 @@
 // parts/TransactionDeleteBody.tsx — Delete confirmation content: warning banner + transaction summary rows
 import { formatCurrency, getFundName } from '../../../api/mockData'
-import { capitalize } from '../../../utils/formatters'
+import { capitalize, entryTypeLabel } from '../../../utils/formatters'
 import type { OrgConfig, Transaction } from '../../../types'
 
 export default function TransactionDeleteBody({ tx, org }: { tx: Transaction; org: OrgConfig }) {
@@ -15,7 +15,7 @@ export default function TransactionDeleteBody({ tx, org }: { tx: Transaction; or
       </div>
       <div>
         <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '.06em', marginBottom: 10 }}>Transaction Summary</div>
-        {[['Reference', tx.reference_number], ['Amount', formatCurrency(tx.amount, org.currency_symbol)], ['Type', capitalize(tx.entry_type)], ['Category', capitalize(tx.category)], ['Fund', getFundName(tx.fund_id)], ['Status', capitalize(tx.status)]].map(([k, v], idx) => (
+        {[['Reference', tx.reference_number], ['Amount', formatCurrency(tx.amount, org.currency_symbol)], ['Type', entryTypeLabel(tx.entry_type)], ['Category', capitalize(tx.category)], ['Fund', getFundName(tx.fund_id)], ['Status', capitalize(tx.status)]].map(([k, v], idx) => (
           <div key={k} style={{ display: 'flex' as const, gap: 16, padding: '10px 14px', borderBottom: '1px solid var(--border-inner)', background: idx % 2 === 0 ? 'var(--neutral-light)' : '#fff' }}>
             <div style={{ width: 130, fontSize: 12.5, color: 'var(--text-muted)', flexShrink: 0, fontWeight: 500 }}>{k}</div>
             <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)' }}>{v}</div>

@@ -1,7 +1,7 @@
 // components/FundTileCard.tsx — Clickable fund tile (color strip, lock badge on protected funds); shared by Funds and FundReport
 import { formatCurrency } from '../api/mockData'
 import { PROTECTED_COLOR, fundTileColor } from '../constants/fundColors'
-import type { Fund, OrgConfig } from '../types'
+import type { FundWithBalance, OrgConfig } from '../types'
 
 /* ── Lock icon — shown top-right on non-deletable tiles ─────────── */
 function IcoShieldLock() {
@@ -14,7 +14,7 @@ function IcoShieldLock() {
 }
 
 /* ── FundTileCard — clickable tile ─────────────────────────────── */
-export default function FundTileCard({ fund, org, onClick }: { fund: Fund; org: OrgConfig; onClick: () => void }) {
+export default function FundTileCard({ fund, org, onClick }: { fund: FundWithBalance; org: OrgConfig; onClick: () => void }) {
   const stripColor  = fundTileColor(fund)
   const isProtected = fund.is_required    // green + lock icon = cannot be deleted
   return (

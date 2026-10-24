@@ -67,3 +67,6 @@ export const getInitials = (name = ''): string => {
 
 /** capitalize — uppercase the first letter; returns '—' for empty values */
 export const capitalize = (s?: string | null): string => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '—')
+
+/** entryTypeLabel -- 'opening_balance' -> 'Opening balance'; other types are simply capitalised */
+export const entryTypeLabel = (t: string): string => capitalize(t.replace(/_/g, ' '))

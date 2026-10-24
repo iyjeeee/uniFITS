@@ -124,11 +124,12 @@ SELECT pg_temp.expect_fail($q$UPDATE projects SET approval_status='rejected' WHE
     'T6h rejected without reviewer is rejected');
 
 -- ---------- 7. derived numbers (only approved count) ----------
+INSERT INTO transactions (org_id, entry_type, amount, category, fund_id, transaction_date, created_by, status, voided_by, voided_at)
+VALUES ('a0000000-0000-0000-0000-000000000001','income',9999,'fund','f0000000-0000-0000-0000-000000000001','2025-03-04','a1000000-0000-0000-0000-000000000002','voided','a1000000-0000-0000-0000-000000000001',NOW());
 -- General fund so far: +1000 +500 +50 approved = 1550. Add pending, rejected, voided, refund, opening balance.
 INSERT INTO transactions (org_id, entry_type, amount, category, fund_id, transaction_date, created_by, status, reviewed_by, reviewed_at) VALUES
     ('a0000000-0000-0000-0000-000000000001','income',9999,'fund','f0000000-0000-0000-0000-000000000001','2025-03-04','a1000000-0000-0000-0000-000000000002','pending',NULL,NULL),
     ('a0000000-0000-0000-0000-000000000001','income',9999,'fund','f0000000-0000-0000-0000-000000000001','2025-03-04','a1000000-0000-0000-0000-000000000002','rejected','a1000000-0000-0000-0000-000000000001',NOW()),
-    ('a0000000-0000-0000-0000-000000000001','income',9999,'fund','f0000000-0000-0000-0000-000000000001','2025-03-04','a1000000-0000-0000-0000-000000000002','voided',NULL,NULL),
     ('a0000000-0000-0000-0000-000000000001','refund',150,'fund','f0000000-0000-0000-0000-000000000001','2025-03-05','a1000000-0000-0000-0000-000000000002','approved','a1000000-0000-0000-0000-000000000001',NOW()),
     ('a0000000-0000-0000-0000-000000000001','opening_balance',2000,'fund','f0000000-0000-0000-0000-000000000001','2025-01-01','a1000000-0000-0000-0000-000000000001','approved','a1000000-0000-0000-0000-000000000001',NOW());
 SELECT pg_temp.expect_eq((SELECT balance::TEXT FROM fund_balances WHERE fund_id='f0000000-0000-0000-0000-000000000001'), '3400.00', 'T7a fund balance counts approved only (1550 - 150 + 2000)');
@@ -174,6 +175,53 @@ SELECT pg_temp.expect_eq((SELECT COUNT(*)::TEXT FROM role_permissions rp JOIN ro
 SELECT pg_temp.expect_eq((SELECT has_permission('a1000000-0000-0000-0000-000000000002','approve_own_entries')::TEXT), 'false', 'T10c Treasurer lacks approve_own_entries');
 SELECT pg_temp.expect_eq((SELECT has_permission('a1000000-0000-0000-0000-000000000003','approve_own_entries')::TEXT), 'true', 'T10d Secretary has approve_own_entries');
 SELECT pg_temp.expect_ok($q$SELECT seed_org_defaults('a0000000-0000-0000-0000-000000000001')$q$, 'T10e seed_org_defaults is safe to run twice');
+
+
+-- ---------- 11. ledger immutability: approved entries cannot be tampered with ----------
+INSERT INTO funds (id, org_id, name, fund_type, created_by) VALUES ('f0000000-0000-0000-0000-000000000002','a0000000-0000-0000-0000-000000000001','Reserve','internal','a1000000-0000-0000-0000-000000000001');
+INSERT INTO transactions (id, org_id, entry_type, amount, category, fund_id, transaction_date, created_by, status, reviewed_by, reviewed_at)
+VALUES ('d1000000-0000-0000-0000-000000000001','a0000000-0000-0000-0000-000000000001','opening_balance',1000,'fund','f0000000-0000-0000-0000-000000000002','2025-01-01','a1000000-0000-0000-0000-000000000001','approved','a1000000-0000-0000-0000-000000000001',NOW()),
+       ('d1000000-0000-0000-0000-000000000002','a0000000-0000-0000-0000-000000000001','income',500,'fund','f0000000-0000-0000-0000-000000000002','2025-01-02','a1000000-0000-0000-0000-000000000001','approved','a1000000-0000-0000-0000-000000000001',NOW());
+SELECT pg_temp.expect_fail($q$UPDATE transactions SET amount = 1 WHERE id='d1000000-0000-0000-0000-000000000002'$q$, 'T11a changing the amount of an approved entry is rejected');
+SELECT pg_temp.expect_fail($q$UPDATE transactions SET entry_type = 'expense' WHERE id='d1000000-0000-0000-0000-000000000002'$q$, 'T11b changing the entry type of an approved entry is rejected');
+SELECT pg_temp.expect_fail($q$UPDATE transactions SET fund_id = 'f0000000-0000-0000-0000-000000000001' WHERE id='d1000000-0000-0000-0000-000000000002'$q$, 'T11c moving an approved entry to another fund is rejected');
+SELECT pg_temp.expect_fail($q$UPDATE transactions SET transaction_date = '2024-01-01' WHERE id='d1000000-0000-0000-0000-000000000002'$q$, 'T11d changing the date of an approved entry is rejected');
+SELECT pg_temp.expect_fail($q$UPDATE transactions SET deleted_at = NOW() WHERE id='d1000000-0000-0000-0000-000000000002'$q$, 'T11e soft-deleting an approved entry is rejected (void it instead)');
+SELECT pg_temp.expect_fail($q$DELETE FROM transactions WHERE id='d1000000-0000-0000-0000-000000000002'$q$, 'T11f hard-deleting an approved entry is rejected');
+SELECT pg_temp.expect_fail($q$UPDATE transactions SET status='pending', reviewed_by=NULL, reviewed_at=NULL WHERE id='d1000000-0000-0000-0000-000000000002'$q$, 'T11g an approved entry cannot go back to pending');
+SELECT pg_temp.expect_fail($q$UPDATE transactions SET status='rejected' WHERE id='d1000000-0000-0000-0000-000000000002'$q$, 'T11h an approved entry cannot be rejected afterwards');
+SELECT pg_temp.expect_ok($q$UPDATE transactions SET notes = 'checked by auditor' WHERE id='d1000000-0000-0000-0000-000000000002'$q$, 'T11i a note can still be added to an approved entry');
+SELECT pg_temp.expect_fail($q$UPDATE transactions SET status='voided' WHERE id='d1000000-0000-0000-0000-000000000002'$q$, 'T11j voiding needs voided_by and voided_at');
+SELECT pg_temp.expect_ok($q$UPDATE transactions SET status='voided', voided_by='a1000000-0000-0000-0000-000000000001', voided_at=NOW(), void_reason='entered twice' WHERE id='d1000000-0000-0000-0000-000000000002'$q$, 'T11k an approved entry can be voided (who, when, why recorded)');
+SELECT pg_temp.expect_fail($q$UPDATE transactions SET status='approved', voided_by=NULL, voided_at=NULL, void_reason=NULL, reviewed_by='a1000000-0000-0000-0000-000000000001', reviewed_at=NOW() WHERE id='d1000000-0000-0000-0000-000000000002'$q$, 'T11l a voided entry can never come back');
+SELECT pg_temp.expect_fail($q$UPDATE transactions SET amount = 2 WHERE id='d1000000-0000-0000-0000-000000000002'$q$, 'T11m a voided entry is frozen');
+SELECT pg_temp.expect_eq((SELECT balance::TEXT FROM fund_balances WHERE fund_id='f0000000-0000-0000-0000-000000000002'), '1000.00', 'T11n a voided entry no longer counts in the balance');
+-- pending and rejected rows behave as before / are frozen
+INSERT INTO transactions (id, org_id, entry_type, amount, category, fund_id, transaction_date, created_by) VALUES ('d1000000-0000-0000-0000-000000000003','a0000000-0000-0000-0000-000000000001','income',70,'fund','f0000000-0000-0000-0000-000000000002','2025-01-03','a1000000-0000-0000-0000-000000000002');
+SELECT pg_temp.expect_ok($q$UPDATE transactions SET amount = 75 WHERE id='d1000000-0000-0000-0000-000000000003'$q$, 'T11o a PENDING entry can still be corrected');
+SELECT pg_temp.expect_ok($q$UPDATE transactions SET status='rejected', reviewed_by='a1000000-0000-0000-0000-000000000001', reviewed_at=NOW(), rejection_reason='wrong fund' WHERE id='d1000000-0000-0000-0000-000000000003'$q$, 'T11p a pending entry can be rejected');
+SELECT pg_temp.expect_fail($q$UPDATE transactions SET amount = 80 WHERE id='d1000000-0000-0000-0000-000000000003'$q$, 'T11q a rejected entry is frozen');
+INSERT INTO transactions (id, org_id, entry_type, amount, category, fund_id, transaction_date, created_by) VALUES ('d1000000-0000-0000-0000-000000000004','a0000000-0000-0000-0000-000000000001','income',5,'fund','f0000000-0000-0000-0000-000000000002','2025-01-03','a1000000-0000-0000-0000-000000000002');
+SELECT pg_temp.expect_ok($q$DELETE FROM transactions WHERE id='d1000000-0000-0000-0000-000000000004'$q$, 'T11r a pending entry can be deleted');
+
+-- ---------- 12. a fund can never go below zero ----------
+-- Reserve now holds 1000 (opening balance; the 500 income was voided)
+INSERT INTO transactions (id, org_id, entry_type, amount, category, fund_id, transaction_date, created_by) VALUES
+  ('d2000000-0000-0000-0000-000000000001','a0000000-0000-0000-0000-000000000001','expense',1000.01,'fund','f0000000-0000-0000-0000-000000000002','2025-02-01','a1000000-0000-0000-0000-000000000002'),
+  ('d2000000-0000-0000-0000-000000000002','a0000000-0000-0000-0000-000000000001','refund', 1500,   'fund','f0000000-0000-0000-0000-000000000002','2025-02-01','a1000000-0000-0000-0000-000000000002'),
+  ('d2000000-0000-0000-0000-000000000003','a0000000-0000-0000-0000-000000000001','expense',400,    'fund','f0000000-0000-0000-0000-000000000002','2025-02-02','a1000000-0000-0000-0000-000000000002'),
+  ('d2000000-0000-0000-0000-000000000004','a0000000-0000-0000-0000-000000000001','expense',600,    'fund','f0000000-0000-0000-0000-000000000002','2025-02-03','a1000000-0000-0000-0000-000000000002');
+SELECT pg_temp.expect_fail($q$UPDATE transactions SET status='approved', reviewed_by='a1000000-0000-0000-0000-000000000001', reviewed_at=NOW() WHERE id='d2000000-0000-0000-0000-000000000001'$q$, 'T12a approving an expense above the balance is rejected');
+SELECT pg_temp.expect_fail($q$UPDATE transactions SET status='approved', reviewed_by='a1000000-0000-0000-0000-000000000001', reviewed_at=NOW() WHERE id='d2000000-0000-0000-0000-000000000002'$q$, 'T12b approving a refund above the balance is rejected');
+SELECT pg_temp.expect_fail($q$INSERT INTO transactions (org_id, entry_type, amount, category, fund_id, transaction_date, created_by, status, reviewed_by, reviewed_at) VALUES ('a0000000-0000-0000-0000-000000000001','expense',5000,'fund','f0000000-0000-0000-0000-000000000002','2025-02-04','a1000000-0000-0000-0000-000000000002','approved','a1000000-0000-0000-0000-000000000001',NOW())$q$, 'T12c inserting an already-approved overdraft is rejected');
+SELECT pg_temp.expect_ok($q$UPDATE transactions SET status='approved', reviewed_by='a1000000-0000-0000-0000-000000000001', reviewed_at=NOW() WHERE id='d2000000-0000-0000-0000-000000000003'$q$, 'T12d an expense within the balance is approved');
+SELECT pg_temp.expect_ok($q$UPDATE transactions SET status='approved', reviewed_by='a1000000-0000-0000-0000-000000000001', reviewed_at=NOW() WHERE id='d2000000-0000-0000-0000-000000000004'$q$, 'T12e spending the fund down to exactly zero is allowed');
+SELECT pg_temp.expect_eq((SELECT balance::TEXT FROM fund_balances WHERE fund_id='f0000000-0000-0000-0000-000000000002'), '0.00', 'T12f balance is exactly zero');
+SELECT pg_temp.expect_eq((SELECT fund_balance('f0000000-0000-0000-0000-000000000002')::TEXT), '0.00', 'T12g fund_balance() agrees with the fund_balances view');
+SELECT pg_temp.expect_fail($q$UPDATE transactions SET status='voided', voided_by='a1000000-0000-0000-0000-000000000001', voided_at=NOW() WHERE id='d1000000-0000-0000-0000-000000000001'$q$, 'T12h voiding the opening balance would leave the fund negative: rejected');
+SELECT pg_temp.expect_ok($q$UPDATE transactions SET status='voided', voided_by='a1000000-0000-0000-0000-000000000001', voided_at=NOW() WHERE id='d2000000-0000-0000-0000-000000000004'$q$, 'T12i voiding an expense (money returns) is allowed');
+SELECT pg_temp.expect_ok($q$INSERT INTO transactions (org_id, entry_type, amount, category, utility_id, transaction_date, created_by) VALUES ('a0000000-0000-0000-0000-000000000001','expense',999999,'utility','90000000-0000-0000-0000-000000000001','2025-02-05','a1000000-0000-0000-0000-000000000002')$q$, 'T12j an entry that touches no fund is not blocked by the fund rule');
+SELECT pg_temp.expect_ok($q$INSERT INTO transactions (org_id, entry_type, amount, category, fund_id, transaction_date, created_by, status, reviewed_by, reviewed_at) VALUES ('a0000000-0000-0000-0000-000000000001','income',12345,'fund','f0000000-0000-0000-0000-000000000002','2025-02-06','a1000000-0000-0000-0000-000000000002','approved','a1000000-0000-0000-0000-000000000001',NOW())$q$, 'T12k inflows are never blocked');
 
 -- ---------- summary ----------
 \o

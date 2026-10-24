@@ -34,7 +34,7 @@ export default function EmployeeTransactionsSection({ myTx }: { myTx: Transactio
                       {t.category.charAt(0).toUpperCase() + t.category.slice(1)}
                     </span>
                   </td>
-                  <td style={{ padding: '9px 12px' }}>{t.payment_method}</td>
+                  <td style={{ padding: '9px 12px' }}>{t.payment_method ?? '—'}</td>
                   <td style={{ padding: '9px 12px' }}><StatusBadge status={t.status} /></td>
                   <td style={{ padding: '9px 12px' }}>{formatDate(t.transaction_date)}</td>
                 </tr>

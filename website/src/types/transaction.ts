@@ -2,7 +2,7 @@
 
 export type EntryType = 'contribution' | 'income' | 'expense' | 'refund' | 'opening_balance'   // inflow: contribution/income/opening_balance; outflow: expense/refund
 export type TransactionCategory = 'fund' | 'project' | 'event' | 'utility'
-export type TransactionStatus = 'pending' | 'approved' | 'rejected' | 'voided'   // only 'approved' counts in totals (rule applied from the numbers phase)
+export type TransactionStatus = 'pending' | 'approved' | 'rejected' | 'voided'   // only 'approved' counts in balances (utils/ledger.ts); other totals follow in the numbers phase
 export type PaymentMethod = 'Cash' | 'GCash' | 'Bank Transfer' | 'PayMaya' | 'Cheque'
 export type UtilityStatus = 'paid' | 'unpaid' | 'partial'
 
@@ -17,7 +17,7 @@ export interface Transaction {
   project_id?: string | null  // set when category is 'project' (FK to projects.id)
   event_id?: string | null    // set when category is 'event' (FK to events.id)
   amount: number              // PHP amount
-  payment_method: PaymentMethod
+  payment_method: PaymentMethod | null   // null for opening balances (no payment took place)
   reference_number: string    // 'TXN-YYYYMMDD-XXXX'
   transaction_date: string    // 'YYYY-MM-DD'
   status: TransactionStatus

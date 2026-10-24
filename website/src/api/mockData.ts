@@ -3,10 +3,11 @@
 // Backend base URL: import.meta.env.VITE_API_URL (see .env.example)
 import type {
   User, Role, Announcement, Project, AppEvent,
-  Fund, Transaction, Utility, PaymentMethodOption,
+  Fund, FundWithBalance, Transaction, Utility, PaymentMethodOption,
   Attendance, AuditLog, BackupJob,
 } from '../types'
 import { parseDate } from '../utils/formatters'
+import { fundBalance } from '../utils/ledger'
 
 // ── Helper formatters ─────────────────────────────────────────────────────────
 // NOTE: prefer utils/formatters.ts for new code.
@@ -52,6 +53,11 @@ export function fmt12(t: string | null | undefined): string {
 /** getFundName -- fund name for a fund_id ('—' when none/unknown); records link to funds by id, never by name */
 export function getFundName(fundId: string | null | undefined): string {
   return MOCK_FUNDS.find((f) => f.id === fundId)?.name ?? '—'
+}
+
+/** getFundsWithBalance -- funds with their DERIVED balance (approved transactions only); mirrors the fund_balances view */
+export function getFundsWithBalance(): FundWithBalance[] {
+  return MOCK_FUNDS.map((f) => ({ ...f, balance: fundBalance(f.id, MOCK_TRANSACTIONS) }))
 }
 
 // ── MOCK_USERS ────────────────────────────────────────────────────────────────
@@ -101,11 +107,11 @@ export const MOCK_EVENTS: AppEvent[] = [
 
 // ── MOCK_FUNDS ────────────────────────────────────────────────────────────────
 export const MOCK_FUNDS: Fund[] = [
-  { id: '1', name: 'Membership Dues Fund', description: 'Annual mandatory membership fees',      fund_type: 'internal', is_required: true,  status: 'active', balance: 85000,  currency: 'PHP', created_by: 'Pedro Reyes',    payment_frequency: 'annually', annual_fee: 1200 },
-  { id: '2', name: 'Project Fund',         description: 'General fund for all club projects',    fund_type: 'internal', is_required: false, status: 'active', balance: 45500,  currency: 'PHP', created_by: 'Juan Dela Cruz', payment_frequency: null,       annual_fee: null },
-  { id: '3', name: 'Event Fund',           description: 'For events and celebrations',            fund_type: 'external', is_required: false, status: 'active', balance: 125000, currency: 'PHP', created_by: 'Luz Ramos',      payment_frequency: null,       annual_fee: null },
-  { id: '4', name: 'Emergency Fund',       description: 'Reserve for unforeseen expenses',       fund_type: 'internal', is_required: false, status: 'active', balance: 20000,  currency: 'PHP', created_by: 'Pedro Reyes',    payment_frequency: null,       annual_fee: null },
-  { id: '5', name: 'Building Fund',        description: 'Savings for future office acquisition', fund_type: 'internal', is_required: true,  status: 'active', balance: 150000, currency: 'PHP', created_by: 'Juan Dela Cruz', payment_frequency: 'monthly',  annual_fee: 600  },
+  { id: '1', name: 'Membership Dues Fund', description: 'Annual mandatory membership fees',      fund_type: 'internal', is_required: true,  status: 'active', created_by: 'Pedro Reyes',    payment_frequency: 'annually', annual_fee: 1200 },
+  { id: '2', name: 'Project Fund',         description: 'General fund for all club projects',    fund_type: 'internal', is_required: false, status: 'active', created_by: 'Juan Dela Cruz', payment_frequency: null,       annual_fee: null },
+  { id: '3', name: 'Event Fund',           description: 'For events and celebrations',            fund_type: 'external', is_required: false, status: 'active', created_by: 'Luz Ramos',      payment_frequency: null,       annual_fee: null },
+  { id: '4', name: 'Emergency Fund',       description: 'Reserve for unforeseen expenses',       fund_type: 'internal', is_required: false, status: 'active', created_by: 'Pedro Reyes',    payment_frequency: null,       annual_fee: null },
+  { id: '5', name: 'Building Fund',        description: 'Savings for future office acquisition', fund_type: 'internal', is_required: true,  status: 'active', created_by: 'Juan Dela Cruz', payment_frequency: 'monthly',  annual_fee: 600  },
 ]
 
 // ── MOCK_TRANSACTIONS ─────────────────────────────────────────────────────────
@@ -116,6 +122,12 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
   { id: '4', user_id: '4', user_name: 'Ana Lim',           entry_type: 'contribution', category: 'event',   fund_id: '3',           event_id: '1', amount: 2500,  payment_method: 'GCash',         reference_number: 'TXN-20250306-0004', transaction_date: '2025-03-06', status: 'approved', description: 'Gala Night contribution' },
   { id: '5', user_id: null, user_name: null,                entry_type: 'income',       category: 'fund',    fund_id: '3',           amount: 50000, payment_method: 'Bank Transfer', reference_number: 'TXN-20250310-0005', transaction_date: '2025-03-10', status: 'approved', description: 'Corporate sponsor payment' },
   { id: '6', user_id: '5', user_name: 'Carlos Villanueva', entry_type: 'expense',      category: 'project', fund_id: '2',         project_id: '1', amount: 12500, payment_method: 'Cash',          reference_number: 'TXN-20250312-0006', transaction_date: '2025-03-12', status: 'approved', description: 'Medical supplies purchase' },
+  // Opening balances: carry each fund's balance forward so balances can be DERIVED from approved entries
+  { id: '7', user_id: null, user_name: null, entry_type: 'opening_balance', category: 'fund', fund_id: '1', amount: 82600, payment_method: null, reference_number: 'TXN-20250101-0007', transaction_date: '2025-01-01', status: 'approved', description: 'Opening balance -- Membership Dues Fund' },
+  { id: '8', user_id: null, user_name: null, entry_type: 'opening_balance', category: 'fund', fund_id: '2', amount: 53000, payment_method: null, reference_number: 'TXN-20250101-0008', transaction_date: '2025-01-01', status: 'approved', description: 'Opening balance -- Project Fund' },
+  { id: '9', user_id: null, user_name: null, entry_type: 'opening_balance', category: 'fund', fund_id: '3', amount: 72500, payment_method: null, reference_number: 'TXN-20250101-0009', transaction_date: '2025-01-01', status: 'approved', description: 'Opening balance -- Event Fund' },
+  { id: '10', user_id: null, user_name: null, entry_type: 'opening_balance', category: 'fund', fund_id: '4', amount: 20000, payment_method: null, reference_number: 'TXN-20250101-0010', transaction_date: '2025-01-01', status: 'approved', description: 'Opening balance -- Emergency Fund' },
+  { id: '11', user_id: null, user_name: null, entry_type: 'opening_balance', category: 'fund', fund_id: '5', amount: 150000, payment_method: null, reference_number: 'TXN-20250101-0011', transaction_date: '2025-01-01', status: 'approved', description: 'Opening balance -- Building Fund' },
 ]
 
 // ── MOCK_UTILITIES ────────────────────────────────────────────────────────────

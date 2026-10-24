@@ -8,7 +8,6 @@ import FundTileSection from './parts/FundTileSection'
 import FundDetailModal from './parts/FundDetailModal'
 import FundExportModals from './parts/FundExportModals'
 import { IcoLock, IcoGlobe } from './parts/FundReportIcons'
-import { MOCK_FUNDS } from '../../api/mockData'
 
 export default function FundReport() {
   const org = useOrg()
@@ -20,7 +19,7 @@ export default function FundReport() {
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 16 }}>
 
       {/* ── KPI strip ─────────────────────────────────────────── */}
-      <FundReportKpiStrip funds={MOCK_FUNDS} />
+      <FundReportKpiStrip funds={r.funds} />
 
       {/* ── Required Funds Section ─────────────────────────────── */}
       {r.required.length > 0 && (

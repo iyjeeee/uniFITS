@@ -2,14 +2,15 @@
 import useBreakpoint from '../../../hooks/useBreakpoint'
 import { MOCK_TRANSACTIONS, formatCurrency } from '../../../api/mockData'
 import { capitalize } from '../../../utils/formatters'
-import type { Fund, OrgConfig } from '../../../types'
+import { isReceipt } from '../../../utils/ledger'
+import type { FundWithBalance, OrgConfig } from '../../../types'
 
 /* ── Fund Detail content — read-only view (same as FundReport) ───── */
-export default function FundDetailContent({ fund, org }: { fund: Fund; org: OrgConfig }) {
+export default function FundDetailContent({ fund, org }: { fund: FundWithBalance; org: OrgConfig }) {
   const { isMobile } = useBreakpoint()                   // own hook call — must be inside component
   const accentC = fund.is_required ? 'var(--accent)' : 'var(--info)'
   const bgC     = fund.is_required ? 'var(--accent-light)' : 'var(--info-light)'
-  const received = MOCK_TRANSACTIONS.filter((t) => t.fund_id === fund.id && t.entry_type !== 'expense').reduce((s, t) => s + t.amount, 0)
+  const received = MOCK_TRANSACTIONS.filter((t) => t.fund_id === fund.id && isReceipt(t)).reduce((s, t) => s + t.amount, 0)
 
   return (
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 18 }}>

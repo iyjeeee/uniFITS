@@ -1,6 +1,7 @@
 // parts/useTransactions.ts — Transactions page state: list data, filters, paging, detail/delete modals, approve/reject/delete, feedback
 import { useState } from 'react'
-import { MOCK_TRANSACTIONS, getFundName } from '../../../api/mockData'
+import { MOCK_TRANSACTIONS, getFundName, formatCurrency } from '../../../api/mockData'
+import { isReceipt, overdrawOnApprove, sumMoney } from '../../../utils/ledger'
 import { useOrg } from '../../../context/OrgContext'
 import { TX_PAGE_SIZE } from './transactionsShared'
 import type { TransactionActionResult } from './transactionsShared'
@@ -23,8 +24,8 @@ export default function useTransactions() {
   const changeStatus = (v: string) => { setStatusFilter(v); setPage(1) }
 
   /* Computed KPIs */
-  const totalIncome  = data.filter((t) => t.entry_type !== 'expense').reduce((s, t) => s + t.amount, 0)
-  const totalExpense = data.filter((t) => t.entry_type === 'expense').reduce((s, t) => s + t.amount, 0)
+  const totalIncome  = sumMoney(data.filter(isReceipt).map((t) => t.amount))   // opening balances are not income
+  const totalExpense = sumMoney(data.filter((t) => t.entry_type === 'expense').map((t) => t.amount))
   const balance      = totalIncome - totalExpense
 
   /* Filter + paginate */
@@ -37,6 +38,11 @@ export default function useTransactions() {
 
   /* Approve — sets status to approved */
   function handleApprove(tx: Transaction) {
+    const { overdraws, balance } = overdrawOnApprove(tx, data)   // an outflow may never take its fund below zero
+    if (overdraws) {
+      setActionResult({ variant: 'danger', title: `Insufficient ${org.fund_label} Balance`, message: `Transaction ${tx.reference_number} (${formatCurrency(tx.amount, org.currency_symbol)}) cannot be approved: ${getFundName(tx.fund_id)} only has ${formatCurrency(balance, org.currency_symbol)} available.` })
+      return
+    }
     setData(prev => prev.map((t) => t.id === tx.id ? { ...t, status: 'approved' } : t))
     setActionResult({ variant: 'success', title: `${org.transaction_label} Approved`, message: `Transaction ${tx.reference_number} has been approved successfully.` })
   }

@@ -5,7 +5,7 @@ export type { User, Role, Permission, UserStatus } from './user'
 export type { OrgConfig } from './org'
 export type { Project, ProjectStatus, ProjectType } from './project'
 export type { AppEvent, EventStatus } from './event'
-export type { Fund, FundType, FundStatus, PaymentFrequency } from './fund'
+export type { Fund, FundWithBalance, FundType, FundStatus, PaymentFrequency } from './fund'
 export type {
   Transaction, Utility, PaymentMethodOption,
   EntryType, TransactionCategory, TransactionStatus,

@@ -6,8 +6,8 @@
   Status: TYPESCRIPT MIGRATION COMPLETE & VERIFIED (2026-09-10)
   NEXT STEPS (owner decision 2026-10-14): finish splitting (bugs found meanwhile are only
     logged in section 1.18, not fixed) -> fix section 1.18 -> discuss Supabase first.
-  Session 2026-10-23 — DATA MODEL FOUNDATION: owner's R-FITS draft revised into docs/database/schema.sql v2.1
-    (multi-tenant, approvals, derived balances) + schema.tests.sql (38 pass). See section 1.19. No app code changed yet.
+  Session 2026-10-23..24 — DATA MODEL FOUNDATION: owner's R-FITS draft revised into docs/database/schema.sql v2.1
+    (multi-tenant, approvals, derived balances) + schema.tests.sql. See section 1.19. Schema is now v2.2 (67 tests pass).
     P1a step 1 DONE: TransactionStatus pending/approved/rejected/voided (types, 6 mock rows, filters, colours), shim removed.
     Visible effect: pages that print a transaction's raw status now say "Approved" (was "Completed"): Dashboard, Profile,
     My Transactions, Employee Report. 177 tests pass, tsc/build clean, eslint 0 errors, 1 warning.
@@ -15,6 +15,21 @@
     resolves the name for display ("—" when none); searching by fund NAME still works (search maps fund_id -> name);
     fund/club reports and the fund detail match by id. Utility edit form selects by fund id. No visible change.
     Now 183 tests in 25 files (new: test/fundLinks.test.tsx, 6 tests).
+    P1a step 3 DONE (owner decisions: ledger-derived balances; approved entries immutable; fund can never go negative):
+      - Fund no longer stores balance/currency. FundWithBalance = Fund + derived balance (types/fund.ts); getFundsWithBalance()
+        in api/mockData.ts mirrors the fund_balances view. Only APPROVED transactions count (utils/ledger.ts fundBalance).
+      - utils/ledger.ts (NEW) = the one place for money rules: sumMoney (whole centavos, no 0.1+0.2 drift), signedAmount,
+        isReceipt (income|contribution; opening balance and refund are NOT receipts), fundBalance, overdrawOnApprove.
+      - 5 opening_balance rows (ids 7-11, 2025-01-01, approved, no member, payment_method null) carry each fund's old balance:
+        82,600 / 53,000 / 72,500 / 20,000 / 150,000 -> derived balances equal the previous ones exactly (total 425,500).
+      - Approving an outflow that would take its fund below zero is blocked in the Transactions page (danger message);
+        exactly zero is allowed. Same rule enforced in the DB (schema v2.2).
+      - Transaction.payment_method is now PaymentMethod | null (null for opening balances; shown as the dash).
+      - Entry types have labels (entryTypeLabel: "Opening balance"), badge colours and filter options (refund, opening_balance).
+      - Dashboard "Total Transactions" excludes opening balances (still 6); income/expense KPIs unchanged.
+      - Visible change: the Transactions list shows 11 records (5 opening balances, 2 pages). All other pages unchanged.
+      - Tests: 199 pass in 27 files (new: utils/ledger.test.ts, test/fundBalances.test.tsx, entryTypeLabel; two old
+        assertions updated because they assumed every transaction is income or expense / every row is on one page).
     NOTE: the owner's uploaded website.zip had 171 tests = WITHOUT batch 19; the 177 count includes batch 19 (+6 tests).
     This delivery includes batch 19 + step 1 + docs/database as one ZIP (diff against the uploaded ZIP).
   Session 2026-10-27 (date as found, later than the real date; NOT VERIFIED) — STEP B (BUG FIXES), batch 19: B-47 FIXED. (tsc clean, eslint 0 errors,
@@ -470,7 +485,7 @@ TYPE FILE LOCATIONS
   src/types/org.ts           OrgConfig type (for OrgContext)
   src/types/project.ts       Project, ProjectType types
   src/types/event.ts         Event types
-  src/types/fund.ts          Fund types
+  src/types/fund.ts          Fund types (+ FundWithBalance = Fund + derived balance)
   src/types/transaction.ts   Transaction (incl. project_id / event_id links), Utility types
   src/types/attendance.ts    Attendance types
   src/types/announcement.ts  Announcement types
@@ -1538,6 +1553,9 @@ LOW — cosmetic / cleanup
         0 paid (verified 2026-10-26) or "Unpaid" with an amount paid is accepted (same family as
         B-19). "Record Utility" saves nothing (B-66). The category card shows "Internet" while the
         stored value is "Internet Service".
+  B-80  Display only treats entry_type 'expense' as an outflow (sign "-", red) in ~10 places (TransactionsTable, receipt,
+        dashboard recent list, profile lists...). A 'refund' would show "+" and green. Latent: no refund rows exist and
+        nothing can create one yet. Fix with the numbers/consistency phase using signedAmount() from utils/ledger.ts.
   B-79  Dates: the payment-date rule (not in the future) compares against the END OF TODAY in the
         browser's local time and was verified only at the sandbox clock (same result in
         Asia/Manila, UTC and America/Los_Angeles). The Manila-specific edge window around local
@@ -1565,10 +1583,10 @@ TO VERIFY (suspected, not yet checked)
   backend get DISABLED until Supabase; Supabase itself is still NOT decided (auth, RLS, backups = later).
 
   Files (reference only — NOT applied to any database, no Supabase code exists):
-    docs/database/schema.sql        v2.1: 20 tables, 4 views, 37 permissions, seed_org_defaults(). Loads clean on PostgreSQL 16.
-    docs/database/schema.tests.sql  38 self-checking tests (tenant isolation, soft-delete uniques, one active role,
+    docs/database/schema.sql        v2.2: 20 tables, 4 views, 37 permissions, seed_org_defaults(), ledger triggers. Loads clean on PostgreSQL 16.
+    docs/database/schema.tests.sql  67 self-checking tests (tenant isolation, soft-delete uniques, one active role,
                                     transaction context, attendance, review/self-approval, balances, utilities, seeds).
-                                    Run: psql -d <empty db> -f schema.sql, then -f schema.tests.sql. Result: 38 pass, 0 fail.
+                                    Run: psql -d <empty db> -f schema.sql, then -f schema.tests.sql. Result: 67 pass, 0 fail.
                                     Mutation check done: removing 3 safeguards made 4 tests fail (tests are not vacuous).
 
   Entity map (DB table -> TS type -> mock array -> what must change in the app)
@@ -1624,7 +1642,15 @@ TO VERIFY (suspected, not yet checked)
     approve_transaction but NO approve_own_entries; Auditor read-only + audit logs; Member = view projects/events/announcements.
     Utility payments are ledger transactions (category utility, entry expense/refund) and need approval like any other.
     Dates: transaction_date, received_date, due_date, attendance_date are DATE (Manila day cannot shift).
-    Money: NUMERIC(15,2) in the DB; the frontend keeps numbers (PHP).
+    Money: NUMERIC(15,2) in the DB; the frontend keeps numbers (PHP) and sums them with sumMoney() (whole centavos).
+    LEDGER SAFETY (schema v2.2, owner decisions): a PENDING entry may be corrected or deleted. Once APPROVED an entry can never
+    be edited, soft-deleted or deleted: only a note can be added, or it can be VOIDED (voided_by, voided_at, void_reason
+    recorded; a voided entry never comes back). REJECTED and VOIDED entries are frozen. Corrections = void + a new entry.
+    OVERDRAFT: approving an expense/refund, or voiding an approved inflow, is rejected when the fund would go below zero
+    (exactly zero is allowed). The fund row is locked first: proven with two concurrent sessions (second approval rejected,
+    balance 300; without the lock both passed and the fund reached -400). The frontend mirrors this on Approve.
+    Voiding is not in the UI yet (the old "Delete" action still removes pending rows locally); voided_by/at/reason are not in
+    the TS Transaction type yet.
 
   Not decided / for owner review
     1. Role names (President vs Admin) and the default permission sets above (assumptions, editable per org).
@@ -1636,7 +1662,7 @@ TO VERIFY (suspected, not yet checked)
     P1a types + mock data for transactions/funds/utilities, in small steps:
         1 status set pending/approved/rejected/voided ........ DONE
         2 fund by id (fund_id on transactions + utilities) ........ DONE
-        3 fund balance derived (remove stored balance + currency)
+        3 fund balance derived (remove stored balance + currency) ........ DONE (+ opening balances, approve guard, schema v2.2)
         4 utility = bill; amount_paid/status derived from approved payment transactions
         5 payment method by id
     P1b projects/events (approval_status, event_type, derived funding) incl. B-74, B-71
@@ -2052,12 +2078,23 @@ src/hooks/useModal.ts
   Include when adding modals to any page.
 
 src/utils/formatters.ts
-  Shared display formatters: parseDate, formatDate, capitalize (+ others).
+  Shared display formatters: parseDate, formatDate, capitalize, entryTypeLabel (+ others).
   Include when working on data display, table cells, or reports.
 
 src/utils/formatters.test.ts
-  Vitest tests for parseDate/formatDate (local-date, no day shift).
+  Vitest tests for parseDate/formatDate (local-date, no day shift) and entryTypeLabel.
   Include when changing date helpers.
+
+src/utils/ledger.ts
+  Money rules, pure functions: sumMoney (exact centavo sums), signedAmount (inflow +/outflow -), isReceipt, fundBalance
+  (approved only), overdrawOnApprove (fund may never go below zero). Mirrors schema.sql. Include for ANY total/balance work.
+
+src/utils/ledger.test.ts
+  Unit tests for ledger.ts (directions, approved-only, exact sums, overdraw guard). Include when changing ledger.ts.
+
+src/test/fundBalances.test.tsx
+  Derived balances reproduce the old stored numbers; opening balances never count as income/expense/contributions; the
+  approve guard blocks overdrafts (hook-level, incl. two spends that fit alone but not together).
 
 src/utils/validation.ts
   Centralized form validators. All return string ('' = valid, msg = error).
@@ -2093,7 +2130,7 @@ src/types/event.ts
   Include when working on events pages or ItemDetailContent.
 
 src/types/fund.ts
-  Fund interface. FundType type ('internal'|'external').
+  Fund interface (no balance/currency) + FundWithBalance (derived balance). FundType type ('internal'|'external').
   Include when working on funds pages.
 
 src/types/transaction.ts
@@ -2483,10 +2520,10 @@ src/test/pages.flows.test.tsx
   CATEGORY 22B — DATABASE REFERENCE (docs only — not runtime, not applied to any database)
 
 FILE: docs/database/schema.sql
-DESCRIPTION: Revised multi-tenant PostgreSQL schema v2.1 (20 tables, 4 derived-number views, 37 permissions, seed_org_defaults()). Include when designing types/mock data, the data layer, or the Supabase discussion.
+DESCRIPTION: Revised multi-tenant PostgreSQL schema v2.2 (20 tables, 4 derived-number views, 37 permissions, seed_org_defaults(), ledger immutability + overdraft triggers). Include when designing types/mock data, the data layer, or the Supabase discussion.
 
 FILE: docs/database/schema.tests.sql
-DESCRIPTION: 38 self-checking tests that prove the schema's rules (isolation, approvals, balances). Include when changing schema.sql.
+DESCRIPTION: 67 self-checking tests that prove the schema's rules (isolation, approvals, balances, immutability, overdraft). Include when changing schema.sql.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   CATEGORY 23 — NEVER INCLUDE IN PROMPTS

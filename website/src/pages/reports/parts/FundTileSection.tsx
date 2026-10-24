@@ -2,11 +2,11 @@
 import type { ReactNode } from 'react'
 import { Card } from '../../../components/ui'
 import FundTileCard from '../../../components/FundTileCard'
-import type { Fund, OrgConfig } from '../../../types'
+import type { FundWithBalance, OrgConfig } from '../../../types'
 
 interface Props {
   title: string; icon: ReactNode; iconBg: string; iconColor: string
-  funds: Fund[]; columns: string; org: OrgConfig; onSelect: (fund: Fund) => void
+  funds: FundWithBalance[]; columns: string; org: OrgConfig; onSelect: (fund: FundWithBalance) => void
 }
 
 export default function FundTileSection({ title, icon, iconBg, iconColor, funds, columns, org, onSelect }: Props) {

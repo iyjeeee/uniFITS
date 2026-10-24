@@ -2,10 +2,10 @@
 import { useOrg } from '../../../context/OrgContext'
 import { BtnIco } from '../../../components/Icons'
 import { InfoModal } from '../../../components/ui'
-import type { Fund } from '../../../types'
+import type { FundWithBalance } from '../../../types'
 import DeleteBody from './FundDeleteBody'
 
-export default function DeleteFundModal({ fund, onClose, onConfirm }: { fund: Fund | null; onClose: () => void; onConfirm: () => void }) {
+export default function DeleteFundModal({ fund, onClose, onConfirm }: { fund: FundWithBalance | null; onClose: () => void; onConfirm: () => void }) {
   const org = useOrg()
   return (
   <InfoModal

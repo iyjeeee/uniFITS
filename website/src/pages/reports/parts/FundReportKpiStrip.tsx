@@ -4,9 +4,9 @@ import { Card } from '../../../components/ui'
 import { formatCurrency } from '../../../api/mockData'
 import { useOrg } from '../../../context/OrgContext'
 import useBreakpoint from '../../../hooks/useBreakpoint'
-import type { Fund } from '../../../types'
+import type { FundWithBalance } from '../../../types'
 
-export default function FundReportKpiStrip({ funds }: { funds: Fund[] }) {
+export default function FundReportKpiStrip({ funds }: { funds: FundWithBalance[] }) {
   const org = useOrg()
   const { isMobile } = useBreakpoint()
   const kpiCols = isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)'

@@ -2,9 +2,9 @@
 import { InfoModal } from '../../../components/ui'
 import { TableIco } from '../../../components/Icons'
 import FundDetailContent from './FundDetailContent'
-import type { Fund, OrgConfig } from '../../../types'
+import type { FundWithBalance, OrgConfig } from '../../../types'
 
-interface Props { fund: Fund | null; org: OrgConfig; onClose: () => void; onExport: () => void }
+interface Props { fund: FundWithBalance | null; org: OrgConfig; onClose: () => void; onExport: () => void }
 
 export default function FundDetailModal({ fund, org, onClose, onExport }: Props) {
   return (

@@ -13,6 +13,7 @@ import Announcements from '../pages/announcements/Announcements'
 import RolesPage from '../pages/employees/RolesPage'
 import Profile from '../pages/profile/Profile'
 import PersonalTransactions from '../pages/profile/PersonalTransactions'
+import { MOCK_TRANSACTIONS } from '../api/mockData'
 import type { ReactElement } from 'react'
 
 const mount = (ui: ReactElement) => render(<OrgProvider orgData={{}}>{ui}</OrgProvider>)
@@ -128,9 +129,10 @@ describe('edit/save flows', () => {
   it('Transactions: type filter narrows the table; Approve and Reject show feedback; delete removes the row', async () => {
     mount(<Transactions />)
     const selects = () => Array.from(document.querySelectorAll('select'))
-    const total = document.querySelectorAll('tbody tr').length
+    const total = MOCK_TRANSACTIONS.length   // rows are paged (10 per page), so count records, not visible rows
+    expect(document.body.textContent).toContain(`${total} records`)
     fireEvent.change(selects()[0], { target: { value: 'expense' } })
-    expect(document.querySelectorAll('tbody tr').length).toBeLessThan(total)
+    expect(document.querySelectorAll('tbody tr').length).toBeLessThan(10)
     fireEvent.change(selects()[0], { target: { value: 'all' } })
     fireEvent.click(document.querySelector('button[title="Reject"]') as Element)
     expect(document.body.textContent).toContain('has been rejected')
@@ -141,7 +143,7 @@ describe('edit/save flows', () => {
     fireEvent.click(document.querySelector('button[title="Delete"]') as Element)
     clickButton(/Yes, Delete/)
     await screen.findByText(/has been permanently removed/)   // feedback appears after a short delay
-    expect(document.querySelectorAll('tbody tr').length).toBe(total - 1)
+    expect(document.body.textContent).toContain(`${total - 1} records`)
   })
 
   it('Attendance: marking everyone present and saving updates the tile counts', () => {

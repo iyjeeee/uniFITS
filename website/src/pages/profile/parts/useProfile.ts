@@ -1,6 +1,7 @@
 // parts/useProfile.ts — Derived profile data (attendance, transactions, totals) + modal/edit state (mock data now; swap for API calls later)
 import { useState } from 'react'
 import { MOCK_USERS, MOCK_ATTENDANCES, MOCK_TRANSACTIONS } from '../../../api/mockData'
+import { isReceipt } from '../../../utils/ledger'
 import type { ModalVariant } from '../../../types'
 import type { ProfileForm, AttStats, FieldHandler } from './profileShared'
 
@@ -15,7 +16,7 @@ export function useProfile(userId: string) {
 
   // Contribution total
   const totalContributed = MOCK_TRANSACTIONS
-    .filter((t) => t.user_id === user.id && t.entry_type !== 'expense')
+    .filter((t) => t.user_id === user.id && isReceipt(t))
     .reduce((s, t) => s + t.amount, 0)
 
   // Attendance stats

@@ -3,10 +3,10 @@ import type { ReactNode } from 'react'
 import { useOrg } from '../../../context/OrgContext'
 import useBreakpoint from '../../../hooks/useBreakpoint'
 import { Card } from '../../../components/ui'
-import type { Fund } from '../../../types'
+import type { FundWithBalance } from '../../../types'
 import FundTileCard from '../../../components/FundTileCard'
 
-export default function FundSection({ funds, title, icon, iconBg, iconColor, onSelect }: { funds: Fund[]; title: string; icon: ReactNode; iconBg: string; iconColor: string; onSelect: (fund: Fund) => void }) {
+export default function FundSection({ funds, title, icon, iconBg, iconColor, onSelect }: { funds: FundWithBalance[]; title: string; icon: ReactNode; iconBg: string; iconColor: string; onSelect: (fund: FundWithBalance) => void }) {
   const org = useOrg()
   const { isMobile, isTablet } = useBreakpoint()
   const fundCols = isMobile ? '1fr' : isTablet ? 'repeat(2,1fr)' : 'repeat(4,1fr)'

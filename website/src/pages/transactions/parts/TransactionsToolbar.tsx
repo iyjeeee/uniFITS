@@ -3,7 +3,7 @@ import { FilterSelect } from '../../../components/ui'
 import { TableToolbar, ToolbarSearch, ToolbarAddButton } from '../../../components/TableToolbar'
 import { BtnIco } from '../../../components/Icons'
 import { useOrg } from '../../../context/OrgContext'
-import { capitalize } from '../../../utils/formatters'
+import { capitalize, entryTypeLabel } from '../../../utils/formatters'
 import { TX_TYPE_OPTIONS, TX_STATUS_OPTIONS } from './transactionsShared'
 
 interface Props {
@@ -18,7 +18,7 @@ export default function TransactionsToolbar({ total, typeFilter, onTypeChange, s
   return (
     <TableToolbar title={`${org.transaction_label} Data Table`} subtitle={`${total} records · click any row for details`}>
       {/* Entry type filter */}
-      <FilterSelect value={typeFilter} onChange={onTypeChange} options={TX_TYPE_OPTIONS.map((t) => ({ value: t, label: t === 'all' ? 'All Types' : capitalize(t) }))} />
+      <FilterSelect value={typeFilter} onChange={onTypeChange} options={TX_TYPE_OPTIONS.map((t) => ({ value: t, label: t === 'all' ? 'All Types' : entryTypeLabel(t) }))} />
       {/* Status filter */}
       <FilterSelect value={statusFilter} onChange={onStatusChange} options={TX_STATUS_OPTIONS.map((s) => ({ value: s, label: s === 'all' ? 'All Status' : capitalize(s) }))} />
       <ToolbarSearch value={search} onChange={onSearchChange} />

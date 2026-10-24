@@ -1,21 +1,21 @@
 // parts/useFunds.ts — Funds list + detail/edit/delete state and handlers (mock data now; swap for API calls later)
 import { useState } from 'react'
 import { useOrg } from '../../../context/OrgContext'
-import { MOCK_FUNDS } from '../../../api/mockData'
-import type { Fund, ModalVariant } from '../../../types'
+import { getFundsWithBalance } from '../../../api/mockData'
+import type { FundWithBalance, ModalVariant } from '../../../types'
 import type { FundEditState } from './fundsShared'
 
 export function useFunds() {
   const org = useOrg()
-  const [funds,        setFunds]        = useState(MOCK_FUNDS)
-  const [viewItem,     setViewItem]     = useState<Fund | null>(null)    // fund open in detail modal
+  const [funds,        setFunds]        = useState(getFundsWithBalance)   // lazy: balances derived from approved transactions
+  const [viewItem,     setViewItem]     = useState<FundWithBalance | null>(null)    // fund open in detail modal
   const [editMode,     setEditMode]     = useState(false)   // toggle edit inside modal
   const [editForm,     setEditForm]     = useState<FundEditState | null>(null)    // local edit form state
-  const [deleteItem,   setDeleteItem]   = useState<Fund | null>(null)    // fund pending deletion
+  const [deleteItem,   setDeleteItem]   = useState<FundWithBalance | null>(null)    // fund pending deletion
   const [actionResult, setActionResult] = useState<{variant:ModalVariant;title:string;message:string} | null>(null)    // feedback
 
   /* Open detail modal in read-only mode */
-  function openDetail(fund: Fund) {
+  function openDetail(fund: FundWithBalance) {
     setViewItem(fund)
     setEditForm({ ...fund })
     setEditMode(false)
@@ -27,7 +27,7 @@ export function useFunds() {
 
   function handleSaveEdit() {
     if (!editForm) return
-    const saved: Fund = { ...editForm, annual_fee: editForm.annual_fee === '' || editForm.annual_fee == null ? null : Number(editForm.annual_fee) }   // input yields a string
+    const saved: FundWithBalance = { ...editForm, annual_fee: editForm.annual_fee === '' || editForm.annual_fee == null ? null : Number(editForm.annual_fee) }   // input yields a string
     setFunds(prev => prev.map((f) => f.id === saved.id ? saved : f))
     setViewItem(saved)
     setEditMode(false)

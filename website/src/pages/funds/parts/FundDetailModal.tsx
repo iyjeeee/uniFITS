@@ -2,12 +2,12 @@
 import { useOrg } from '../../../context/OrgContext'
 import { BtnIco } from '../../../components/Icons'
 import { InfoModal } from '../../../components/ui'
-import type { Fund } from '../../../types'
+import type { FundWithBalance } from '../../../types'
 import type { FundEditState } from './fundsShared'
 import FundDetailContent from './FundDetailContent'
 import FundEditForm from './FundEditForm'
 
-export default function FundDetailModal({ viewItem, editMode, editForm, onClose, onSave, onCancel, onEdit, onRequestDelete, onFormChange }: { viewItem: Fund | null; editMode: boolean; editForm: FundEditState | null; onClose: () => void; onSave: () => void; onCancel: () => void; onEdit: () => void; onRequestDelete: () => void; onFormChange: (key: keyof FundEditState, value: string) => void }) {
+export default function FundDetailModal({ viewItem, editMode, editForm, onClose, onSave, onCancel, onEdit, onRequestDelete, onFormChange }: { viewItem: FundWithBalance | null; editMode: boolean; editForm: FundEditState | null; onClose: () => void; onSave: () => void; onCancel: () => void; onEdit: () => void; onRequestDelete: () => void; onFormChange: (key: keyof FundEditState, value: string) => void }) {
   const org = useOrg()
   return (
   <InfoModal

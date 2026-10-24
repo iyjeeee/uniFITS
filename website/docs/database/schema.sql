@@ -1,5 +1,5 @@
 -- =============================================================================
--- uniFITS — Database Schema v2.1 (REFERENCE — not applied to any database yet)
+-- uniFITS — Database Schema v2.2 (REFERENCE — not applied to any database yet)
 -- PostgreSQL 15+ · Multi-tenant · derived from the owner's v2.0 draft
 -- Tested on PostgreSQL 16: loads clean, behaviour proven by schema.tests.sql
 -- =============================================================================
@@ -26,6 +26,13 @@
 --     permissions aligned with the frontend (37 keys), seed_org_defaults() for roles/permissions/methods.
 -- 10. Removed: funds.currency (the org currency applies), 'paid' transaction status.
 -- 11. transactions: description (list title) + notes replace remarks, matching the frontend Transaction type.
+-- v2.2 (owner decisions: approved entries must never be tampered with; a fund may never go below zero):
+-- 12. Ledger immutability (trigger): a PENDING entry may be corrected or deleted; once APPROVED, only a note can be
+--     added or the entry can be VOIDED (voided_by, voided_at, void_reason recorded); REJECTED and VOIDED entries are
+--     frozen; approved entries can never be edited, soft-deleted or hard-deleted. Corrections = void + new entry.
+-- 13. Overdraft guard (trigger): approving an expense/refund, or voiding an approved inflow, is rejected when it would
+--     take the fund below zero (down to exactly 0 is allowed). The fund row is locked first, so two simultaneous
+--     approvals cannot both pass. fund_balance(fund_id) is the function form of the fund_balances view.
 -- Auth tables/columns (password_hash, tokens, sessions, login_attempts) are kept as in v2.0 but
 -- are marked "AUTH" — their fate depends on the Supabase decision (not made yet).
 -- =============================================================================
@@ -367,6 +374,9 @@ CREATE TABLE transactions (
     reviewed_by       UUID,
     reviewed_at       TIMESTAMPTZ,
     rejection_reason  TEXT,
+    voided_by         UUID,                                             -- who voided it (status 'voided' only)
+    voided_at         TIMESTAMPTZ,
+    void_reason       TEXT,
     transaction_date  DATE                    NOT NULL,                 -- DATE: a Manila day cannot shift
     received_date     DATE,
     created_by        UUID                    NOT NULL,
@@ -382,6 +392,7 @@ CREATE TABLE transactions (
     FOREIGN KEY (org_id, utility_id)        REFERENCES utilities       (org_id, id) ON DELETE RESTRICT,
     FOREIGN KEY (org_id, created_by)        REFERENCES users           (org_id, id) ON DELETE RESTRICT,
     FOREIGN KEY (org_id, reviewed_by)       REFERENCES users           (org_id, id) ON DELETE RESTRICT,
+    FOREIGN KEY (org_id, voided_by)         REFERENCES users           (org_id, id) ON DELETE RESTRICT,
     CONSTRAINT chk_tx_amount  CHECK (amount > 0),
     -- Exactly the context FK that matches the category (fund_id may accompany project/event/utility)
     CONSTRAINT chk_tx_context CHECK (
@@ -397,7 +408,10 @@ CREATE TABLE transactions (
         (status = 'pending'  AND reviewed_by IS NULL AND reviewed_at IS NULL AND rejection_reason IS NULL) OR
         (status = 'approved' AND reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL AND rejection_reason IS NULL) OR
         (status = 'rejected' AND reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL) OR
-        (status = 'voided'))
+        (status = 'voided')),
+    CONSTRAINT chk_tx_void CHECK (
+        (status = 'voided'  AND voided_by IS NOT NULL AND voided_at IS NOT NULL) OR
+        (status <> 'voided' AND voided_by IS NULL AND voided_at IS NULL AND void_reason IS NULL))
 );
 CREATE INDEX idx_tx_fund    ON transactions (fund_id)    WHERE deleted_at IS NULL;
 CREATE INDEX idx_tx_user    ON transactions (user_id)    WHERE deleted_at IS NULL;
@@ -575,6 +589,69 @@ CREATE OR REPLACE FUNCTION signed_amount(p_type transaction_entry_enum, p_amount
 LANGUAGE sql IMMUTABLE AS $$
     SELECT CASE WHEN p_type IN ('income', 'contribution', 'opening_balance') THEN p_amount ELSE -p_amount END;
 $$;
+
+-- fund_balance — function form of the fund_balances view: approved, non-deleted entries of one fund
+CREATE OR REPLACE FUNCTION fund_balance(p_fund UUID) RETURNS NUMERIC
+LANGUAGE sql STABLE AS $$
+    SELECT COALESCE(SUM(signed_amount(entry_type, amount)), 0)
+    FROM transactions
+    WHERE fund_id = p_fund AND status = 'approved' AND deleted_at IS NULL;
+$$;
+
+-- enforce_ledger_immutability — pending: free; approved: note or void only; rejected/voided: frozen; no deletes after pending
+CREATE OR REPLACE FUNCTION enforce_ledger_immutability() RETURNS TRIGGER AS $$
+DECLARE
+    v_free TEXT[];
+BEGIN
+    IF TG_OP = 'DELETE' THEN
+        IF OLD.status <> 'pending' THEN
+            RAISE EXCEPTION 'a % transaction cannot be deleted (void it instead)', OLD.status USING ERRCODE = '42501';
+        END IF;
+        RETURN OLD;
+    END IF;
+    IF OLD.status = 'pending' THEN RETURN NEW; END IF;
+    -- columns that may change on a non-pending row
+    v_free := ARRAY['notes', 'updated_at'];
+    IF OLD.status = 'approved' THEN
+        IF NEW.status NOT IN ('approved', 'voided') THEN
+            RAISE EXCEPTION 'an approved transaction can only be voided, not set to %', NEW.status USING ERRCODE = '42501';
+        END IF;
+        v_free := v_free || ARRAY['status', 'voided_by', 'voided_at', 'void_reason'];
+    END IF;
+    IF (to_jsonb(NEW) - v_free) IS DISTINCT FROM (to_jsonb(OLD) - v_free) THEN
+        RAISE EXCEPTION 'a % transaction cannot be changed (only notes; approved entries can also be voided)', OLD.status USING ERRCODE = '42501';
+    END IF;
+    RETURN NEW;
+END; $$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_transactions_immutable BEFORE UPDATE OR DELETE ON transactions FOR EACH ROW EXECUTE FUNCTION enforce_ledger_immutability();
+
+-- enforce_fund_not_negative — a fund may never go below zero (exactly zero is fine)
+-- Checked when an entry starts to count (becomes approved) and when an approved inflow is voided.
+CREATE OR REPLACE FUNCTION enforce_fund_not_negative() RETURNS TRIGGER AS $$
+DECLARE
+    v_fund  UUID;
+    v_delta NUMERIC;
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        IF NEW.status <> 'approved' OR NEW.deleted_at IS NOT NULL THEN RETURN NEW; END IF;
+        v_fund := NEW.fund_id;  v_delta := signed_amount(NEW.entry_type, NEW.amount);
+    ELSIF OLD.status <> 'approved' AND NEW.status = 'approved' AND NEW.deleted_at IS NULL THEN
+        v_fund := NEW.fund_id;  v_delta := signed_amount(NEW.entry_type, NEW.amount);
+    ELSIF OLD.status = 'approved' AND OLD.deleted_at IS NULL AND NEW.status = 'voided' THEN
+        v_fund := OLD.fund_id;  v_delta := -signed_amount(OLD.entry_type, OLD.amount);
+    ELSE
+        RETURN NEW;
+    END IF;
+    IF v_fund IS NULL OR v_delta >= 0 THEN RETURN NEW; END IF;
+    PERFORM 1 FROM funds WHERE id = v_fund FOR UPDATE;           -- serialise approvals per fund (no double-spend)
+    IF fund_balance(v_fund) + v_delta < 0 THEN
+        RAISE EXCEPTION 'insufficient fund balance: % available, % required', fund_balance(v_fund), -v_delta USING ERRCODE = '23514';
+    END IF;
+    RETURN NEW;
+END; $$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_transactions_overdraw BEFORE INSERT OR UPDATE ON transactions FOR EACH ROW EXECUTE FUNCTION enforce_fund_not_negative();
 
 -- =============================================================================
 -- VIEWS — derived numbers. Only APPROVED, non-deleted transactions count.

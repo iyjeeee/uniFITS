@@ -1,8 +1,10 @@
 // parts/clubReportStats.ts — Club report figures from the mock records (income, expenses, member/project/event stats, fund rows)
-import { MOCK_USERS, MOCK_PROJECTS, MOCK_EVENTS, MOCK_FUNDS, MOCK_TRANSACTIONS, MOCK_UTILITIES } from '../../../api/mockData'
+import { MOCK_USERS, MOCK_PROJECTS, MOCK_EVENTS, MOCK_TRANSACTIONS, MOCK_UTILITIES, getFundsWithBalance } from '../../../api/mockData'
+import { isReceipt, sumMoney } from '../../../utils/ledger'
 
 export function getClubReportStats() {
-  const totalFundBalance    = MOCK_FUNDS.reduce((s, f) => s + f.balance, 0)
+  const fundsWithBalance    = getFundsWithBalance()   // balances derived from approved transactions
+  const totalFundBalance    = sumMoney(fundsWithBalance.map((f) => f.balance))
 
   // Income
   const memberDues          = MOCK_TRANSACTIONS.filter((t) => t.entry_type === 'contribution').reduce((s, t) => s + t.amount, 0)
@@ -36,9 +38,9 @@ export function getClubReportStats() {
   }, {} as Record<string, number>)
 
   // Fund per-fund breakdown
-  const fundRows = MOCK_FUNDS.map((f) => {
-    const received = MOCK_TRANSACTIONS.filter((t) => t.fund_id === f.id && t.entry_type !== 'expense').reduce((s, t) => s + t.amount, 0)
-    const spent    = MOCK_TRANSACTIONS.filter((t) => t.fund_id === f.id && t.entry_type === 'expense').reduce((s, t) => s + t.amount, 0)
+  const fundRows = fundsWithBalance.map((f) => {
+    const received = sumMoney(MOCK_TRANSACTIONS.filter((t) => t.fund_id === f.id && isReceipt(t)).map((t) => t.amount))   // opening balances are not 'received'
+    const spent    = sumMoney(MOCK_TRANSACTIONS.filter((t) => t.fund_id === f.id && t.entry_type === 'expense').map((t) => t.amount))
     return { ...f, received, spent }
   })
 

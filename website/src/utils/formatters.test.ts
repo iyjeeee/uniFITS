@@ -1,6 +1,6 @@
 // utils/formatters.test.ts — parseDate must keep the calendar day regardless of time zone
 import { describe, it, expect } from 'vitest'
-import { parseDate, formatDate, capitalize } from './formatters'
+import { parseDate, formatDate, capitalize, entryTypeLabel } from './formatters'
 
 describe('parseDate / formatDate', () => {
   it('parses YYYY-MM-DD as a local date', () => {
@@ -20,4 +20,12 @@ describe('parseDate / formatDate', () => {
 describe('capitalize', () => {
   it('uppercases the first letter only', () => { expect(capitalize('active')).toBe('Active'); expect(capitalize('bank Transfer')).toBe('Bank Transfer') })
   it('returns an em dash for empty values', () => { expect(capitalize('')).toBe('—'); expect(capitalize(null)).toBe('—'); expect(capitalize(undefined)).toBe('—') })
+})
+
+describe('entryTypeLabel', () => {
+  it('turns snake_case entry types into readable labels', () => {
+    expect(entryTypeLabel('opening_balance')).toBe('Opening balance')
+    expect(entryTypeLabel('contribution')).toBe('Contribution')
+    expect(entryTypeLabel('refund')).toBe('Refund')
+  })
 })
