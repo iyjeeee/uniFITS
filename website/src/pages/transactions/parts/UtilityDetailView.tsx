@@ -1,6 +1,6 @@
 // parts/UtilityDetailView.tsx — Read-only utility detail: payment progress, expense details, payment info, financial breakdown, notes
 import type { ReactNode } from 'react'
-import { formatCurrency, formatDate } from '../../../api/mockData'
+import { formatCurrency, formatDate, getFundName } from '../../../api/mockData'
 import { useOrg } from '../../../context/OrgContext'
 import type { Utility } from '../../../types'
 
@@ -47,7 +47,7 @@ export default function UtilityDetailView({ item }: { item: Utility }) {
             ['Utility ID',   `#${item.id}`],
             ['Category',     item.expense_type],
             ['Paid To',      item.paid_to || '—'],
-            ['Fund',         item.fund    || '—'],
+            ['Fund',         getFundName(item.fund_id)],
           ].map(([k, v]) => (
             <Tile key={k} label={k}><div style={valueStyle}>{v}</div></Tile>
           ))}

@@ -2,7 +2,7 @@
 import { useOrg } from '../../../context/OrgContext'
 import useBreakpoint from '../../../hooks/useBreakpoint'
 import { Button, InfoModal } from '../../../components/ui'
-import { formatDate, formatCurrency } from '../../../api/mockData'
+import { formatDate, formatCurrency, getFundName } from '../../../api/mockData'
 import type { Transaction } from '../../../types'
 import TypeBadge from './TransactionTypeBadge'
 
@@ -15,7 +15,7 @@ export default function TransactionDetailModal({ tx, onClose }: { tx: Transactio
       open={!!tx}
       onClose={onClose}
       title={tx.description || 'Transaction Detail'}
-      subtitle={`${formatDate(tx.transaction_date)} · ${tx.fund || '—'}`}
+      subtitle={`${formatDate(tx.transaction_date)} · ${getFundName(tx.fund_id)}`}
       accentColor={tx.entry_type === 'expense' ? 'var(--danger)' : 'var(--success)'}
       footer={<Button variant="secondary" onClick={onClose}>Close</Button>}>
       <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 16 }}>
@@ -33,7 +33,7 @@ export default function TransactionDetailModal({ tx, onClose }: { tx: Transactio
             </div>
             <div style={{ flex: 1, minWidth: 100, padding: '12px 14px', borderRadius: 10, background: tx.entry_type === 'expense' ? 'var(--danger-light)' : 'var(--success-light)', border: `1px solid ${tx.entry_type === 'expense' ? 'rgba(192,57,43,.20)' : 'rgba(46,125,82,.20)'}`, textAlign: 'center' as const }}>
               <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '.07em', marginBottom: 5 }}>To Fund</div>
-              <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)' }}>{tx.fund || '—'}</div>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)' }}>{getFundName(tx.fund_id)}</div>
             </div>
           </div>
         </div>

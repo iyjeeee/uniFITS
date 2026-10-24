@@ -1,5 +1,5 @@
 // parts/TransactionReceiptContent.tsx — Receipt-style transaction detail: header, key-value grid, From -> Type -> To flow, category + amount
-import { formatCurrency, formatDate } from '../../../api/mockData'
+import { formatCurrency, formatDate, getFundName } from '../../../api/mockData'
 import { useOrg } from '../../../context/OrgContext'
 import useBreakpoint from '../../../hooks/useBreakpoint'
 import EntryTypeBadge from './EntryTypeBadge'
@@ -23,7 +23,7 @@ export default function TransactionReceiptContent({ tx }: { tx: Transaction }) {
           ['Member',         tx.user_name || 'External'],
           ['Status',         tx.status.charAt(0).toUpperCase() + tx.status.slice(1)],
           ['Payment Method', tx.payment_method],
-          ['Fund',           tx.fund],
+          ['Fund',           getFundName(tx.fund_id)],
         ].map(([k, v]) => (
           <div key={k}>
             <div style={{ fontSize: 10.5, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '.06em', marginBottom: 3 }}>{k}</div>
@@ -48,7 +48,7 @@ export default function TransactionReceiptContent({ tx }: { tx: Transaction }) {
           {/* TO node */}
           <div style={{ flex: 1, minWidth: 100, padding: '12px 14px', borderRadius: 10, background: tx.entry_type === 'expense' ? 'var(--danger-light)' : 'var(--success-light)', border: `1px solid ${tx.entry_type === 'expense' ? 'rgba(192,57,43,.20)' : 'rgba(46,125,82,.20)'}`, textAlign: 'center' as const }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '.07em', marginBottom: 5 }}>To Fund</div>
-            <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)' }}>{tx.fund}</div>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)' }}>{getFundName(tx.fund_id)}</div>
           </div>
         </div>
       </div>

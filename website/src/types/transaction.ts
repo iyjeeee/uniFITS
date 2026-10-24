@@ -13,7 +13,7 @@ export interface Transaction {
   user_name: string | null    // null for external/org-level transactions
   entry_type: EntryType
   category: TransactionCategory
-  fund: string                // fund name string
+  fund_id: string | null      // FK to funds.id (required when category is 'fund'); name via getFundName()
   project_id?: string | null  // set when category is 'project' (FK to projects.id)
   event_id?: string | null    // set when category is 'event' (FK to events.id)
   amount: number              // PHP amount
@@ -33,7 +33,7 @@ export interface Utility {
   amount_paid: number         // PHP amount paid so far
   payment_date: string        // 'YYYY-MM-DD'
   paid_to: string             // vendor/payee name
-  fund: string                // fund name string used for this expense
+  fund_id: string | null      // FK to funds.id -- fund this bill is paid from; name via getFundName()
   status: UtilityStatus
   notes: string | null
 }

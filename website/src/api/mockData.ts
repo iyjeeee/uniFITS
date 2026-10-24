@@ -49,6 +49,11 @@ export function fmt12(t: string | null | undefined): string {
   return `${h12}:${String(m).padStart(2, '0')} ${ampm}`
 }
 
+/** getFundName -- fund name for a fund_id ('—' when none/unknown); records link to funds by id, never by name */
+export function getFundName(fundId: string | null | undefined): string {
+  return MOCK_FUNDS.find((f) => f.id === fundId)?.name ?? '—'
+}
+
 // ── MOCK_USERS ────────────────────────────────────────────────────────────────
 export const MOCK_USERS: User[] = [
   { id: '1', employee_number: 'EMP-0001', first_name: 'Juan',   last_name: 'Dela Cruz',  full_name: 'Juan Dela Cruz',      gender: 'Male',   email: 'juan@example.com',   contact_number: '09171234567', role: 'President',   department: 'Executive',      occupation: 'Executive Officer',   joined: '2022-01-15', status: 'active',   address_city: 'Manila',      address_province: 'Metro Manila', photo_url: null },
@@ -105,21 +110,21 @@ export const MOCK_FUNDS: Fund[] = [
 
 // ── MOCK_TRANSACTIONS ─────────────────────────────────────────────────────────
 export const MOCK_TRANSACTIONS: Transaction[] = [
-  { id: '1', user_id: '1', user_name: 'Juan Dela Cruz',    entry_type: 'contribution', category: 'fund',    fund: 'Membership Dues Fund', amount: 1200,  payment_method: 'GCash',         reference_number: 'TXN-20250301-0001', transaction_date: '2025-03-01', status: 'approved', description: 'Annual dues 2025' },
-  { id: '2', user_id: '2', user_name: 'Maria Santos',      entry_type: 'contribution', category: 'fund',    fund: 'Membership Dues Fund', amount: 1200,  payment_method: 'Cash',          reference_number: 'TXN-20250302-0002', transaction_date: '2025-03-02', status: 'approved', description: 'Annual dues 2025' },
-  { id: '3', user_id: '3', user_name: 'Pedro Reyes',       entry_type: 'contribution', category: 'project', fund: 'Project Fund',         project_id: '1', amount: 5000,  payment_method: 'Bank Transfer', reference_number: 'TXN-20250305-0003', transaction_date: '2025-03-05', status: 'approved', description: 'Medical Mission donation' },
-  { id: '4', user_id: '4', user_name: 'Ana Lim',           entry_type: 'contribution', category: 'event',   fund: 'Event Fund',           event_id: '1', amount: 2500,  payment_method: 'GCash',         reference_number: 'TXN-20250306-0004', transaction_date: '2025-03-06', status: 'approved', description: 'Gala Night contribution' },
-  { id: '5', user_id: null, user_name: null,                entry_type: 'income',       category: 'fund',    fund: 'Event Fund',           amount: 50000, payment_method: 'Bank Transfer', reference_number: 'TXN-20250310-0005', transaction_date: '2025-03-10', status: 'approved', description: 'Corporate sponsor payment' },
-  { id: '6', user_id: '5', user_name: 'Carlos Villanueva', entry_type: 'expense',      category: 'project', fund: 'Project Fund',         project_id: '1', amount: 12500, payment_method: 'Cash',          reference_number: 'TXN-20250312-0006', transaction_date: '2025-03-12', status: 'approved', description: 'Medical supplies purchase' },
+  { id: '1', user_id: '1', user_name: 'Juan Dela Cruz',    entry_type: 'contribution', category: 'fund',    fund_id: '1', amount: 1200,  payment_method: 'GCash',         reference_number: 'TXN-20250301-0001', transaction_date: '2025-03-01', status: 'approved', description: 'Annual dues 2025' },
+  { id: '2', user_id: '2', user_name: 'Maria Santos',      entry_type: 'contribution', category: 'fund',    fund_id: '1', amount: 1200,  payment_method: 'Cash',          reference_number: 'TXN-20250302-0002', transaction_date: '2025-03-02', status: 'approved', description: 'Annual dues 2025' },
+  { id: '3', user_id: '3', user_name: 'Pedro Reyes',       entry_type: 'contribution', category: 'project', fund_id: '2',         project_id: '1', amount: 5000,  payment_method: 'Bank Transfer', reference_number: 'TXN-20250305-0003', transaction_date: '2025-03-05', status: 'approved', description: 'Medical Mission donation' },
+  { id: '4', user_id: '4', user_name: 'Ana Lim',           entry_type: 'contribution', category: 'event',   fund_id: '3',           event_id: '1', amount: 2500,  payment_method: 'GCash',         reference_number: 'TXN-20250306-0004', transaction_date: '2025-03-06', status: 'approved', description: 'Gala Night contribution' },
+  { id: '5', user_id: null, user_name: null,                entry_type: 'income',       category: 'fund',    fund_id: '3',           amount: 50000, payment_method: 'Bank Transfer', reference_number: 'TXN-20250310-0005', transaction_date: '2025-03-10', status: 'approved', description: 'Corporate sponsor payment' },
+  { id: '6', user_id: '5', user_name: 'Carlos Villanueva', entry_type: 'expense',      category: 'project', fund_id: '2',         project_id: '1', amount: 12500, payment_method: 'Cash',          reference_number: 'TXN-20250312-0006', transaction_date: '2025-03-12', status: 'approved', description: 'Medical supplies purchase' },
 ]
 
 // ── MOCK_UTILITIES ────────────────────────────────────────────────────────────
 export const MOCK_UTILITIES: Utility[] = [
-  { id: '1', expense_type: 'Electricity Bill', total_amount: 3500,  amount_paid: 3500,  payment_date: '2025-03-05', paid_to: 'Meralco',              fund: 'Membership Dues Fund', status: 'paid',    notes: 'March 2025 electricity' },
-  { id: '2', expense_type: 'Internet Service', total_amount: 2200,  amount_paid: 2200,  payment_date: '2025-03-08', paid_to: 'PLDT',                 fund: 'Membership Dues Fund', status: 'paid',    notes: 'Fiber plan monthly' },
-  { id: '3', expense_type: 'Office Rent',      total_amount: 15000, amount_paid: 7500,  payment_date: '2025-03-15', paid_to: 'GreenLeaf Properties', fund: 'Membership Dues Fund', status: 'partial', notes: 'Q1 partial payment' },
-  { id: '4', expense_type: 'Water Bill',       total_amount: 850,   amount_paid: 0,     payment_date: '2025-03-20', paid_to: 'Maynilad',             fund: 'Membership Dues Fund', status: 'unpaid',  notes: null },
-  { id: '5', expense_type: 'Venue Rental',     total_amount: 25000, amount_paid: 25000, payment_date: '2025-02-28', paid_to: 'Manila Hotel',         fund: 'Event Fund',           status: 'paid',    notes: 'For Annual Gala Night venue deposit' },
+  { id: '1', expense_type: 'Electricity Bill', total_amount: 3500,  amount_paid: 3500,  payment_date: '2025-03-05', paid_to: 'Meralco',              fund_id: '1', status: 'paid',    notes: 'March 2025 electricity' },
+  { id: '2', expense_type: 'Internet Service', total_amount: 2200,  amount_paid: 2200,  payment_date: '2025-03-08', paid_to: 'PLDT',                 fund_id: '1', status: 'paid',    notes: 'Fiber plan monthly' },
+  { id: '3', expense_type: 'Office Rent',      total_amount: 15000, amount_paid: 7500,  payment_date: '2025-03-15', paid_to: 'GreenLeaf Properties', fund_id: '1', status: 'partial', notes: 'Q1 partial payment' },
+  { id: '4', expense_type: 'Water Bill',       total_amount: 850,   amount_paid: 0,     payment_date: '2025-03-20', paid_to: 'Maynilad',             fund_id: '1', status: 'unpaid',  notes: null },
+  { id: '5', expense_type: 'Venue Rental',     total_amount: 25000, amount_paid: 25000, payment_date: '2025-02-28', paid_to: 'Manila Hotel',         fund_id: '3',           status: 'paid',    notes: 'For Annual Gala Night venue deposit' },
 ]
 
 // ── MOCK_ATTENDANCES ──────────────────────────────────────────────────────────

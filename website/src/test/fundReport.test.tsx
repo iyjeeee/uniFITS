@@ -23,7 +23,7 @@ describe('getFundContributions', () => {
   })
   it('only counts non-expense transactions of that fund (by name)', () => {
     const f = MOCK_FUNDS[0]; const d = getFundContributions(f)
-    const expected = MOCK_TRANSACTIONS.filter(t => t.fund === f.name && t.entry_type !== 'expense' && t.user_id).reduce((s, t) => s + t.amount, 0)
+    const expected = MOCK_TRANSACTIONS.filter(t => t.fund_id === f.id && t.entry_type !== 'expense' && t.user_id).reduce((s, t) => s + t.amount, 0)
     expect(d.grandTotal).toBe(expected)
   })
 })

@@ -2,7 +2,7 @@
 import { StatusBadge } from '../../../components/ui'
 import { IconBtn } from '../../../components/TableUtils'
 import { TableIco } from '../../../components/Icons'
-import { formatCurrency, formatDate } from '../../../api/mockData'
+import { formatCurrency, formatDate, getFundName } from '../../../api/mockData'
 import { useOrg } from '../../../context/OrgContext'
 import { rowStyle, rowHoverBg } from '../../../constants/tableColors'
 import { UTILITY_PAGE_SIZE } from './utilitiesShared'
@@ -40,7 +40,7 @@ export default function UtilitiesTable({ rows, page, onRowClick, onDelete }: Pro
                 <td style={{ padding: '10px 14px', color: remaining > 0 ? 'var(--danger)' : 'var(--success)', fontWeight: 600 }}>{formatCurrency(remaining, org.currency_symbol)}</td>
                 <td style={{ padding: '10px 14px', color: 'var(--text-muted)' }}>{formatDate(u.payment_date)}</td>
                 <td style={{ padding: '10px 14px' }}>{u.paid_to || '—'}</td>
-                <td style={{ padding: '10px 14px', fontSize: 12.5 }}>{u.fund || '—'}</td>
+                <td style={{ padding: '10px 14px', fontSize: 12.5 }}>{getFundName(u.fund_id)}</td>
                 <td style={{ padding: '10px 14px' }}><StatusBadge status={u.status} /></td>
                 {/* Actions: Delete only — Edit is inside the detail modal */}
                 <td style={{ padding: '10px 14px' }} onClick={e => e.stopPropagation()}>

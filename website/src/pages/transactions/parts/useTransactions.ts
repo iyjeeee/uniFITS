@@ -1,6 +1,6 @@
 // parts/useTransactions.ts — Transactions page state: list data, filters, paging, detail/delete modals, approve/reject/delete, feedback
 import { useState } from 'react'
-import { MOCK_TRANSACTIONS } from '../../../api/mockData'
+import { MOCK_TRANSACTIONS, getFundName } from '../../../api/mockData'
 import { useOrg } from '../../../context/OrgContext'
 import { TX_PAGE_SIZE } from './transactionsShared'
 import type { TransactionActionResult } from './transactionsShared'
@@ -31,7 +31,7 @@ export default function useTransactions() {
   const filtered = data
     .filter((t) => typeFilter   === 'all' || t.entry_type === typeFilter)
     .filter((t) => statusFilter === 'all' || t.status     === statusFilter)
-    .filter((t) => Object.values(t).some((v) => String(v).toLowerCase().includes(search.toLowerCase())))
+    .filter((t) => Object.values({ ...t, fund_id: getFundName(t.fund_id) }).some((v) => String(v).toLowerCase().includes(search.toLowerCase())))   // search the fund NAME, not its id
   const totalPages = Math.max(1, Math.ceil(filtered.length / TX_PAGE_SIZE))
   const paged      = filtered.slice((page - 1) * TX_PAGE_SIZE, page * TX_PAGE_SIZE)
 

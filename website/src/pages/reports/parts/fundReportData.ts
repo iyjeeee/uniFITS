@@ -1,4 +1,4 @@
-// parts/fundReportData.ts — Pure data for the fund detail: per-member contributions to one fund (matched by fund NAME — see bug log)
+// parts/fundReportData.ts — Pure data for the fund detail: per-member contributions to one fund (matched by fund_id)
 import { MOCK_USERS, MOCK_TRANSACTIONS } from '../../../api/mockData'
 import type { Fund } from '../../../types'
 
@@ -7,7 +7,7 @@ export function getFundContributions(fund: Fund) {
   const memberContribs = MOCK_USERS.map(user => {
     const txns = MOCK_TRANSACTIONS.filter((t) =>
       t.user_id === user.id &&
-      t.fund === fund.name &&
+      t.fund_id === fund.id &&
       t.entry_type !== 'expense'
     )
     const total = txns.reduce((s, t) => s + t.amount, 0)

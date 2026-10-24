@@ -1,6 +1,6 @@
 // parts/useUtilities.ts — Utilities page state: list data, filters, paging, detail/edit/delete flows, feedback
 import { useState } from 'react'
-import { MOCK_UTILITIES } from '../../../api/mockData'
+import { MOCK_UTILITIES, getFundName } from '../../../api/mockData'
 import { useOrg } from '../../../context/OrgContext'
 import { UTILITY_PAGE_SIZE } from './utilitiesShared'
 import type { UtilityEditForm, UtilityActionResult } from './utilitiesShared'
@@ -68,7 +68,7 @@ export default function useUtilities() {
   const filtered = data
     .filter((u) => statusFilter === 'all' || u.status       === statusFilter)
     .filter((u) => typeFilter   === 'all' || u.expense_type === typeFilter)
-    .filter((u) => Object.values(u).some((v) => String(v).toLowerCase().includes(search.toLowerCase())))
+    .filter((u) => Object.values({ ...u, fund_id: getFundName(u.fund_id) }).some((v) => String(v).toLowerCase().includes(search.toLowerCase())))   // search the fund NAME, not its id
   const totalPages = Math.max(1, Math.ceil(filtered.length / UTILITY_PAGE_SIZE))
   const paged      = filtered.slice((page - 1) * UTILITY_PAGE_SIZE, page * UTILITY_PAGE_SIZE)
 

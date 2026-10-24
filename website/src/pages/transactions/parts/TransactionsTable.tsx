@@ -2,7 +2,7 @@
 import { StatusBadge } from '../../../components/ui'
 import { IconBtn } from '../../../components/TableUtils'
 import { TableIco } from '../../../components/Icons'
-import { formatCurrency, formatDate } from '../../../api/mockData'
+import { formatCurrency, formatDate, getFundName } from '../../../api/mockData'
 import { useOrg } from '../../../context/OrgContext'
 import { rowStyle, rowHoverBg } from '../../../constants/tableColors'
 import { TX_PAGE_SIZE } from './transactionsShared'
@@ -42,7 +42,7 @@ export default function TransactionsTable({ rows, page, onRowClick, onApprove, o
               </td>
               <td style={{ padding: '10px 14px' }}><EntryTypeBadge type={t.entry_type} /></td>
               <td style={{ padding: '10px 14px', textTransform: 'capitalize' as const }}>{t.category}</td>
-              <td style={{ padding: '10px 14px', fontSize: 12.5 }}>{t.fund}</td>
+              <td style={{ padding: '10px 14px', fontSize: 12.5 }}>{getFundName(t.fund_id)}</td>
               <td style={{ padding: '10px 14px', color: 'var(--text-muted)' }}>{formatDate(t.transaction_date)}</td>
               <td style={{ padding: '10px 14px' }}><StatusBadge status={t.status} /></td>
               {/* Actions: Approve, Reject, Delete — no receipt button */}

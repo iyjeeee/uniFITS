@@ -1,7 +1,7 @@
 // parts/AllTransactionsModal.tsx — Full personal transactions modal
 import { useOrg } from '../../../context/OrgContext'
 import { StatusBadge, InfoModal } from '../../../components/ui'
-import { formatDate, formatCurrency, MOCK_TRANSACTIONS } from '../../../api/mockData'
+import { formatDate, formatCurrency, getFundName, MOCK_TRANSACTIONS } from '../../../api/mockData'
 import { IcoMoney } from './ProfileIcons'
 import type { User } from '../../../types'
 
@@ -36,7 +36,7 @@ export default function AllTransactionsModal({ user, open, onClose }: { user: Us
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 600 }}>{t.description || t.category}</div>
                   <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1 }}>
-                    {formatDate(t.transaction_date)} · {t.fund} · {t.payment_method}
+                    {formatDate(t.transaction_date)} · {getFundName(t.fund_id)} · {t.payment_method}
                   </div>
                   <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 1 }}>
                     Ref: {t.reference_number}

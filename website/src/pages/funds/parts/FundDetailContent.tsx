@@ -9,7 +9,7 @@ export default function FundDetailContent({ fund, org }: { fund: Fund; org: OrgC
   const { isMobile } = useBreakpoint()                   // own hook call — must be inside component
   const accentC = fund.is_required ? 'var(--accent)' : 'var(--info)'
   const bgC     = fund.is_required ? 'var(--accent-light)' : 'var(--info-light)'
-  const received = MOCK_TRANSACTIONS.filter((t) => t.fund === fund.name && t.entry_type !== 'expense').reduce((s, t) => s + t.amount, 0)
+  const received = MOCK_TRANSACTIONS.filter((t) => t.fund_id === fund.id && t.entry_type !== 'expense').reduce((s, t) => s + t.amount, 0)
 
   return (
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 18 }}>

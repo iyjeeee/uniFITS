@@ -11,6 +11,10 @@
     P1a step 1 DONE: TransactionStatus pending/approved/rejected/voided (types, 6 mock rows, filters, colours), shim removed.
     Visible effect: pages that print a transaction's raw status now say "Approved" (was "Completed"): Dashboard, Profile,
     My Transactions, Employee Report. 177 tests pass, tsc/build clean, eslint 0 errors, 1 warning.
+    P1a step 2 DONE: Transaction.fund and Utility.fund (names) -> fund_id (FK to funds.id); getFundName(id) in api/mockData.ts
+    resolves the name for display ("—" when none); searching by fund NAME still works (search maps fund_id -> name);
+    fund/club reports and the fund detail match by id. Utility edit form selects by fund id. No visible change.
+    Now 183 tests in 25 files (new: test/fundLinks.test.tsx, 6 tests).
     NOTE: the owner's uploaded website.zip had 171 tests = WITHOUT batch 19; the 177 count includes batch 19 (+6 tests).
     This delivery includes batch 19 + step 1 + docs/database as one ZIP (diff against the uploaded ZIP).
   Session 2026-10-27 (date as found, later than the real date; NOT VERIFIED) — STEP B (BUG FIXES), batch 19: B-47 FIXED. (tsc clean, eslint 0 errors,
@@ -1524,8 +1528,8 @@ LOW — cosmetic / cleanup
   B-76  FundReport's KPI strip is a different component from the other list pages' KpiStrip:
         4 columns on tablet (others 2), no line-height on the value, unused bg/border fields in
         its data. Unify the look (then use components/KpiStrip) in step B.
-  B-77  FundReport detail: contributions are matched by fund NAME (t.fund === fund.name), so a
-        renamed fund loses its history; every transaction status is counted (B-27 family);
+  B-77  PART FIXED (P1a step 2): contributions are now matched by fund_id, so a renamed fund keeps
+        its history. STILL OPEN: every transaction status is counted (B-27 family);
         "x of N members have contributed" counts all users including inactive ones and hard-codes
         "members" (org.people_label elsewhere on the same page); Currency falls back to a fixed
         "PHP"; the Inactive KPI counts any status other than "active"; "Funds … for All {label}s"
@@ -1631,7 +1635,7 @@ TO VERIFY (suspected, not yet checked)
   Implementation order (each step: failing test first, then tsc + eslint + build + full tests green)
     P1a types + mock data for transactions/funds/utilities, in small steps:
         1 status set pending/approved/rejected/voided ........ DONE
-        2 fund by id (fund_id on transactions + utilities)
+        2 fund by id (fund_id on transactions + utilities) ........ DONE
         3 fund balance derived (remove stored balance + currency)
         4 utility = bill; amount_paid/status derived from approved payment transactions
         5 payment method by id
@@ -2125,6 +2129,7 @@ src/types/ui.ts
 src/api/mockData.ts
   All mock data typed with interfaces from src/types/.
   MOCK_USERS: User[], MOCK_ROLES: Role[], etc.
+  Also exports helpers: formatCurrency, formatDate, relativeTime, fmt12 and getFundName(fund_id) (name for display, '—' when none).
   Legacy helpers (formatCurrency, formatDate, relativeTime, fmt12)
   retained and typed. fmt12(t: string): string is only here.
   Include in EVERY prompt involving data, tables, forms, or content.
@@ -2377,7 +2382,7 @@ src/pages/reports/FundReport.tsx      Props: {}  (no Print button, see B-33)
   FundTileSection.tsx        icon + title + count + grid of components/FundTileCard (used for required AND optional funds).
   FundDetailModal.tsx        detail InfoModal (accent by required/optional), footer Export PDF + Close;
   FundDetailContent.tsx      its body: balance hero, 3-col detail grid, FundContributionsList.tsx (ranked rows, no-contribution chips).
-  fundReportData.ts          getFundContributions(fund): per-member totals matched by fund NAME (B-77).
+  fundReportData.ts          getFundContributions(fund): per-member totals matched by fund_id (B-77 name matching fixed).
   FundExportModals.tsx       export confirmation + result ResponseModals;  FundReportIcons.tsx = lock / globe icons.
 src/pages/reports/ClubReport.tsx      Props: {}  (print-ready, report type selector)
   Composition only (55 lines). Include with only the part you change (src/pages/reports/parts/):
@@ -2425,7 +2430,7 @@ src/pages/settings/Backup.tsx      Props: {}
 
 src/api/mockData.ts
   Replace each MOCK_* export with async fetch() calls to REST endpoints.
-  Keep the same export names — pages should not need changes if shapes match.
+  Keep the same export names — pages should not need changes if shapes match.  getFundName() must become a lookup (cached funds list or joined data) when MOCK_FUNDS goes away.
 
 src/App.tsx  (3 swap points inside)
   handleLogin()  → POST /api/auth/login
@@ -2464,6 +2469,10 @@ src/test/ErrorBoundary.test.tsx
 src/test/App.routing.test.tsx
   Signed-out guard, signed-in redirect from /login, lazy page loads.
   Include when changing auth/routing in App.tsx.
+
+src/test/fundLinks.test.tsx
+  Fund links by id: every transaction/utility points at a real fund, getFundName, fund report survives a fund rename,
+  Transactions and Utilities search still match the fund NAME. Include when touching fund references.
 
 src/test/pages.flows.test.tsx
   Behavior tests: Funds edit/save (annual_fee number/null), Utilities edit/save/cancel/filter/delete, Employees filter/search/edit/delete, Dashboard KPI navigation + stats (dashboard.stats.test.ts), ClubReport flow + stats/period helpers (clubReport.parts.test.ts), Transactions filter/approve/reject/delete + status normalisation (transactions.parts.test.ts), Header (header.test.tsx), ItemDetailContent data + rendering + B-47 scoping (itemDetail.test.tsx), Project/Event detail pages (detailPages.test.tsx), EmployeeReport flows (employeeReport.test.tsx), Settings (settings.test.tsx), Sidebar (sidebar.test.tsx), AddTransaction wizard (addTransaction.test.tsx), Projects flows (projects.test.tsx), shared list components (sharedListParts.test.tsx), Events flows + category rule (events.test.tsx), FundReport (fundReport.test.tsx), AddUtility wizard (addUtility.test.tsx), shared wizard pieces (formWizard.test.tsx),

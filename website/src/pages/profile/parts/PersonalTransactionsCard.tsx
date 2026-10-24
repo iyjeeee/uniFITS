@@ -1,7 +1,7 @@
 // parts/PersonalTransactionsCard.tsx — Recent personal transactions
 import { useOrg } from '../../../context/OrgContext'
 import { StatusBadge, Card, CardHeader } from '../../../components/ui'
-import { formatDate, formatCurrency, MOCK_TRANSACTIONS } from '../../../api/mockData'
+import { formatDate, formatCurrency, getFundName, MOCK_TRANSACTIONS } from '../../../api/mockData'
 import { IcoMoney } from './ProfileIcons'
 import type { User, Transaction } from '../../../types'
 
@@ -21,7 +21,7 @@ export default function PersonalTransactionsCard({ user, userTransactions, onVie
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.description || t.category}</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 1 }}>{formatDate(t.transaction_date)} · {t.fund}</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 1 }}>{formatDate(t.transaction_date)} · {getFundName(t.fund_id)}</div>
                 </div>
                 <div style={{ textAlign: 'right' as const, flexShrink: 0 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 700, color: t.entry_type === 'expense' ? 'var(--danger)' : 'var(--success)' }}>

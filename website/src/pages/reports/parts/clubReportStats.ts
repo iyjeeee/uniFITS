@@ -37,8 +37,8 @@ export function getClubReportStats() {
 
   // Fund per-fund breakdown
   const fundRows = MOCK_FUNDS.map((f) => {
-    const received = MOCK_TRANSACTIONS.filter((t) => t.fund === f.name && t.entry_type !== 'expense').reduce((s, t) => s + t.amount, 0)
-    const spent    = MOCK_TRANSACTIONS.filter((t) => t.fund === f.name && t.entry_type === 'expense').reduce((s, t) => s + t.amount, 0)
+    const received = MOCK_TRANSACTIONS.filter((t) => t.fund_id === f.id && t.entry_type !== 'expense').reduce((s, t) => s + t.amount, 0)
+    const spent    = MOCK_TRANSACTIONS.filter((t) => t.fund_id === f.id && t.entry_type === 'expense').reduce((s, t) => s + t.amount, 0)
     return { ...f, received, spent }
   })
 
