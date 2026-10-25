@@ -1,10 +1,11 @@
 // events.test.tsx — Events page flows + the title-keyword category rule
 import { describe, it, expect } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import { OrgProvider } from '../context/OrgContext'
 import Events from '../pages/events/Events'
 import { getEventCategory, EVENT_CATEGORY_OPTIONS } from '../pages/events/parts/eventsShared'
 import { MOCK_EVENTS } from '../api/mockData'
+import { approvedOnly } from '../utils/approvals'
 import type { AppEvent } from '../types'
 
 const mount = () => render(<OrgProvider orgData={{}}><Events /></OrgProvider>)
@@ -32,11 +33,11 @@ describe('getEventCategory (title keywords — events have no type field)', () =
 })
 
 describe('Events', () => {
-  it('KPI tiles count the events by status', () => {
+  it('KPI tiles count the events by status (Overall = all rows; the others = approved events only)', () => {
     mount()
     const strip = document.querySelector('div[style*="repeat"]') as HTMLElement
     const kpi = (label: string) => Array.from(strip.querySelectorAll('div')).find(d => d.textContent === label)?.nextElementSibling?.textContent
-    const count = (s: string) => MOCK_EVENTS.filter(e => e.status === s).length
+    const count = (s: string) => approvedOnly(MOCK_EVENTS).filter(e => e.status === s).length
     expect(kpi('Overall Events')).toBe(String(MOCK_EVENTS.length)); expect(kpi('Completed')).toBe(String(count('completed')))
     expect(kpi('Ongoing')).toBe(String(count('ongoing'))); expect(kpi('Upcoming')).toBe(String(count('upcoming')))
   })
@@ -47,10 +48,10 @@ describe('Events', () => {
     fireEvent.change(document.querySelector('input[placeholder="Search…"]') as Element, { target: { value: 'zzz-no-match' } })
     expect(screen.getByText('No events found.')).toBeTruthy()
   })
-  it('Approve sets Ongoing and Reject sets Cancelled, each with feedback', () => {
-    mount(); const first = MOCK_EVENTS[0].title
-    act(0, 'Approve'); expect(document.body.textContent).toContain(`"${first}" approved and set to Ongoing.`); fireEvent.click(btn(/Got it/))
-    act(0, 'Reject'); expect(document.body.textContent).toContain(`"${first}" rejected and marked Cancelled.`)
+  it('Approve and Reject (pending event only) each show feedback and leave the lifecycle status alone', () => {
+    const pending = MOCK_EVENTS.find(e => e.approval_status === 'pending')!.title
+    mount(); fireEvent.click(screen.getByTitle('Approve')); expect(document.body.textContent).toContain(`"${pending}" has been approved.`)
+    cleanup(); mount(); fireEvent.click(screen.getByTitle('Reject')); expect(document.body.textContent).toContain(`"${pending}" has been rejected.`)
   })
   it('detail Edit opens the edit modal; Save updates the row and shows feedback', () => {
     mount(); const t = MOCK_EVENTS[1].title

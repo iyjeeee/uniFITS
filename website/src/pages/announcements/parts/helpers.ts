@@ -1,5 +1,6 @@
 // parts/helpers.ts — Pure data builders and constants for the Announcements page (no React)
 import { MOCK_PROJECTS, MOCK_EVENTS } from '../../../api/mockData'
+import { approvedOnly } from '../../../utils/approvals'
 import { parseDate } from '../../../utils/formatters'
 import type { TileItem, ScheduleEntry, DayActivities } from './types'
 
@@ -13,8 +14,8 @@ export function tileColor(_id: string, kind: TileItem['kind']): string { return 
 /** buildTiles — every project + event, tagged with its kind */
 export function buildTiles(): TileItem[] {
   return [
-    ...MOCK_PROJECTS.map((p): TileItem => ({ ...p, kind: 'project' })),
-    ...MOCK_EVENTS.map((e): TileItem => ({ ...e, kind: 'event' })),
+    ...approvedOnly(MOCK_PROJECTS).map((p): TileItem => ({ ...p, kind: 'project' })),
+    ...approvedOnly(MOCK_EVENTS).map((e): TileItem => ({ ...e, kind: 'event' })),
   ]
 }
 
@@ -30,7 +31,7 @@ export function buildSchedule(tiles: TileItem[]): ScheduleEntry[] {
 export function getActivitiesOnDay(year: number, month: number, day: number): DayActivities {
   const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
   return {
-    projects: MOCK_PROJECTS.filter(p => p.start_date === dateStr || p.end_date === dateStr),
-    events:   MOCK_EVENTS.filter(e => e.event_date === dateStr),
+    projects: approvedOnly(MOCK_PROJECTS).filter(p => p.start_date === dateStr || p.end_date === dateStr),
+    events:   approvedOnly(MOCK_EVENTS).filter(e => e.event_date === dateStr),
   }
 }

@@ -11,11 +11,11 @@ import ProjectsToolbar from './parts/ProjectsToolbar'
 import ProjectsTable from './parts/ProjectsTable'
 import ProjectDetailModal from './parts/ProjectDetailModal'
 import DeleteProjectModal from './parts/DeleteProjectModal'
-import type { ModalVariant } from '../../types'
+import type { ModalVariant, User } from '../../types'
 
-export default function Projects() {
+export default function Projects({ currentUser = null }: { currentUser?: User | null }) {
   const org = useOrg()
-  const p = useProjects()
+  const p = useProjects(currentUser)
   return (
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 14 }}>
       {/* KPI row — 4-col desktop, 2-col on mobile/tablet */}
@@ -25,6 +25,7 @@ export default function Projects() {
         <ProjectsToolbar total={p.filtered.length}
           typeFilter={p.typeFilter} typeOptions={p.typeOptions} onTypeChange={p.changeType}
           statusFilter={p.statusFilter} statusOptions={p.statusOptions} onStatusChange={p.changeStatus}
+          approvalFilter={p.approvalFilter} onApprovalChange={p.changeApproval}
           search={p.search} onSearchChange={p.changeSearch} />
         <ProjectsTable rows={p.paged} onRowClick={p.setViewItem} onApprove={p.handleApprove} onReject={p.handleReject} onDelete={p.setDeleteItem} />
         <PaginationRow page={p.page} totalPages={p.totalPages} onPageChange={p.setPage} total={p.filtered.length} />

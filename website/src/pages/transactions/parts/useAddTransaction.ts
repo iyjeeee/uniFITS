@@ -1,6 +1,7 @@
 // parts/useAddTransaction.ts — Add Transaction wizard state: step, form, errors, option lists, per-step validation, navigation
 import { useState } from 'react'
 import { MOCK_USERS, MOCK_FUNDS, MOCK_PROJECTS, MOCK_EVENTS } from '../../../api/mockData'
+import { approvedOnly } from '../../../utils/approvals'
 import { useOrg } from '../../../context/OrgContext'
 import { required, isNonZeroAmount, validateStep } from '../../../utils/validation'
 import { ADD_TX_STEPS, EMPTY_TX_FORM } from './addTransactionShared'
@@ -19,8 +20,8 @@ export default function useAddTransaction() {
 
   const userOptions    = MOCK_USERS.map((u) => ({ value: u.id, label: u.full_name }))
   const fundOptions    = MOCK_FUNDS.map((f) => ({ value: f.id, label: f.name }))
-  const projectOptions = MOCK_PROJECTS.map((p) => ({ value: p.id, label: p.title }))
-  const eventOptions   = MOCK_EVENTS.map((e) => ({ value: e.id, label: e.title }))
+  const projectOptions = approvedOnly(MOCK_PROJECTS).map((p) => ({ value: p.id, label: p.title }))   // money goes only to approved activities
+  const eventOptions   = approvedOnly(MOCK_EVENTS).map((e) => ({ value: e.id, label: e.title }))
   const activityOptions = form.category === 'project' ? projectOptions
                         : form.category === 'event'   ? eventOptions : []
 

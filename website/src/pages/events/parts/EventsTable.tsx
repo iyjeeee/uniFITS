@@ -1,4 +1,4 @@
-// parts/EventsTable.tsx — Events data table (status-colored rows, funding mini-bar); actions: Approve (-> Ongoing), Reject (-> Cancelled), Delete
+// parts/EventsTable.tsx — Events data table (status-colored rows, funding mini-bar); actions: Approve / Reject (pending rows only), Delete
 import { StatusBadge } from '../../../components/ui'
 import { IconBtn } from '../../../components/TableUtils'
 import { BtnIco } from '../../../components/Icons'
@@ -42,11 +42,16 @@ export default function EventsTable({ rows, onRowClick, onApprove, onReject, onD
                   </div>
                 )}
               </td>
-              <td style={{ padding: '10px 14px' }}><StatusBadge status={r.status} /></td>
+              <td style={{ padding: '10px 14px' }}>
+                <StatusBadge status={r.status} />
+                {r.approval_status !== 'approved' && <span style={{ marginLeft: 6 }}><StatusBadge status={r.approval_status} /></span>}   {/* Pending / Rejected */}
+              </td>
               <td style={{ padding: '10px 14px' }} onClick={e => e.stopPropagation()}>
                 <div style={{ display: 'flex' as const, gap: 5 }}>
-                  <IconBtn solidBg="#2E7D52" title="Approve" onClick={() => onApprove(r)}><BtnIco.Check /></IconBtn>
-                  <IconBtn solidBg="#C0392B" title="Reject"  onClick={() => onReject(r)}><BtnIco.Reject /></IconBtn>
+                  {r.approval_status === 'pending' && <>   {/* review actions only while waiting for a decision */}
+                    <IconBtn solidBg="#2E7D52" title="Approve" onClick={() => onApprove(r)}><BtnIco.Check /></IconBtn>
+                    <IconBtn solidBg="#C0392B" title="Reject"  onClick={() => onReject(r)}><BtnIco.Reject /></IconBtn>
+                  </>}
                   <IconBtn solidBg="#8B1A1A" title="Delete"  onClick={() => onDelete(r)}><BtnIco.Delete /></IconBtn>
                 </div>
               </td>

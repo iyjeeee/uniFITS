@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { Badge, Button, Card, CardHeader, PageHeader } from '../../components/ui'
 import { MOCK_PROJECTS, MOCK_EVENTS } from '../../api/mockData'
+import { approvedOnly } from '../../utils/approvals'
 import { useOrg } from '../../context/OrgContext'
 import { parseDate } from '../../utils/formatters'
 import { MONTH_NAMES, DAY_NAMES } from '../../constants/calendar'
@@ -22,8 +23,8 @@ export default function Calendar() {
   // Build a set of dates that have activities
   function getActivitiesOnDay(day: number) {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-    const projects = MOCK_PROJECTS.filter((p) => p.start_date === dateStr)
-    const events   = MOCK_EVENTS.filter((e) => e.event_date === dateStr)
+    const projects = approvedOnly(MOCK_PROJECTS).filter((p) => p.start_date === dateStr)   // only approved items are scheduled
+    const events   = approvedOnly(MOCK_EVENTS).filter((e) => e.event_date === dateStr)
     return { projects, events }
   }
 
@@ -39,8 +40,8 @@ export default function Calendar() {
 
   // Upcoming activities in the next 30 days
   const upcoming = [
-    ...MOCK_PROJECTS.filter((p) => p.status !== 'completed').map((p) => ({ ...p, kind: 'project', date: p.start_date, name: p.title })),
-    ...MOCK_EVENTS.filter((e) => e.status !== 'completed').map((e) => ({ ...e, kind: 'event', date: e.event_date, name: e.title })),
+    ...approvedOnly(MOCK_PROJECTS).filter((p) => p.status !== 'completed').map((p) => ({ ...p, kind: 'project', date: p.start_date, name: p.title })),
+    ...approvedOnly(MOCK_EVENTS).filter((e) => e.status !== 'completed').map((e) => ({ ...e, kind: 'event', date: e.event_date, name: e.title })),
   ].sort((a, b) => parseDate(a.date).getTime() - parseDate(b.date).getTime())
 
   return (

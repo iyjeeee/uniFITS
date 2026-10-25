@@ -6,7 +6,7 @@
   Status: TYPESCRIPT MIGRATION COMPLETE & VERIFIED (2026-09-10)
   NEXT STEPS (owner decision 2026-10-14): finish splitting (bugs found meanwhile are only
     logged in section 1.18, not fixed) -> fix section 1.18 -> discuss Supabase first.
-  Session 2026-10-23..24 — DATA MODEL FOUNDATION: owner's R-FITS draft revised into docs/database/schema.sql v2.1
+  Session 2026-10-23..25 — DATA MODEL FOUNDATION: owner's R-FITS draft revised into docs/database/schema.sql v2.1
     (multi-tenant, approvals, derived balances) + schema.tests.sql. See section 1.19. Schema is now v2.2 (67 tests pass).
     P1a step 1 DONE: TransactionStatus pending/approved/rejected/voided (types, 6 mock rows, filters, colours), shim removed.
     Visible effect: pages that print a transaction's raw status now say "Approved" (was "Completed"): Dashboard, Profile,
@@ -57,6 +57,20 @@
         NAME stopped matching after fund names became ids. DataTable now has an optional searchValues(row) prop; the profile
         table passes names (fund + method). CONVENTION: any table whose rows hold ids must pass searchValues.
       - Tests: 214 pass in 29 files (new: test/paymentMethods.test.tsx, 6 tests incl. the profile-table search).
+    P1b-1 DONE (owner decision: everything starts PENDING until approved, even for Admin/Secretary; self-approval is a separate step):
+      - Project and AppEvent get approval_status (pending|approved|rejected) + reviewed_by/at + rejection_reason (types/approval.ts,
+        mirrors the schema). ProjectStatus/EventStatus are now LIFECYCLE only ('rejected' removed). Mock: Livelihood Seminar (project 5)
+        and Summer Sportsfest (event 2) are PENDING (my mock-data choice, to keep the workflow demonstrable); the rest are approved by user 1.
+      - Approve/Reject buttons appear only on pending rows; they set approval only (no more auto-Ongoing/Cancelled; B-71). A
+        Pending/Rejected badge shows beside the lifecycle status; new "All Approvals" filter; reviewer = the logged-in user.
+      - RULE: only APPROVED items count/appear in: Projects/Events KPI tiles (Overall = every row), Dashboard, Club Report, Attendance
+        lists, Add Transaction project/event targets, Calendar and Announcements tiles/schedule. Lists/tables still show every row.
+      - Visible changes: Dashboard Ongoing projects 4 -> 3 and Upcoming events 3 -> 2; Club Report counts 5->4 / 4->3 / 3->2;
+        Attendance lists 4 projects / 3 events (was 5 / 4); Livelihood Seminar (Apr 5) and Summer Sportsfest (Apr 18) leave the calendar
+        and announcement tiles until approved; Projects/Events Upcoming KPI 3 -> 2.
+      - Not done: role check on Approve/Reject (B-02), a rejection-reason prompt, DB-level refusal of payments/attendance for unapproved items.
+      - Tests: 228 pass in 31 files (new: utils/approvals.test.ts, test/approvals.test.tsx; old approve/reject + KPI tests updated; the
+        Announcements pagination test now adds two approved dummy projects because 7 approved items fit on one page).
     NOTE: the owner's uploaded website.zip had 171 tests = WITHOUT batch 19; the 177 count includes batch 19 (+6 tests).
     This delivery includes batch 19 + step 1 + docs/database as one ZIP (diff against the uploaded ZIP).
   Session 2026-10-27 (date as found, later than the real date; NOT VERIFIED) — STEP B (BUG FIXES), batch 19: B-47 FIXED. (tsc clean, eslint 0 errors,
@@ -510,8 +524,9 @@ NEW FOLDER ADDED
 TYPE FILE LOCATIONS
   src/types/user.ts          User, Role, Permission types
   src/types/org.ts           OrgConfig type (for OrgContext)
-  src/types/project.ts       Project, ProjectType types
-  src/types/event.ts         Event types
+  src/types/project.ts       Project (extends ReviewFields), ProjectStatus (lifecycle only), ProjectType
+  src/types/approval.ts      ApprovalStatus (pending|approved|rejected) + ReviewFields (approval_status, reviewed_by/at, rejection_reason)
+  src/types/event.ts         AppEvent (extends ReviewFields), EventStatus (lifecycle only)
   src/types/fund.ts          Fund types (+ FundWithBalance = Fund + derived balance)
   src/types/transaction.ts   Transaction (incl. project_id / event_id / utility_id links), Utility (the bill) + UtilityWithBalance (derived paid/status)
   src/types/attendance.ts    Attendance types
@@ -1436,9 +1451,9 @@ LOW — cosmetic / cleanup
   B-39  Transactions KPI strip (Total Income / Expenses / Net Balance) counts every row
         including pending and rejected ones, and does not change when a row is rejected
         (same family as B-27, B-35).
-  B-40  Approve / Reject have no confirmation and no state guard: approving an already
-        approved row (or rejecting a rejected one, or approving a rejected one) shows the
-        success message again; no reason is recorded. Role checks missing (B-02).
+  B-40  PART FIXED for projects/events (P1b-1): Approve / Reject now show ONLY on rows waiting for approval, so they
+        cannot be repeated. STILL OPEN: Transactions (any non-approved row can be approved again; no confirmation),
+        no reason is asked when rejecting (rejection_reason exists but is never set), role checks missing (B-02).
   B-41  Transaction detail is duplicated: pages/profile/parts/TransactionDetailModal.tsx
         repeats the "Transaction Flow" markup of transactions/parts/TransactionReceiptContent
         with different wording ("Me" vs "External") and a different type pill
@@ -1545,7 +1560,9 @@ LOW — cosmetic / cleanup
         by one style (AddTransaction capitalises the value, AddUtility does not). The "Add*" wizard
         page layout (steps card, form card, nav buttons, Record modal) is still repeated in all six
         Add pages (AddFund 198, AddProject 196, AddEmployee 191, AddEvent 184 lines are not split).
-  B-71  Projects Approve / Reject have no state guard and a questionable meaning: "Approve" sets
+  B-71  FIXED (P1b-1) for Projects and Events: approval is now its own field (approval_status pending/approved/rejected +
+        reviewed_by/at) separate from the lifecycle status; Approve/Reject touch only the approval and only on pending rows.
+        Original report: Projects Approve / Reject have no state guard and a questionable meaning: "Approve" sets
         any project to Ongoing (a Completed or Cancelled project is reopened, and an Upcoming one
         starts before its start date); "Reject" sets any project to Cancelled (also a Completed one).
         Same family as B-40. No role check (B-02). Events behave identically (useEvents.ts).
@@ -1693,7 +1710,10 @@ TO VERIFY (suspected, not yet checked)
         3 fund balance derived (remove stored balance + currency) ........ DONE (+ opening balances, approve guard, schema v2.2)
         4 utility = bill; amount_paid/status derived from approved payment transactions ........ DONE
         5 payment method by id ........ DONE   (P1a COMPLETE; next: P1b projects/events)
-    P1b projects/events (approval_status, event_type, derived funding) incl. B-74, B-71
+    P1b projects/events, in 3 sub-steps:
+        1 approval workflow (approval_status separate from lifecycle; B-71) ........ DONE
+        2 event_type field instead of the title-keyword guess (B-74)
+        3 derived funding (current_funding from approved transactions; needs opening entries for projects/events)
     P1c attendance by ids (B-49); users/roles by id (B-21); announcements
     P1d B-01: pass record id via query param (#/employees/details?id=5); ROUTES table unchanged; "not found" state
     Then phases 2-7 of the agreed fix order. B-47 is fixed by batch 19 (belongsToItem matches by project_id/event_id) - included in this delivery.
@@ -2118,6 +2138,19 @@ src/utils/ledger.ts
   Money rules, pure functions: sumMoney (exact centavo sums), signedAmount (inflow +/outflow -), isReceipt, fundBalance
   (approved only), overdrawOnApprove (fund may never go below zero). Mirrors schema.sql. Include for ANY total/balance work.
 
+src/utils/approvals.ts
+  Approval helpers for projects/events: isApproved, approvedOnly (pending/rejected never count), decide (review record: who/when/reason).
+
+src/utils/approvals.test.ts
+  Unit tests for approvals.ts.
+
+src/constants/approval.ts
+  APPROVAL_FILTER_OPTIONS (All / Pending / Approved / Rejected) for the Projects and Events toolbars.
+
+src/test/approvals.test.tsx
+  Approval data consistency; Projects/Events pages (buttons only on pending rows, Pending badge, approval filter, Approve/Reject do
+  not touch the lifecycle status, KPIs approved-only); dashboard/club-report counts and Attendance exclude unapproved items.
+
 src/utils/ledger.test.ts
   Unit tests for ledger.ts (directions, approved-only, exact sums, overdraw guard). Include when changing ledger.ts.
 
@@ -2302,10 +2335,10 @@ src/pages/employees/Attendance.tsx — Props: none (ignores currentUser)
 src/pages/projects/Projects.tsx       Props: { currentUser?: User | null }
   Composition only (46 lines). Include with only the part you change (src/pages/projects/parts/):
   useProjects.ts          state: list data, filters (reset page 1), paging, detail/edit/delete modals,
-                          approve (-> ongoing) / reject (-> cancelled) / delete (+260 ms feedback) / save edit (B-71).
+                          approve / reject (approval only, via utils/approvals decide) / delete (+260 ms feedback) / save edit; takes currentUser (reviewer id); approval filter.
   projectsShared.ts       PROJECT_PAGE_SIZE, ProjectActionResult.   ProjectsKpiStrip.tsx   4 KPIs (components/KpiStrip).
   ProjectsToolbar.tsx     title, type + status ui/NativeFilterSelect, search, Add button.
-  ProjectsTable.tsx       status-colored rows, funding mini-bar, Approve / Reject / Delete icon buttons (B-73).
+  ProjectsTable.tsx       status-colored rows, Pending/Rejected badge, funding mini-bar, Approve / Reject (pending rows only) / Delete icon buttons (B-73).
   ProjectDetailModal.tsx  row-click detail InfoModal (components/ItemDetailContent); footer Edit + Close.
   DeleteProjectModal.tsx  delete confirmation; ProjectDeleteBody.tsx = its body.
 src/pages/projects/AddProject.tsx     Props: { currentUser?: User | null }
@@ -2320,10 +2353,10 @@ src/pages/projects/ProjectDetail.tsx  (uses getItemDetailData) Props: { currentU
 src/pages/events/Events.tsx       Props: { currentUser?: User | null }
   Composition only (46 lines). Include with only the part you change (src/pages/events/parts/):
   useEvents.ts           state: list data, filters (reset page 1), paging, detail/edit/delete modals,
-                         approve (-> ongoing) / reject (-> cancelled) / delete (+260 ms feedback) / save edit (B-71).
+                         approve / reject (approval only, via utils/approvals decide) / delete (+260 ms feedback) / save edit; takes currentUser (reviewer id); approval filter.
   eventsShared.ts        EVENT_PAGE_SIZE, EVENT_CATEGORY_OPTIONS, EventActionResult, getEventCategory(title keywords, B-74).
   EventsKpiStrip.tsx     4 KPIs (components/KpiStrip).   EventsToolbar.tsx   title, category + status ui/NativeFilterSelect, search, Add.
-  EventsTable.tsx        status-colored rows (date, time, location, funding mini-bar), Approve / Reject / Delete icon buttons.
+  EventsTable.tsx        status-colored rows (date, time, location, funding mini-bar), Pending/Rejected badge, Approve / Reject (pending rows only) / Delete icon buttons.
   EventDetailModal.tsx   detail InfoModal (components/ItemDetailContent, kind="event"), footer Edit + Close.
   DeleteEventModal.tsx   delete confirmation; EventDeleteBody.tsx = its body.
 src/pages/events/AddEvent.tsx     Props: { currentUser?: User | null }

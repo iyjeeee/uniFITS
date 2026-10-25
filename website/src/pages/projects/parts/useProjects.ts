@@ -1,11 +1,12 @@
 // parts/useProjects.ts — Projects page state: list data, filters, paging, detail/edit/delete modals, approve/reject/delete/save, feedback
 import { useState } from 'react'
 import { MOCK_PROJECTS } from '../../../api/mockData'
+import { decide } from '../../../utils/approvals'
 import { PROJECT_PAGE_SIZE } from './projectsShared'
 import type { ProjectActionResult } from './projectsShared'
-import type { Project } from '../../../types'
+import type { Project, User } from '../../../types'
 
-export default function useProjects() {
+export default function useProjects(currentUser: User | null = null) {
   const [data,         setData]         = useState(MOCK_PROJECTS)
   const [viewItem,     setViewItem]     = useState<Project | null>(null)
   const [editItem,     setEditItem]     = useState<Project | null>(null)
@@ -13,12 +14,14 @@ export default function useProjects() {
   const [actionResult, setActionResult] = useState<ProjectActionResult | null>(null)
   const [search,       setSearch]       = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [approvalFilter, setApprovalFilter] = useState('all')   // pending / approved / rejected
   const [typeFilter,   setTypeFilter]   = useState('all')   // filter by project_type
   const [page,         setPage]         = useState(1)
 
   /* Filter setters reset to page 1 */
   const changeSearch = (v: string) => { setSearch(v); setPage(1) }
   const changeStatus = (v: string) => { setStatusFilter(v); setPage(1) }
+  const changeApproval = (v: string) => { setApprovalFilter(v); setPage(1) }
   const changeType   = (v: string) => { setTypeFilter(v); setPage(1) }
 
   /* Edit opens EditItemModal and closes the detail modal — no redirect */
@@ -27,6 +30,7 @@ export default function useProjects() {
   const statusOptions = ['all', ...Array.from(new Set(data.map((r) => r.status)))]
   const typeOptions   = ['all', ...Array.from(new Set(data.map((r) => r.project_type).filter(Boolean)))]
   const filtered  = data
+    .filter((r) => approvalFilter === 'all' || r.approval_status === approvalFilter)
     .filter((r) => statusFilter === 'all' || r.status       === statusFilter)
     .filter((r) => typeFilter   === 'all' || r.project_type === typeFilter)
     .filter((r) => Object.values(r).some((v) => String(v).toLowerCase().includes(search.toLowerCase())))
@@ -40,12 +44,12 @@ export default function useProjects() {
     setTimeout(() => setActionResult({ variant: 'danger', title: 'Project Deleted', message: `"${title}" has been permanently removed.` }), 260)
   }
   function handleApprove(r: Project) {
-    setData(prev => prev.map((p) => p.id === r.id ? { ...p, status: 'ongoing' } : p))
-    setActionResult({ variant: 'success', title: 'Project Approved', message: `"${r.title}" approved and set to Ongoing.` })
+    setData(prev => prev.map((p) => p.id === r.id ? { ...p, ...decide('approved', currentUser?.id ?? null) } : p))   // approval only: lifecycle status is untouched
+    setActionResult({ variant: 'success', title: 'Project Approved', message: `"${r.title}" has been approved.` })
   }
   function handleReject(r: Project) {
-    setData(prev => prev.map((p) => p.id === r.id ? { ...p, status: 'cancelled' } : p))
-    setActionResult({ variant: 'danger', title: 'Project Rejected', message: `"${r.title}" rejected and marked Cancelled.` })
+    setData(prev => prev.map((p) => p.id === r.id ? { ...p, ...decide('rejected', currentUser?.id ?? null) } : p))
+    setActionResult({ variant: 'danger', title: 'Project Rejected', message: `"${r.title}" has been rejected.` })
   }
   function handleSaveEdit(updated: Project) {
     setData(prev => prev.map((r) => r.id === updated.id ? updated : r))
@@ -54,7 +58,7 @@ export default function useProjects() {
 
   return {
     data, filtered, paged, page, setPage, totalPages,
-    search, changeSearch, statusFilter, changeStatus, typeFilter, changeType, statusOptions, typeOptions,
+    search, changeSearch, statusFilter, changeStatus, approvalFilter, changeApproval, typeFilter, changeType, statusOptions, typeOptions,
     viewItem, setViewItem, editItem, setEditItem, deleteItem, setDeleteItem, actionResult, setActionResult,
     startEdit, handleDelete, handleApprove, handleReject, handleSaveEdit,
   }

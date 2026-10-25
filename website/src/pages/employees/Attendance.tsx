@@ -2,6 +2,7 @@
 // Composition only — pieces live in ./parts (state and handlers in useAttendanceMarking)
 import { Card, InfoModal } from '../../components/ui'
 import { MOCK_PROJECTS, MOCK_EVENTS } from '../../api/mockData'
+import { approvedOnly } from '../../utils/approvals'
 import { useOrg } from '../../context/OrgContext'
 import useBreakpoint from '../../hooks/useBreakpoint'
 import AttendanceTileCard from './parts/AttendanceTileCard'
@@ -12,6 +13,8 @@ import { useAttendanceMarking } from './parts/useAttendanceMarking'
 
 export default function Attendance() {
   const org = useOrg()
+  const projects = approvedOnly(MOCK_PROJECTS)   // attendance is taken only for approved activities
+  const events   = approvedOnly(MOCK_EVENTS)
   const { isMobile, isTablet } = useBreakpoint()
   const tileCols = isMobile ? '1fr' : isTablet ? 'repeat(2,1fr)' : 'repeat(3,1fr)'
   const { allRecords, viewItem, setViewItem, localAttendance, openModal, handleStatusChange, handleMarkAllNoRecord, handleResetAll, handleSave } = useAttendanceMarking()
@@ -21,9 +24,9 @@ export default function Attendance() {
 
       {/* ── Projects Section ──────────────────────────────────── */}
       <Card style={{ padding: '18px 20px' }}>
-        <SectionHeader icon={<IcoProject />} label={`${org.project_label} Attendance`} count={MOCK_PROJECTS.length} color="var(--accent)" />
+        <SectionHeader icon={<IcoProject />} label={`${org.project_label} Attendance`} count={projects.length} color="var(--accent)" />
         <div style={{ display: 'grid' as const, gridTemplateColumns: tileCols, gap: 14 }}>
-          {MOCK_PROJECTS.map(project => (
+          {projects.map(project => (
             <AttendanceTileCard
               key={project.id}
               activity={project}
@@ -37,9 +40,9 @@ export default function Attendance() {
 
       {/* ── Events Section ────────────────────────────────────── */}
       <Card style={{ padding: '18px 20px' }}>
-        <SectionHeader icon={<IcoEvent />} label={`${org.event_label} Attendance`} count={MOCK_EVENTS.length} color="var(--success)" />
+        <SectionHeader icon={<IcoEvent />} label={`${org.event_label} Attendance`} count={events.length} color="var(--success)" />
         <div style={{ display: 'grid' as const, gridTemplateColumns: tileCols, gap: 14 }}>
-          {MOCK_EVENTS.map(event => (
+          {events.map(event => (
             <AttendanceTileCard
               key={event.id}
               activity={event}

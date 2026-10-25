@@ -11,7 +11,6 @@ const STATUS_OPTIONS = [
   { value: 'ongoing',   label: 'Ongoing'   },
   { value: 'completed', label: 'Completed' },
   { value: 'cancelled', label: 'Cancelled' },
-  { value: 'rejected',  label: 'Rejected'  },
 ]
 const PROJECT_TYPE_OPTIONS = [
   { value: 'Community Service', label: 'Community Service' },

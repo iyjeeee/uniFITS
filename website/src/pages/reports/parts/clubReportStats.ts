@@ -1,6 +1,7 @@
 // parts/clubReportStats.ts — Club report figures from the mock records (income, expenses, member/project/event stats, fund rows)
 import { MOCK_USERS, MOCK_PROJECTS, MOCK_EVENTS, MOCK_TRANSACTIONS, getFundsWithBalance, getUtilitiesWithBalance } from '../../../api/mockData'
 import { isReceipt, sumMoney } from '../../../utils/ledger'
+import { approvedOnly } from '../../../utils/approvals'
 
 export function getClubReportStats() {
   const fundsWithBalance    = getFundsWithBalance()   // balances derived from approved transactions
@@ -27,10 +28,12 @@ export function getClubReportStats() {
   const regularMembers      = MOCK_USERS.filter((u) => u.role === 'Member').length
 
   // Project stats
-  const completedProjects   = MOCK_PROJECTS.filter((p) => p.status === 'completed').length
-  const ongoingProjects     = MOCK_PROJECTS.filter((p) => p.status === 'ongoing').length
-  const completedEvents     = MOCK_EVENTS.filter((e) => e.status === 'completed').length
-  const upcomingEvents      = MOCK_EVENTS.filter((e) => e.status === 'upcoming').length
+  const projects            = approvedOnly(MOCK_PROJECTS)   // pending / rejected items are not counted
+  const events              = approvedOnly(MOCK_EVENTS)
+  const completedProjects   = projects.filter((p) => p.status === 'completed').length
+  const ongoingProjects     = projects.filter((p) => p.status === 'ongoing').length
+  const completedEvents     = events.filter((e) => e.status === 'completed').length
+  const upcomingEvents      = events.filter((e) => e.status === 'upcoming').length
 
   // Utility breakdown
   const utilByType = utilities.reduce((acc: Record<string, number>, u) => {
@@ -49,6 +52,7 @@ export function getClubReportStats() {
     totalFundBalance, memberDues, projectIncome, eventIncome, fundIncome, totalIncome,
     projectExpense, eventExpense, utilityExpense, totalExpense, netSurplus,
     activeMembers, officers, regularMembers, completedProjects, ongoingProjects, completedEvents, upcomingEvents,
+    totalProjects: projects.length, totalEvents: events.length,   // approved only
     utilByType, fundRows,
   }
 }

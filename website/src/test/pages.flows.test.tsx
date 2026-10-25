@@ -13,7 +13,7 @@ import Announcements from '../pages/announcements/Announcements'
 import RolesPage from '../pages/employees/RolesPage'
 import Profile from '../pages/profile/Profile'
 import PersonalTransactions from '../pages/profile/PersonalTransactions'
-import { MOCK_TRANSACTIONS } from '../api/mockData'
+import { MOCK_TRANSACTIONS, MOCK_PROJECTS } from '../api/mockData'
 import type { ReactElement } from 'react'
 
 const mount = (ui: ReactElement) => render(<OrgProvider orgData={{}}>{ui}</OrgProvider>)
@@ -154,9 +154,14 @@ describe('edit/save flows', () => {
   })
 
   it('Announcements: project tiles open a Project detail and page buttons change the page', () => {
-    mount(<Announcements />)
-    fireEvent.click(screen.getByRole('button', { name: '2' }))
-    expect(document.body.textContent).toMatch(/Page 2 of 2/)
+    // only approved items are listed (7 now) and a page holds 8, so add two approved projects to get a second page
+    const extra = [1, 2].map((n) => ({ ...MOCK_PROJECTS[0], id: `extra-${n}`, title: `Extra Project ${n}` }))
+    MOCK_PROJECTS.push(...extra)
+    try {
+      mount(<Announcements />)
+      fireEvent.click(screen.getByRole('button', { name: '2' }))
+      expect(document.body.textContent).toMatch(/Page 2 of 2/)
+    } finally { for (const e of extra) MOCK_PROJECTS.splice(MOCK_PROJECTS.indexOf(e), 1) }
   })
 
   it('Roles: creating a role adds it to the table, and it can be deleted again', async () => {

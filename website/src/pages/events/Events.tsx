@@ -11,11 +11,11 @@ import EventsToolbar from './parts/EventsToolbar'
 import EventsTable from './parts/EventsTable'
 import EventDetailModal from './parts/EventDetailModal'
 import DeleteEventModal from './parts/DeleteEventModal'
-import type { ModalVariant } from '../../types'
+import type { ModalVariant, User } from '../../types'
 
-export default function Events() {
+export default function Events({ currentUser = null }: { currentUser?: User | null }) {
   const org = useOrg()
-  const ev = useEvents()
+  const ev = useEvents(currentUser)
   return (
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 14 }}>
       {/* KPI row — 4-col desktop, 2-col on mobile/tablet */}
@@ -25,6 +25,7 @@ export default function Events() {
         <EventsToolbar total={ev.filtered.length}
           typeFilter={ev.typeFilter} onTypeChange={ev.changeType}
           statusFilter={ev.statusFilter} statusOptions={ev.statusOptions} onStatusChange={ev.changeStatus}
+          approvalFilter={ev.approvalFilter} onApprovalChange={ev.changeApproval}
           search={ev.search} onSearchChange={ev.changeSearch} />
         <EventsTable rows={ev.paged} onRowClick={ev.setViewItem} onApprove={ev.handleApprove} onReject={ev.handleReject} onDelete={ev.setDeleteItem} />
         <PaginationRow page={ev.page} totalPages={ev.totalPages} onPageChange={ev.setPage} total={ev.filtered.length} />

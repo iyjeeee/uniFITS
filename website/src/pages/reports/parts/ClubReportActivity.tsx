@@ -1,5 +1,5 @@
 // parts/ClubReportActivity.tsx — V. Project & Event Activity Summary (two columns, one on mobile)
-import { MOCK_PROJECTS, MOCK_EVENTS, formatCurrency } from '../../../api/mockData'
+import { formatCurrency } from '../../../api/mockData'
 import { useOrg } from '../../../context/OrgContext'
 import useBreakpoint from '../../../hooks/useBreakpoint'
 import ReportSection from './ReportSection'
@@ -9,7 +9,7 @@ import type { ClubReportStats } from './clubReportStats'
 export default function ClubReportActivity({ stats }: { stats: ClubReportStats }) {
   const org = useOrg()
   const { isMobile } = useBreakpoint()
-  const { completedProjects, ongoingProjects, completedEvents, upcomingEvents, projectIncome, projectExpense, eventIncome, eventExpense } = stats
+  const { totalProjects, totalEvents, completedProjects, ongoingProjects, completedEvents, upcomingEvents, projectIncome, projectExpense, eventIncome, eventExpense } = stats
   return (
     <ReportSection title="V. Project & Event Activity Summary">
       <div style={{ display: 'grid' as const, gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
@@ -17,7 +17,7 @@ export default function ClubReportActivity({ stats }: { stats: ClubReportStats }
         <div>
           <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--accent)', marginBottom: 10, textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>{org.project_label}s</div>
           <div style={{ borderRadius: 10, overflow: 'hidden', border: '1.5px solid var(--border-card)' }}>
-            <StatRow label="Total Projects"    value={MOCK_PROJECTS.length} />
+            <StatRow label="Total Projects"    value={totalProjects} />
             <StatRow label="Completed"         value={completedProjects} indent color="var(--success)" />
             <StatRow label="Ongoing"           value={ongoingProjects}   indent color="var(--warning)" />
             <StatRow label="Total Income"      value={formatCurrency(projectIncome,  org.currency_symbol)} indent color="var(--success)" />
@@ -29,7 +29,7 @@ export default function ClubReportActivity({ stats }: { stats: ClubReportStats }
         <div>
           <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--success)', marginBottom: 10, textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>{org.event_label}s</div>
           <div style={{ borderRadius: 10, overflow: 'hidden', border: '1.5px solid var(--border-card)' }}>
-            <StatRow label="Total Events"      value={MOCK_EVENTS.length} />
+            <StatRow label="Total Events"      value={totalEvents} />
             <StatRow label="Completed"         value={completedEvents}  indent color="var(--success)" />
             <StatRow label="Upcoming"          value={upcomingEvents}   indent color="var(--warning)" />
             <StatRow label="Total Income"      value={formatCurrency(eventIncome,  org.currency_symbol)} indent color="var(--success)" />
