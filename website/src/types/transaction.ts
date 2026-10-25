@@ -3,7 +3,6 @@
 export type EntryType = 'contribution' | 'income' | 'expense' | 'refund' | 'opening_balance'   // inflow: contribution/income/opening_balance; outflow: expense/refund
 export type TransactionCategory = 'fund' | 'project' | 'event' | 'utility'
 export type TransactionStatus = 'pending' | 'approved' | 'rejected' | 'voided'   // only 'approved' counts in balances (utils/ledger.ts); other totals follow in the numbers phase
-export type PaymentMethod = 'Cash' | 'GCash' | 'Bank Transfer' | 'PayMaya' | 'Cheque'
 export type UtilityStatus = 'paid' | 'unpaid' | 'partial'
 
 // Transaction — matches MOCK_TRANSACTIONS + backend transactions table
@@ -18,7 +17,7 @@ export interface Transaction {
   event_id?: string | null    // set when category is 'event' (FK to events.id)
   utility_id?: string | null  // set when category is 'utility' (FK to utilities.id) - a payment of that bill
   amount: number              // PHP amount
-  payment_method: PaymentMethod | null   // null for opening balances (no payment took place)
+  payment_method_id: string | null   // FK to payment_methods.id; null for opening balances (no payment took place); name via getPaymentMethodName()
   reference_number: string    // 'TXN-YYYYMMDD-XXXX'
   transaction_date: string    // 'YYYY-MM-DD'
   status: TransactionStatus
@@ -40,9 +39,9 @@ export interface Utility {
 // UtilityWithBalance -- bill + DERIVED paid amount and status (mirrors the utility_balances view); never stored
 export type UtilityWithBalance = Utility & { amount_paid: number; status: UtilityStatus }
 
-// PaymentMethod option — matches MOCK_PAYMENT_METHODS
+// PaymentMethodOption - a payment method of the organisation; matches MOCK_PAYMENT_METHODS
 export interface PaymentMethodOption {
   id: string
-  name: PaymentMethod
+  name: string               // e.g. 'Cash', 'GCash' (organisation-defined list)
   is_active: boolean
 }

@@ -66,7 +66,7 @@ describe('approving an expense is blocked when the fund cannot cover it', () => 
   const added: Transaction[] = []
   afterEach(() => { for (const t of added) MOCK_TRANSACTIONS.splice(MOCK_TRANSACTIONS.indexOf(t), 1); added.length = 0 })
   const pending = (id: string, amount: number): Transaction => {
-    const t: Transaction = { id, user_id: null, user_name: null, entry_type: 'expense', category: 'fund', fund_id: '4', amount, payment_method: null,
+    const t: Transaction = { id, user_id: null, user_name: null, entry_type: 'expense', category: 'fund', fund_id: '4', amount, payment_method_id: null,
       reference_number: `TXN-TEST-${id}`, transaction_date: '2025-04-01', status: 'pending', description: 'test spend' }
     MOCK_TRANSACTIONS.push(t); added.push(t); return t
   }

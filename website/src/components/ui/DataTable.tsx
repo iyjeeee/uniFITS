@@ -14,15 +14,16 @@ interface DataTableProps<T extends { id?: string | number }> {
   subtitle?: string
   emptyMsg?: string
   onRowClick?: (row: T) => void   // makes rows clickable (pointer cursor); omit for a plain table
+  searchValues?: (row: T) => unknown[]   // what the search box looks at; default = the row's raw values (use it to search NAMES instead of ids)
 }
-export function DataTable<T extends { id?: string | number }>({ columns = [], data = [], title, subtitle, emptyMsg = 'No records found.', onRowClick }: DataTableProps<T>) {
+export function DataTable<T extends { id?: string | number }>({ columns = [], data = [], title, subtitle, emptyMsg = 'No records found.', onRowClick, searchValues }: DataTableProps<T>) {
   const [search,   setSearch  ] = useState('')
   const [page,     setPage    ] = useState(1)
   const [pageSize, setPageSize] = useState(10)
 
   // Simple text search across all string values in each row
   const filtered = data.filter(row =>
-    Object.values(row as Record<string, unknown>).some(v => String(v).toLowerCase().includes(search.toLowerCase()))
+    (searchValues ? searchValues(row) : Object.values(row as Record<string, unknown>)).some(v => String(v).toLowerCase().includes(search.toLowerCase()))
   )
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
   const paginated  = filtered.slice((page - 1) * pageSize, page * pageSize)

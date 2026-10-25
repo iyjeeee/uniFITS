@@ -9,7 +9,7 @@ export type { Fund, FundWithBalance, FundType, FundStatus, PaymentFrequency } fr
 export type {
   Transaction, Utility, UtilityWithBalance, PaymentMethodOption,
   EntryType, TransactionCategory, TransactionStatus,
-  PaymentMethod, UtilityStatus,
+  UtilityStatus,
 } from './transaction'
 export type { Attendance, AttendanceStatus, ActivityType } from './attendance'
 export type { Announcement } from './announcement'

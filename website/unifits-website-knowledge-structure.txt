@@ -20,12 +20,12 @@
         in api/mockData.ts mirrors the fund_balances view. Only APPROVED transactions count (utils/ledger.ts fundBalance).
       - utils/ledger.ts (NEW) = the one place for money rules: sumMoney (whole centavos, no 0.1+0.2 drift), signedAmount,
         isReceipt (income|contribution; opening balance and refund are NOT receipts), fundBalance, overdrawOnApprove.
-      - 5 opening_balance rows (ids 7-11, 2025-01-01, approved, no member, payment_method null) carry each fund's old balance:
+      - 5 opening_balance rows (ids 7-11, 2025-01-01, approved, no member, payment_method_id null) carry each fund's old balance:
         82,600 / 53,000 / 72,500 / 20,000 / 150,000 -> derived balances equal the previous ones exactly (total 425,500).
         (Step 4 later raised two of them to 95,800 [Membership Dues] and 97,500 [Event] to cover bills paid from those funds.)
       - Approving an outflow that would take its fund below zero is blocked in the Transactions page (danger message);
         exactly zero is allowed. Same rule enforced in the DB (schema v2.2).
-      - Transaction.payment_method is now PaymentMethod | null (null for opening balances; shown as the dash).
+      - Transaction.payment_method became nullable here (null for opening balances); step 5 turned it into payment_method_id.
       - Entry types have labels (entryTypeLabel: "Opening balance"), badge colours and filter options (refund, opening_balance).
       - Dashboard "Total Transactions" excludes opening balances (still 6); income/expense KPIs unchanged.
       - Visible change: the Transactions list shows 11 records (5 opening balances, 2 pages). All other pages unchanged.
@@ -48,6 +48,15 @@
         already said Due Date).
       - Tests: 208 pass in 28 files (new: test/utilityBills.test.tsx; utility cases in ledger.test.ts / fundBalances.test.tsx).
         The old overpay/status rules (B-19/B-78) now only apply to the Add form (UI-only until Supabase).
+    P1a step 5 DONE (P1a COMPLETE): Transaction.payment_method (name) -> payment_method_id (FK to payment_methods.id, null for
+      opening balances). The PaymentMethod name union is GONE; PaymentMethodOption.name is a plain string (organisation-defined).
+      getPaymentMethodName(id) in api/mockData.ts resolves the name ("—" when none). Display sites (receipt, profile detail,
+      profile table, all-transactions modal, employee report) and the Transactions search use names, not ids. The Add Transaction
+      form already used payment_method_id. NO visible change (284 page states identical to the previous delivery).
+      - FIX of a step-2 regression found here: "My Transaction History" (DataTable) searched raw row values, so searching a fund
+        NAME stopped matching after fund names became ids. DataTable now has an optional searchValues(row) prop; the profile
+        table passes names (fund + method). CONVENTION: any table whose rows hold ids must pass searchValues.
+      - Tests: 214 pass in 29 files (new: test/paymentMethods.test.tsx, 6 tests incl. the profile-table search).
     NOTE: the owner's uploaded website.zip had 171 tests = WITHOUT batch 19; the 177 count includes batch 19 (+6 tests).
     This delivery includes batch 19 + step 1 + docs/database as one ZIP (diff against the uploaded ZIP).
   Session 2026-10-27 (date as found, later than the real date; NOT VERIFIED) — STEP B (BUG FIXES), batch 19: B-47 FIXED. (tsc clean, eslint 0 errors,
@@ -1633,7 +1642,7 @@ TO VERIFY (suspected, not yet checked)
     funds             -> Fund                            -> MOCK_FUNDS
         balance DERIVED (view fund_balances); remove currency (org currency applies); created_by id.
     payment_methods   -> PaymentMethodOption             -> MOCK_PAYMENT_METHODS
-        PaymentMethod literal union -> string from the table (defaults: Cash, GCash, Bank Transfer, PayMaya, Cheque).
+        DONE (step 5): the PaymentMethod literal union is removed; names come from the table (defaults: Cash, GCash, Bank Transfer, PayMaya, Cheque).
     utilities         -> Utility                         -> MOCK_UTILITIES
         Utility becomes the BILL: expense_type, total_amount, due_date (was payment_date), paid_to, notes, fund_id.
         amount_paid and status are DERIVED from approved payments (view utility_balances) -> they cannot contradict (B-19/B-78).
@@ -1683,7 +1692,7 @@ TO VERIFY (suspected, not yet checked)
         2 fund by id (fund_id on transactions + utilities) ........ DONE
         3 fund balance derived (remove stored balance + currency) ........ DONE (+ opening balances, approve guard, schema v2.2)
         4 utility = bill; amount_paid/status derived from approved payment transactions ........ DONE
-        5 payment method by id
+        5 payment method by id ........ DONE   (P1a COMPLETE; next: P1b projects/events)
     P1b projects/events (approval_status, event_type, derived funding) incl. B-74, B-71
     P1c attendance by ids (B-49); users/roles by id (B-21); announcements
     P1d B-01: pass record id via query param (#/employees/details?id=5); ROUTES table unchanged; "not found" state
@@ -2009,7 +2018,8 @@ src/constants/fundColors.ts
 
 src/components/ui/index.tsx (+ one file per component group in the same folder)
   The custom design system — 20 exported components. DataTable supports an optional
-  onRowClick(row) (rows get a pointer cursor only when it is provided). index.tsx only
+  onRowClick(row) (rows get a pointer cursor only when it is provided) and an optional
+  searchValues(row) (what the search box scans; default = raw row values, so tables holding ids must pass names). index.tsx only
   re-exports; each component lives in its own file (Badge.tsx, Button.tsx,
   FormFields.tsx, InfoModal.tsx, ResponseModal.tsx, DataTable.tsx, ...).
   Add a new component as its own file and re-export it in index.tsx.
@@ -2111,6 +2121,9 @@ src/utils/ledger.ts
 src/utils/ledger.test.ts
   Unit tests for ledger.ts (directions, approved-only, exact sums, overdraw guard). Include when changing ledger.ts.
 
+src/test/paymentMethods.test.tsx
+  Payment methods by id: integrity, getPaymentMethodName, receipt shows the NAME, Transactions + profile-table search by method/fund NAME.
+
 src/test/utilityBills.test.tsx
   Edit Utility form edits the bill only (no Amount Paid/Status, Due Date, status follows a new total, paid never changes).
 
@@ -2157,7 +2170,7 @@ src/types/fund.ts
 
 src/types/transaction.ts
   Transaction interface. Utility interface.
-  EntryType, TransactionStatus, PaymentMethod types.
+  EntryType, TransactionStatus types (payment methods are PaymentMethodOption records, referenced by id).
   Include when working on transactions, utilities, reports.
 
 src/types/attendance.ts

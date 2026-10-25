@@ -2,7 +2,7 @@
 import { useOrg } from '../../../context/OrgContext'
 import useBreakpoint from '../../../hooks/useBreakpoint'
 import { Button, InfoModal } from '../../../components/ui'
-import { formatDate, formatCurrency, getFundName } from '../../../api/mockData'
+import { formatDate, formatCurrency, getFundName, getPaymentMethodName } from '../../../api/mockData'
 import type { Transaction } from '../../../types'
 import TypeBadge from './TransactionTypeBadge'
 
@@ -55,7 +55,7 @@ export default function TransactionDetailModal({ tx, onClose }: { tx: Transactio
           {[
             ['Date',           formatDate(tx.transaction_date)],
             ['Status',         tx.status],
-            ['Payment Method', tx.payment_method || '—'],
+            ['Payment Method', getPaymentMethodName(tx.payment_method_id)],
             ['Reference No.',  tx.reference_number || '—'],
           ].map(([k, v]) => (
             <div key={k} style={{ padding: '10px 14px', borderRadius: 10, background: 'var(--neutral-light)', border: '1px solid var(--border-card)' }}>

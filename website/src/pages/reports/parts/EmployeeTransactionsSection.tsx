@@ -1,6 +1,6 @@
 // parts/EmployeeTransactionsSection.tsx — "Recent Transactions" table of the selected member (first 6, array order — see bug log)
 import { StatusBadge } from '../../../components/ui'
-import { formatCurrency, formatDate } from '../../../api/mockData'
+import { formatCurrency, formatDate, getPaymentMethodName } from '../../../api/mockData'
 import { useOrg } from '../../../context/OrgContext'
 import type { Transaction } from '../../../types'
 
@@ -34,7 +34,7 @@ export default function EmployeeTransactionsSection({ myTx }: { myTx: Transactio
                       {t.category.charAt(0).toUpperCase() + t.category.slice(1)}
                     </span>
                   </td>
-                  <td style={{ padding: '9px 12px' }}>{t.payment_method ?? '—'}</td>
+                  <td style={{ padding: '9px 12px' }}>{getPaymentMethodName(t.payment_method_id)}</td>
                   <td style={{ padding: '9px 12px' }}><StatusBadge status={t.status} /></td>
                   <td style={{ padding: '9px 12px' }}>{formatDate(t.transaction_date)}</td>
                 </tr>

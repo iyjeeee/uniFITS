@@ -1,5 +1,5 @@
 // parts/TransactionReceiptContent.tsx — Receipt-style transaction detail: header, key-value grid, From -> Type -> To flow, category + amount
-import { formatCurrency, formatDate, getFundName } from '../../../api/mockData'
+import { formatCurrency, formatDate, getFundName, getPaymentMethodName } from '../../../api/mockData'
 import { useOrg } from '../../../context/OrgContext'
 import useBreakpoint from '../../../hooks/useBreakpoint'
 import EntryTypeBadge from './EntryTypeBadge'
@@ -22,7 +22,7 @@ export default function TransactionReceiptContent({ tx }: { tx: Transaction }) {
           ['Date',           formatDate(tx.transaction_date)],
           ['Member',         tx.user_name || 'External'],
           ['Status',         tx.status.charAt(0).toUpperCase() + tx.status.slice(1)],
-          ['Payment Method', tx.payment_method ?? '—'],
+          ['Payment Method', getPaymentMethodName(tx.payment_method_id)],
           ['Fund',           getFundName(tx.fund_id)],
         ].map(([k, v]) => (
           <div key={k}>
