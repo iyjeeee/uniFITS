@@ -5,7 +5,7 @@ import { TableIco } from '../../../components/Icons'
 import { useOrg } from '../../../context/OrgContext'
 import { capitalize } from '../../../utils/formatters'
 import { APPROVAL_FILTER_OPTIONS } from '../../../constants/approval'
-import { EVENT_CATEGORY_OPTIONS } from './eventsShared'
+import { EVENT_TYPE_FILTER_OPTIONS } from './eventsShared'
 
 interface Props {
   total: number
@@ -20,7 +20,7 @@ export default function EventsToolbar({ total, typeFilter, onTypeChange, statusF
   return (
     <TableToolbar title={`${org.event_label} Data Table`} subtitle={`${total} records · click any row for details`}>
       {/* Type filter — by event category */}
-      <NativeFilterSelect value={typeFilter} onChange={onTypeChange} options={EVENT_CATEGORY_OPTIONS.map((t) => ({ value: t, label: t === 'all' ? 'All Types' : t }))} />
+      <NativeFilterSelect value={typeFilter} onChange={onTypeChange} options={EVENT_TYPE_FILTER_OPTIONS.map((t) => ({ value: t, label: t === 'all' ? 'All Types' : t }))} />
       {/* Status filter */}
       <NativeFilterSelect value={statusFilter} onChange={onStatusChange} options={statusOptions.map((s) => ({ value: s, label: s === 'all' ? 'All Status' : capitalize(s) }))} />
       {/* Approval filter -- pending / approved / rejected */}

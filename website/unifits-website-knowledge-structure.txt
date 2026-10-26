@@ -77,6 +77,15 @@
         the two-session race test still behaves the same. Mock attendance only covers completed/approved activities, so it already complies.
       - Tests: 228 pass in 31 files (new: utils/approvals.test.ts, test/approvals.test.tsx; old approve/reject + KPI tests updated; the
         Announcements pagination test now adds two approved dummy projects because 7 approved items fit on one page).
+    P1b-2 DONE (B-74 FIXED): AppEvent has a real event_type (permissive string, one of EVENT_TYPES = Fundraising/Sports/Civic/Training/General,
+      constants/eventTypes.ts, which also holds EVENT_TYPE_SELECT_OPTIONS). The title-keyword guess (getEventCategory, EVENT_CATEGORY_OPTIONS)
+      is REMOVED; the Events type filter uses the stored type. Mock events were typed to match what the guess returned (Gala=Fundraising,
+      Sportsfest=Sports, Independence Day Parade=Civic, Christmas Party=General), so filter results are unchanged.
+      - New "Event Type" select in: Add Event (step 1, REQUIRED like Project Type; review + side summary show it), Edit Event page, and the
+        event edit modal. The event detail grid now has a "Type" row (it used to end with a duplicate Status row that was filtered out).
+      - NOTE: form labels are still not linked to their inputs (B-60), so tests locate a field through its label's container.
+      - Visible changes: only those additions (265 page states compared against the previous delivery: 11 differ, all additions).
+      - Tests: 230 pass in 32 files (events.test.tsx: keyword tests replaced by stored-type tests; new test/addEventType.test.tsx).
     NOTE: the owner's uploaded website.zip had 171 tests = WITHOUT batch 19; the 177 count includes batch 19 (+6 tests).
     This delivery includes batch 19 + step 1 + docs/database as one ZIP (diff against the uploaded ZIP).
   Session 2026-10-27 (date as found, later than the real date; NOT VERIFIED) — STEP B (BUG FIXES), batch 19: B-47 FIXED. (tsc clean, eslint 0 errors,
@@ -136,7 +145,7 @@
       NativeFilterSelect, BtnIco.Check/Reject/Delete) — no new shared components were needed.
     · ALL list pages (Utilities, Employees, Transactions, Projects, Events) now use the shared
       KpiStrip / TableToolbar / dropdown components; no inline copies are left.
-    · NEW tests: events.test.tsx (8: category rule, KPIs, filter/search, approve/reject, edit, delete).
+    · NEW tests: events.test.tsx (originally 8: category rule, KPIs, filter/search, approve/reject, edit, delete; the category rule tests were later replaced by event-type tests).
     · Bugs only DOCUMENTED, not fixed: B-74, B-75; B-71 / B-72 / B-73 extended to Events.
     · (superseded by the 2026-10-25 list above)
   Session 2026-10-23 — FILE SPLITTING, batch 15 (Projects) (tsc/build clean, eslint 0 errors,
@@ -1581,7 +1590,8 @@ LOW — cosmetic / cleanup
         target is 0). Events handles both cases (shows "None" / "—" and needs target > 0 for green)
         but also omits org.currency_symbol. EditItemModal labels "Target Funding (₱)" with a fixed
         peso sign (see B-19).
-  B-74  Events have no type field: the "type" filter is derived from title keywords (getEventCategory):
+  B-74  FIXED (P1b-2): events now have a stored event_type; the keyword guess is gone (see the P1b-2 note at the top).
+        Original report: Events have no type field: the "type" filter was derived from title keywords (getEventCategory):
         gala / fundrais / benefit -> Fundraising; sport / game / tournament -> Sports; parade / civic /
         independence / national -> Civic; seminar / training / workshop -> Training; anything else ->
         General. Renaming an event changes its category, "Benefit Game Night" is Fundraising (first
@@ -1719,7 +1729,7 @@ TO VERIFY (suspected, not yet checked)
         5 payment method by id ........ DONE   (P1a COMPLETE; next: P1b projects/events)
     P1b projects/events, in 3 sub-steps:
         1 approval workflow (approval_status separate from lifecycle; B-71) ........ DONE
-        2 event_type field instead of the title-keyword guess (B-74)
+        2 event_type field instead of the title-keyword guess (B-74) ........ DONE
         3 derived funding (current_funding from approved transactions; needs opening entries for projects/events)
     P1c attendance by ids (B-49); users/roles by id (B-21); announcements
     P1d B-01: pass record id via query param (#/employees/details?id=5); ROUTES table unchanged; "not found" state
@@ -2154,6 +2164,12 @@ src/utils/approvals.test.ts
 src/constants/approval.ts
   APPROVAL_FILTER_OPTIONS (All / Pending / Approved / Rejected) for the Projects and Events toolbars.
 
+src/constants/eventTypes.ts
+  EVENT_TYPES + EVENT_TYPE_SELECT_OPTIONS: the event types for the Events filter and the Add/Edit event forms.
+
+src/test/addEventType.test.tsx
+  Add Event asks for the event type: listed options, Continue blocked until chosen.
+
 src/test/approvals.test.tsx
   Approval data consistency; Projects/Events pages (buttons only on pending rows, Pending badge, approval filter, Approve/Reject do
   not touch the lifecycle status, KPIs approved-only); dashboard/club-report counts and Attendance exclude unapproved items.
@@ -2361,7 +2377,7 @@ src/pages/events/Events.tsx       Props: { currentUser?: User | null }
   Composition only (46 lines). Include with only the part you change (src/pages/events/parts/):
   useEvents.ts           state: list data, filters (reset page 1), paging, detail/edit/delete modals,
                          approve / reject (approval only, via utils/approvals decide) / delete (+260 ms feedback) / save edit; takes currentUser (reviewer id); approval filter.
-  eventsShared.ts        EVENT_PAGE_SIZE, EVENT_CATEGORY_OPTIONS, EventActionResult, getEventCategory(title keywords, B-74).
+  eventsShared.ts        EVENT_PAGE_SIZE, EVENT_TYPE_FILTER_OPTIONS (All + EVENT_TYPES), EventActionResult. (getEventCategory removed: B-74.)
   EventsKpiStrip.tsx     4 KPIs (components/KpiStrip).   EventsToolbar.tsx   title, category + status ui/NativeFilterSelect, search, Add.
   EventsTable.tsx        status-colored rows (date, time, location, funding mini-bar), Pending/Rejected badge, Approve / Reject (pending rows only) / Delete icon buttons.
   EventDetailModal.tsx   detail InfoModal (components/ItemDetailContent, kind="event"), footer Edit + Close.

@@ -12,6 +12,7 @@ export interface AppEvent extends ReviewFields {
   id: string
   title: string
   description: string
+  event_type: string          // one of EVENT_TYPES (constants/eventTypes.ts); permissive string for custom types
   event_date: string          // 'YYYY-MM-DD'
   event_time: string          // 'HH:MM' 24-hr format — always display via fmt12()
   location: string

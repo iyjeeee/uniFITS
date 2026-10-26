@@ -1,6 +1,7 @@
 // components/EditItemModal.tsx — In-modal edit form for both Projects and Events
 // kind prop switches between project and event field sets — no page redirect
 import { useState, useEffect } from 'react'
+import { EVENT_TYPE_SELECT_OPTIONS } from '../constants/eventTypes'
 import type { ChangeEvent } from 'react'
 import { InfoModal, Input, Select, Textarea, SectionDivider } from './ui'
 import { modalAccentColor } from '../constants/tableColors'
@@ -115,6 +116,7 @@ export default function EditItemModal<T extends Project | AppEvent>({ open, onCl
           <div>
             <SectionDivider label="Event Details" />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 14 }}>
+              <Select label="Event Type" value={(form as Partial<AppEvent>).event_type ?? ''} onChange={set('event_type')} options={EVENT_TYPE_SELECT_OPTIONS} />
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                 <Input label="Event Date" type="date" value={(form as Partial<AppEvent>).event_date ?? ''} onChange={set('event_date')} />
                 <Input label="Start Time" type="time" value={(form as Partial<AppEvent>).event_time ?? ''} onChange={set('event_time')} />

@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { MOCK_EVENTS } from '../../../api/mockData'
 import { decide } from '../../../utils/approvals'
-import { EVENT_PAGE_SIZE, getEventCategory } from './eventsShared'
+import { EVENT_PAGE_SIZE } from './eventsShared'
 import type { EventActionResult } from './eventsShared'
 import type { AppEvent, User } from '../../../types'
 
@@ -31,7 +31,7 @@ export default function useEvents(currentUser: User | null = null) {
   const filtered = data
     .filter((r) => approvalFilter === 'all' || r.approval_status === approvalFilter)
     .filter((r) => statusFilter === 'all' || r.status === statusFilter)
-    .filter((r) => typeFilter   === 'all' || getEventCategory(r) === typeFilter)
+    .filter((r) => typeFilter   === 'all' || r.event_type === typeFilter)
     .filter((r) => Object.values(r).some((v) => String(v).toLowerCase().includes(search.toLowerCase())))
   const totalPages = Math.max(1, Math.ceil(filtered.length / EVENT_PAGE_SIZE))
   const paged      = filtered.slice((page - 1) * EVENT_PAGE_SIZE, page * EVENT_PAGE_SIZE)

@@ -3,32 +3,45 @@ import { describe, it, expect } from 'vitest'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import { OrgProvider } from '../context/OrgContext'
 import Events from '../pages/events/Events'
-import { getEventCategory, EVENT_CATEGORY_OPTIONS } from '../pages/events/parts/eventsShared'
+import { EVENT_TYPES } from '../constants/eventTypes'
 import { MOCK_EVENTS } from '../api/mockData'
 import { approvedOnly } from '../utils/approvals'
-import type { AppEvent } from '../types'
 
 const mount = () => render(<OrgProvider orgData={{}}><Events /></OrgProvider>)
 const btn = (re: RegExp) => { const b = screen.getAllByRole('button').filter(x => re.test(x.textContent ?? '')).pop(); if (!b) throw new Error('no button ' + re); return b }
 const rows = () => Array.from(document.querySelectorAll('tbody tr'))
+const fieldIn = (label: RegExp, tag: string) => screen.getByText(label, { selector: 'label' }).parentElement?.querySelector(tag) as HTMLSelectElement   // labels are not linked to controls yet (B-60)
 const selects = () => Array.from(document.querySelectorAll('select'))
 const act = (i: number, title: string) => fireEvent.click(rows()[i].querySelector(`button[title="${title}"]`) as Element)
-const ev = (title: string) => ({ ...MOCK_EVENTS[0], title }) as AppEvent
 
-describe('getEventCategory (title keywords — events have no type field)', () => {
-  it('maps the keyword groups', () => {
-    expect(getEventCategory(ev('Annual Gala Night'))).toBe('Fundraising'); expect(getEventCategory(ev('Charity Benefit Dinner'))).toBe('Fundraising')
-    expect(getEventCategory(ev('Summer Sportsfest'))).toBe('Sports'); expect(getEventCategory(ev('Inter-school Tournament'))).toBe('Sports')
-    expect(getEventCategory(ev('Independence Day Parade'))).toBe('Civic')
-    expect(getEventCategory(ev('Leadership Seminar'))).toBe('Training'); expect(getEventCategory(ev('Skills Workshop'))).toBe('Training')
+describe('event types (a real field, not guessed from the title)', () => {
+  it('every mock event has one of the listed types', () => {
+    MOCK_EVENTS.forEach(e => expect(EVENT_TYPES).toContain(e.event_type))
   })
-  it('is case-insensitive, first rule wins, and falls back to General', () => {
-    expect(getEventCategory(ev('ANNUAL GALA'))).toBe('Fundraising')
-    expect(getEventCategory(ev('Benefit Game Night'))).toBe('Fundraising')   // fundraising rule is checked before sports
-    expect(getEventCategory(ev('Christmas Party 2024'))).toBe('General'); expect(getEventCategory(ev(''))).toBe('General')
+  it('the type filter offers All + the listed types', () => {
+    mount()
+    expect(Array.from((selects()[0] as HTMLSelectElement).options).map(o => o.value)).toEqual(['all', ...EVENT_TYPES])
   })
-  it('every mock event lands in one of the listed categories', () => {
-    MOCK_EVENTS.forEach(e => expect(EVENT_CATEGORY_OPTIONS.includes(getEventCategory(e))).toBe(true))
+  it('the filter uses the STORED type: a "Sportsfest" typed Training is found under Training, not Sports', () => {
+    const e = MOCK_EVENTS.find(x => x.title === 'Summer Sportsfest')!; const was = e.event_type
+    e.event_type = 'Training'
+    try {
+      mount()
+      fireEvent.change(selects()[0], { target: { value: 'Training' } })
+      expect(rows().map(r => r.textContent).join('|')).toContain('Summer Sportsfest')
+      fireEvent.change(selects()[0], { target: { value: 'Sports' } })
+      expect(rows().map(r => r.textContent).join('|')).not.toContain('Summer Sportsfest')
+    } finally { e.event_type = was }
+  })
+  it('the Edit modal has an Event Type select; changing it moves the event to the new type filter', () => {
+    mount(); const t = 'Summer Sportsfest'
+    fireEvent.click(screen.getByText(t)); fireEvent.click(btn(/Edit Event/))
+    const typeSelect = fieldIn(/Event Type/, 'select')
+    expect(typeSelect.value).toBe('Sports')
+    fireEvent.change(typeSelect, { target: { value: 'Civic' } }); fireEvent.click(btn(/Save Event/))
+    fireEvent.click(btn(/Got it/))
+    fireEvent.change(selects()[0], { target: { value: 'Civic' } })
+    expect(rows().map(r => r.textContent).join('|')).toContain(t)
   })
 })
 
@@ -41,9 +54,9 @@ describe('Events', () => {
     expect(kpi('Overall Events')).toBe(String(MOCK_EVENTS.length)); expect(kpi('Completed')).toBe(String(count('completed')))
     expect(kpi('Ongoing')).toBe(String(count('ongoing'))); expect(kpi('Upcoming')).toBe(String(count('upcoming')))
   })
-  it('the category filter narrows the table and search can empty it', () => {
+  it('the type filter narrows the table and search can empty it', () => {
     mount()
-    fireEvent.change(selects()[0], { target: { value: 'Sports' } }); expect(rows().length).toBe(MOCK_EVENTS.filter(e => getEventCategory(e) === 'Sports').length)
+    fireEvent.change(selects()[0], { target: { value: 'Sports' } }); expect(rows().length).toBe(MOCK_EVENTS.filter(e => e.event_type === 'Sports').length)
     fireEvent.change(selects()[0], { target: { value: 'all' } })
     fireEvent.change(document.querySelector('input[placeholder="Search…"]') as Element, { target: { value: 'zzz-no-match' } })
     expect(screen.getByText('No events found.')).toBeTruthy()

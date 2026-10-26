@@ -4,10 +4,11 @@ import type { ChangeEvent } from 'react'
 import { Button, Card, Input, PageHeader, SectionDivider, Select, Textarea, ResponseModal } from '../../components/ui'
 import { MOCK_EVENTS } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
+import { EVENT_TYPE_SELECT_OPTIONS } from '../../constants/eventTypes'
 import type { NavigateFn } from '../../types'
 
 // Edit form — target_funding stays string|number: stored value is a number, the input yields strings
-interface EventForm { title: string; description: string; event_date: string; event_time: string; location: string; status: string; target_funding: string | number }
+interface EventForm { title: string; event_type: string; description: string; event_date: string; event_time: string; location: string; status: string; target_funding: string | number }
 
 const STATUS_OPTIONS = [
   { value: 'upcoming', label: 'Upcoming' }, { value: 'ongoing',   label: 'Ongoing'   },
@@ -19,7 +20,7 @@ export default function EditEvent({ eventId = '1', navigate }: { eventId?: strin
   const event = MOCK_EVENTS.find((e) => e.id === eventId) || MOCK_EVENTS[0]
 
   const [form, setForm] = useState<EventForm>({
-    title: event.title, description: event.description || '',
+    title: event.title, event_type: event.event_type || '', description: event.description || '',
     event_date: event.event_date, event_time: event.event_time || '',
     location: event.location || '', status: event.status,
     target_funding: event.target_funding,
@@ -95,6 +96,7 @@ export default function EditEvent({ eventId = '1', navigate }: { eventId?: strin
         <SectionDivider label="Event Information" />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <Input label="Event Name" value={form.title} onChange={set('title')} required />
+          <Select label="Event Type" value={form.event_type} onChange={set('event_type')} options={EVENT_TYPE_SELECT_OPTIONS} />
           <Textarea label="Description" value={form.description} onChange={set('description')} rows={3} />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <Input label="Date" type="date" value={form.event_date} onChange={set('event_date')} />

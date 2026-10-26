@@ -7,6 +7,7 @@ import useBreakpoint from '../../hooks/useBreakpoint'
 import { fmt12 } from '../../api/mockData'
 import { required, isPositiveNumber, validateStep } from '../../utils/validation'
 import { StepSidebar, FieldError, StepBanner } from '../../components/FormWizard'
+import { EVENT_TYPE_SELECT_OPTIONS } from '../../constants/eventTypes'
 
 const STEPS = ['Event Info', 'Date & Time', 'Location & Status', 'Funding', 'Review']
 const STATUS_OPTIONS = [
@@ -23,7 +24,7 @@ export default function AddEvent() {
   const { isMobile } = useBreakpoint()
   const [step, setStep] = useState(0)
   const [form, setForm] = useState<Record<string, string>>({
-    title: '', description: '', event_date: '', event_time: '',
+    title: '', event_type: '', description: '', event_date: '', event_time: '',
     location: '', status: 'upcoming', target_funding: '', photo_url: '',
   })
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)  // preview URL for uploaded photo
@@ -35,7 +36,7 @@ export default function AddEvent() {
   // stepValidators — rules per step index
   const stepValidators = [
     // Step 0 — Event Info
-    () => validateStep({ title: [() => required(form.title, 'Event Name')] }),
+    () => validateStep({ title: [() => required(form.title, 'Event Name')], event_type: [() => required(form.event_type, 'Event Type')] }),
     // Step 1 — Date & Time
     () => validateStep({ event_date: [() => required(form.event_date, 'Event Date')] }),
     // Step 2 — Location & Status (all optional)
@@ -74,6 +75,10 @@ export default function AddEvent() {
           <div>
             <Input label="Event Name" value={form.title} onChange={set('title')} placeholder="e.g. Annual Gala Night" required error={errors.title} />
             <FieldError msg={errors.title} />
+          </div>
+          <div>
+            <Select label="Event Type" value={form.event_type} onChange={set('event_type')} options={EVENT_TYPE_SELECT_OPTIONS} placeholder="Select type" required error={errors.event_type} />
+            <FieldError msg={errors.event_type} />
           </div>
           <Textarea label="Description" value={form.description} onChange={set('description')} placeholder="Describe the event…" rows={5} />
           {/* Photo upload — optional; preview shown immediately */}
@@ -141,6 +146,7 @@ export default function AddEvent() {
           <SectionDivider label="Review" />
           {[
             ['Event Name', form.title],
+            ['Type',       form.event_type],
             ['Date',       form.event_date],
             ['Time',       form.event_time ? fmt12(form.event_time) : '—'],
             ['Location',   form.location],
@@ -169,7 +175,7 @@ export default function AddEvent() {
         <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '.07em', marginBottom: 14 }}>Live Preview</div>
         <div style={{ height: 6, background: '#2E7D52', borderRadius: 3, marginBottom: 12 }} />
         <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12, color: 'var(--text-primary)' }}>{form.title || '—'}</div>
-        {[['Date', form.event_date], ['Time', form.event_time ? fmt12(form.event_time) : '—'], ['Location', form.location], ['Status', form.status], ['Target', form.target_funding ? `₱${form.target_funding}` : '—']].map(([k, v]) => (
+        {[['Type', form.event_type], ['Date', form.event_date], ['Time', form.event_time ? fmt12(form.event_time) : '—'], ['Location', form.location], ['Status', form.status], ['Target', form.target_funding ? `₱${form.target_funding}` : '—']].map(([k, v]) => (
           <div key={k} style={{ display: 'flex' as const, justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border-inner)', fontSize: 12.5 }}>
             <span style={{ color: 'var(--text-muted)' }}>{k}</span>
             <span style={{ color: v ? 'var(--text-primary)' : 'var(--border-card)', fontWeight: v ? 500 : 400 }}>{v || '—'}</span>

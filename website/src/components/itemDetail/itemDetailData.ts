@@ -35,7 +35,7 @@ export function buildDetailRows(item: Project | AppEvent, kind: ItemKind, org: O
       ? ['Duration',    `${formatDate((item as Project).start_date)} – ${formatDate((item as Project).end_date)}`]
       : ['Date & Time', `${formatDate((item as AppEvent).event_date)}${(item as AppEvent).event_time ? ' · ' + fmt12((item as AppEvent).event_time) : ''}`],
     ['Location',        item.location || '—'],
-    isProject ? ['Type', capitalize((item as Project).project_type)] : ['Status', capitalize(item.status)],
+    ['Type', capitalize(isProject ? (item as Project).project_type : (item as AppEvent).event_type)],
     ['Target Funding',  item.target_funding  > 0 ? formatCurrency(item.target_funding,  org.currency_symbol) : 'Not Required'],
     ['Current Funding', item.current_funding > 0 ? formatCurrency(item.current_funding, org.currency_symbol) : '—'],
   ].filter((row, idx, arr) =>
