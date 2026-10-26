@@ -54,10 +54,15 @@ SELECT pg_temp.give_role('a1000000-0000-0000-0000-000000000004', 'a0000000-0000-
 
 INSERT INTO funds (id, org_id, name, fund_type, created_by) VALUES
     ('f0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', 'General', 'internal', 'a1000000-0000-0000-0000-000000000001');
+-- Project A / Event A are APPROVED (money and attendance need an approved activity); 'Pending' ones exist for the review tests
+INSERT INTO projects (id, org_id, title, start_date, created_by, approval_status, reviewed_by, reviewed_at) VALUES
+    ('c0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', 'Project A', '2025-01-01', 'a1000000-0000-0000-0000-000000000001', 'approved', 'a1000000-0000-0000-0000-000000000001', NOW());
+INSERT INTO events (id, org_id, title, event_date, created_by, approval_status, reviewed_by, reviewed_at) VALUES
+    ('e0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', 'Event A', '2025-02-01', 'a1000000-0000-0000-0000-000000000001', 'approved', 'a1000000-0000-0000-0000-000000000001', NOW());
 INSERT INTO projects (id, org_id, title, start_date, created_by) VALUES
-    ('c0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', 'Project A', '2025-01-01', 'a1000000-0000-0000-0000-000000000001');
+    ('c0000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000001', 'Pending Project', '2025-06-01', 'a1000000-0000-0000-0000-000000000001');
 INSERT INTO events (id, org_id, title, event_date, created_by) VALUES
-    ('e0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', 'Event A', '2025-02-01', 'a1000000-0000-0000-0000-000000000001');
+    ('e0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000001', 'Pending Event', '2025-06-02', 'a1000000-0000-0000-0000-000000000001');
 
 -- ---------- 1. tenant isolation ----------
 SELECT pg_temp.expect_fail($q$INSERT INTO funds (org_id, name, fund_type, created_by) VALUES ('b0000000-0000-0000-0000-000000000001','X','internal','a1000000-0000-0000-0000-000000000001')$q$,
@@ -116,11 +121,11 @@ SELECT pg_temp.expect_ok($q$UPDATE transactions SET status='approved', reviewed_
 INSERT INTO projects (id, org_id, title, start_date, created_by) VALUES ('c0000000-0000-0000-0000-000000000002','a0000000-0000-0000-0000-000000000001','Sec project','2025-05-01','a1000000-0000-0000-0000-000000000003');
 SELECT pg_temp.expect_ok($q$UPDATE projects SET approval_status='approved', reviewed_by='a1000000-0000-0000-0000-000000000003', reviewed_at=NOW() WHERE id='c0000000-0000-0000-0000-000000000002'$q$,
     'T6e Secretary can approve their OWN project');
-SELECT pg_temp.expect_fail($q$UPDATE events SET approval_status='approved', reviewed_by='a1000000-0000-0000-0000-000000000002', reviewed_at=NOW() WHERE id='e0000000-0000-0000-0000-000000000001'$q$,
+SELECT pg_temp.expect_fail($q$UPDATE events SET approval_status='approved', reviewed_by='a1000000-0000-0000-0000-000000000002', reviewed_at=NOW() WHERE id='e0000000-0000-0000-0000-000000000002'$q$,
     'T6f Treasurer has no approve_event permission');
-SELECT pg_temp.expect_fail($q$UPDATE events SET approval_status='approved' WHERE id='e0000000-0000-0000-0000-000000000001'$q$,
+SELECT pg_temp.expect_fail($q$UPDATE events SET approval_status='approved' WHERE id='e0000000-0000-0000-0000-000000000002'$q$,
     'T6g approved without reviewer is rejected');
-SELECT pg_temp.expect_fail($q$UPDATE projects SET approval_status='rejected' WHERE id='c0000000-0000-0000-0000-000000000001'$q$,
+SELECT pg_temp.expect_fail($q$UPDATE projects SET approval_status='rejected' WHERE id='c0000000-0000-0000-0000-000000000003'$q$,
     'T6h rejected without reviewer is rejected');
 
 -- ---------- 7. derived numbers (only approved count) ----------
@@ -222,6 +227,30 @@ SELECT pg_temp.expect_fail($q$UPDATE transactions SET status='voided', voided_by
 SELECT pg_temp.expect_ok($q$UPDATE transactions SET status='voided', voided_by='a1000000-0000-0000-0000-000000000001', voided_at=NOW() WHERE id='d2000000-0000-0000-0000-000000000004'$q$, 'T12i voiding an expense (money returns) is allowed');
 SELECT pg_temp.expect_ok($q$INSERT INTO transactions (org_id, entry_type, amount, category, utility_id, transaction_date, created_by) VALUES ('a0000000-0000-0000-0000-000000000001','expense',999999,'utility','90000000-0000-0000-0000-000000000001','2025-02-05','a1000000-0000-0000-0000-000000000002')$q$, 'T12j an entry that touches no fund is not blocked by the fund rule');
 SELECT pg_temp.expect_ok($q$INSERT INTO transactions (org_id, entry_type, amount, category, fund_id, transaction_date, created_by, status, reviewed_by, reviewed_at) VALUES ('a0000000-0000-0000-0000-000000000001','income',12345,'fund','f0000000-0000-0000-0000-000000000002','2025-02-06','a1000000-0000-0000-0000-000000000002','approved','a1000000-0000-0000-0000-000000000001',NOW())$q$, 'T12k inflows are never blocked');
+
+
+-- ---------- 13. money and attendance only for APPROVED projects/events ----------
+SELECT pg_temp.expect_fail($q$INSERT INTO transactions (org_id, entry_type, amount, category, project_id, transaction_date, created_by) VALUES ('a0000000-0000-0000-0000-000000000001','expense',10,'project','c0000000-0000-0000-0000-000000000003','2025-06-03','a1000000-0000-0000-0000-000000000002')$q$, 'T13a a transaction for a PENDING project is rejected');
+SELECT pg_temp.expect_fail($q$INSERT INTO transactions (org_id, entry_type, amount, category, event_id, transaction_date, created_by) VALUES ('a0000000-0000-0000-0000-000000000001','expense',10,'event','e0000000-0000-0000-0000-000000000002','2025-06-03','a1000000-0000-0000-0000-000000000002')$q$, 'T13b a transaction for a PENDING event is rejected');
+SELECT pg_temp.expect_ok($q$INSERT INTO transactions (org_id, entry_type, amount, category, project_id, transaction_date, created_by) VALUES ('a0000000-0000-0000-0000-000000000001','expense',10,'project','c0000000-0000-0000-0000-000000000001','2025-06-03','a1000000-0000-0000-0000-000000000002')$q$, 'T13c a transaction for an approved project is accepted');
+SELECT pg_temp.expect_ok($q$INSERT INTO transactions (org_id, entry_type, amount, category, event_id, transaction_date, created_by) VALUES ('a0000000-0000-0000-0000-000000000001','expense',10,'event','e0000000-0000-0000-0000-000000000001','2025-06-03','a1000000-0000-0000-0000-000000000002')$q$, 'T13d a transaction for an approved event is accepted');
+INSERT INTO transactions (id, org_id, entry_type, amount, category, project_id, transaction_date, created_by) VALUES ('d3000000-0000-0000-0000-000000000001','a0000000-0000-0000-0000-000000000001','expense',10,'project','c0000000-0000-0000-0000-000000000001','2025-06-04','a1000000-0000-0000-0000-000000000002');
+SELECT pg_temp.expect_fail($q$UPDATE transactions SET project_id='c0000000-0000-0000-0000-000000000003' WHERE id='d3000000-0000-0000-0000-000000000001'$q$, 'T13e a pending transaction cannot be re-pointed to a pending project');
+SELECT pg_temp.expect_fail($q$INSERT INTO attendances (org_id, user_id, activity_type, project_id, attendance_date, status, recorded_by) VALUES ('a0000000-0000-0000-0000-000000000001','a1000000-0000-0000-0000-000000000002','project','c0000000-0000-0000-0000-000000000003','2025-06-05','present','a1000000-0000-0000-0000-000000000001')$q$, 'T13f attendance for a PENDING project is rejected');
+SELECT pg_temp.expect_fail($q$INSERT INTO attendances (org_id, user_id, activity_type, event_id, attendance_date, status, recorded_by) VALUES ('a0000000-0000-0000-0000-000000000001','a1000000-0000-0000-0000-000000000002','event','e0000000-0000-0000-0000-000000000002','2025-06-05','present','a1000000-0000-0000-0000-000000000001')$q$, 'T13g attendance for a PENDING event is rejected');
+SELECT pg_temp.expect_ok($q$INSERT INTO attendances (org_id, user_id, activity_type, event_id, attendance_date, status, recorded_by) VALUES ('a0000000-0000-0000-0000-000000000001','a1000000-0000-0000-0000-000000000002','event','e0000000-0000-0000-0000-000000000001','2025-06-05','present','a1000000-0000-0000-0000-000000000001')$q$, 'T13h attendance for an approved event is accepted');
+-- a project that is approved, gets activity, and is then rejected: history stays editable but nothing NEW can be added
+INSERT INTO projects (id, org_id, title, start_date, created_by, approval_status, reviewed_by, reviewed_at) VALUES ('c0000000-0000-0000-0000-000000000004','a0000000-0000-0000-0000-000000000001','Later Rejected','2025-07-01','a1000000-0000-0000-0000-000000000001','approved','a1000000-0000-0000-0000-000000000001',NOW());
+INSERT INTO transactions (id, org_id, entry_type, amount, category, project_id, transaction_date, created_by) VALUES ('d3000000-0000-0000-0000-000000000002','a0000000-0000-0000-0000-000000000001','income',50,'project','c0000000-0000-0000-0000-000000000004','2025-07-02','a1000000-0000-0000-0000-000000000002'),
+       ('d3000000-0000-0000-0000-000000000003','a0000000-0000-0000-0000-000000000001','income',60,'project','c0000000-0000-0000-0000-000000000004','2025-07-02','a1000000-0000-0000-0000-000000000002');
+UPDATE transactions SET status='approved', reviewed_by='a1000000-0000-0000-0000-000000000001', reviewed_at=NOW() WHERE id='d3000000-0000-0000-0000-000000000002';
+INSERT INTO attendances (id, org_id, user_id, activity_type, project_id, attendance_date, status, recorded_by) VALUES ('d4000000-0000-0000-0000-000000000001','a0000000-0000-0000-0000-000000000001','a1000000-0000-0000-0000-000000000002','project','c0000000-0000-0000-0000-000000000004','2025-07-03','present','a1000000-0000-0000-0000-000000000001');
+UPDATE projects SET approval_status='rejected', rejection_reason='cancelled by the board' WHERE id='c0000000-0000-0000-0000-000000000004';
+SELECT pg_temp.expect_fail($q$INSERT INTO transactions (org_id, entry_type, amount, category, project_id, transaction_date, created_by) VALUES ('a0000000-0000-0000-0000-000000000001','income',5,'project','c0000000-0000-0000-0000-000000000004','2025-07-04','a1000000-0000-0000-0000-000000000002')$q$, 'T13i a rejected project cannot receive new transactions');
+SELECT pg_temp.expect_fail($q$UPDATE transactions SET status='approved', reviewed_by='a1000000-0000-0000-0000-000000000001', reviewed_at=NOW() WHERE id='d3000000-0000-0000-0000-000000000003'$q$, 'T13j a pending transaction cannot be approved once its project is no longer approved');
+SELECT pg_temp.expect_ok($q$UPDATE transactions SET status='voided', voided_by='a1000000-0000-0000-0000-000000000001', voided_at=NOW(), void_reason='project rejected' WHERE id='d3000000-0000-0000-0000-000000000002'$q$, 'T13k an already-approved transaction of that project can still be voided (corrections stay possible)');
+SELECT pg_temp.expect_ok($q$UPDATE attendances SET status='late' WHERE id='d4000000-0000-0000-0000-000000000001'$q$, 'T13l existing attendance of that project can still be corrected');
+SELECT pg_temp.expect_fail($q$INSERT INTO attendances (org_id, user_id, activity_type, project_id, attendance_date, status, recorded_by) VALUES ('a0000000-0000-0000-0000-000000000001','a1000000-0000-0000-0000-000000000003','project','c0000000-0000-0000-0000-000000000004','2025-07-03','present','a1000000-0000-0000-0000-000000000001')$q$, 'T13m a rejected project cannot get new attendance');
 
 -- ---------- summary ----------
 \o

@@ -1,5 +1,5 @@
 -- =============================================================================
--- uniFITS — Database Schema v2.2 (REFERENCE — not applied to any database yet)
+-- uniFITS — Database Schema v2.3 (REFERENCE — not applied to any database yet)
 -- PostgreSQL 15+ · Multi-tenant · derived from the owner's v2.0 draft
 -- Tested on PostgreSQL 16: loads clean, behaviour proven by schema.tests.sql
 -- =============================================================================
@@ -33,6 +33,12 @@
 -- 13. Overdraft guard (trigger): approving an expense/refund, or voiding an approved inflow, is rejected when it would
 --     take the fund below zero (down to exactly 0 is allowed). The fund row is locked first, so two simultaneous
 --     approvals cannot both pass. fund_balance(fund_id) is the function form of the fund_balances view.
+-- v2.3 (owner decision: officers must review and approve first — restriction and discipline):
+-- 14. Approved-activity guard (triggers): a transaction or an attendance record can only point at a project/event whose
+--     approval_status is 'approved'. Checked when the row is created, when it is re-pointed to another project/event, and when a
+--     pending transaction is being approved. History stays editable: voiding an approved transaction and correcting existing
+--     attendance still work after a project is later rejected. (An approved project can still be set to rejected afterwards —
+--     not blocked yet; ask the owner whether approval decisions should be final.)
 -- Auth tables/columns (password_hash, tokens, sessions, login_attempts) are kept as in v2.0 but
 -- are marked "AUTH" — their fate depends on the Supabase decision (not made yet).
 -- =============================================================================
@@ -589,6 +595,34 @@ CREATE OR REPLACE FUNCTION signed_amount(p_type transaction_entry_enum, p_amount
 LANGUAGE sql IMMUTABLE AS $$
     SELECT CASE WHEN p_type IN ('income', 'contribution', 'opening_balance') THEN p_amount ELSE -p_amount END;
 $$;
+
+-- enforce_approved_activity — money and attendance only for APPROVED projects/events
+CREATE OR REPLACE FUNCTION enforce_approved_activity() RETURNS TRIGGER AS $$
+DECLARE
+    v_becoming_approved BOOLEAN := FALSE;
+BEGIN
+    IF TG_OP = 'UPDATE' THEN
+        -- a transaction that starts to count (pending -> approved) must also be checked
+        v_becoming_approved := TG_TABLE_NAME = 'transactions'
+                               AND (to_jsonb(OLD)->>'status') <> 'approved' AND (to_jsonb(NEW)->>'status') = 'approved';
+        IF NEW.project_id IS NOT DISTINCT FROM OLD.project_id AND NEW.event_id IS NOT DISTINCT FROM OLD.event_id
+           AND NOT v_becoming_approved THEN
+            RETURN NEW;                                           -- nothing that needs the check changed
+        END IF;
+    END IF;
+    IF NEW.project_id IS NOT NULL AND NOT EXISTS
+       (SELECT 1 FROM projects WHERE id = NEW.project_id AND approval_status = 'approved' AND deleted_at IS NULL) THEN
+        RAISE EXCEPTION 'project is not approved: it must be approved before it can be used here' USING ERRCODE = '23514';
+    END IF;
+    IF NEW.event_id IS NOT NULL AND NOT EXISTS
+       (SELECT 1 FROM events WHERE id = NEW.event_id AND approval_status = 'approved' AND deleted_at IS NULL) THEN
+        RAISE EXCEPTION 'event is not approved: it must be approved before it can be used here' USING ERRCODE = '23514';
+    END IF;
+    RETURN NEW;
+END; $$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_transactions_activity BEFORE INSERT OR UPDATE ON transactions FOR EACH ROW EXECUTE FUNCTION enforce_approved_activity();
+CREATE TRIGGER trg_attendances_activity  BEFORE INSERT OR UPDATE ON attendances  FOR EACH ROW EXECUTE FUNCTION enforce_approved_activity();
 
 -- fund_balance — function form of the fund_balances view: approved, non-deleted entries of one fund
 CREATE OR REPLACE FUNCTION fund_balance(p_fund UUID) RETURNS NUMERIC

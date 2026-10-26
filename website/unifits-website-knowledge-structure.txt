@@ -7,7 +7,7 @@
   NEXT STEPS (owner decision 2026-10-14): finish splitting (bugs found meanwhile are only
     logged in section 1.18, not fixed) -> fix section 1.18 -> discuss Supabase first.
   Session 2026-10-23..25 — DATA MODEL FOUNDATION: owner's R-FITS draft revised into docs/database/schema.sql v2.1
-    (multi-tenant, approvals, derived balances) + schema.tests.sql. See section 1.19. Schema is now v2.2 (67 tests pass).
+    (multi-tenant, approvals, derived balances) + schema.tests.sql. See section 1.19. Schema is now v2.3 (80 tests pass).
     P1a step 1 DONE: TransactionStatus pending/approved/rejected/voided (types, 6 mock rows, filters, colours), shim removed.
     Visible effect: pages that print a transaction's raw status now say "Approved" (was "Completed"): Dashboard, Profile,
     My Transactions, Employee Report. 177 tests pass, tsc/build clean, eslint 0 errors, 1 warning.
@@ -68,7 +68,13 @@
       - Visible changes: Dashboard Ongoing projects 4 -> 3 and Upcoming events 3 -> 2; Club Report counts 5->4 / 4->3 / 3->2;
         Attendance lists 4 projects / 3 events (was 5 / 4); Livelihood Seminar (Apr 5) and Summer Sportsfest (Apr 18) leave the calendar
         and announcement tiles until approved; Projects/Events Upcoming KPI 3 -> 2.
-      - Not done: role check on Approve/Reject (B-02), a rejection-reason prompt, DB-level refusal of payments/attendance for unapproved items.
+      - Not done: role check on Approve/Reject (B-02), a rejection-reason prompt.
+      - DB rule ADDED (schema v2.3, owner decision "officers must always review and approve first"): a transaction or attendance record can
+        only point at an APPROVED project/event (checked on create, on re-pointing, and when a pending transaction is approved). History stays
+        editable: an approved transaction of a later-rejected project can still be voided, existing attendance can still be corrected.
+        OPEN QUESTION for the owner: an approved project/event can still be set to rejected afterwards - should approval decisions be final?
+        80 database tests pass (13 new, T13a-m); removing the two new triggers makes exactly the 8 "must be refused" tests fail;
+        the two-session race test still behaves the same. Mock attendance only covers completed/approved activities, so it already complies.
       - Tests: 228 pass in 31 files (new: utils/approvals.test.ts, test/approvals.test.tsx; old approve/reject + KPI tests updated; the
         Announcements pagination test now adds two approved dummy projects because 7 approved items fit on one page).
     NOTE: the owner's uploaded website.zip had 171 tests = WITHOUT batch 19; the 177 count includes batch 19 (+6 tests).
@@ -1628,10 +1634,10 @@ TO VERIFY (suspected, not yet checked)
   backend get DISABLED until Supabase; Supabase itself is still NOT decided (auth, RLS, backups = later).
 
   Files (reference only — NOT applied to any database, no Supabase code exists):
-    docs/database/schema.sql        v2.2: 20 tables, 4 views, 37 permissions, seed_org_defaults(), ledger triggers. Loads clean on PostgreSQL 16.
-    docs/database/schema.tests.sql  67 self-checking tests (tenant isolation, soft-delete uniques, one active role,
+    docs/database/schema.sql        v2.3: 20 tables, 4 views, 37 permissions, seed_org_defaults(), ledger + approved-activity triggers. Loads clean on PostgreSQL 16.
+    docs/database/schema.tests.sql  80 self-checking tests (tenant isolation, soft-delete uniques, one active role,
                                     transaction context, attendance, review/self-approval, balances, utilities, seeds).
-                                    Run: psql -d <empty db> -f schema.sql, then -f schema.tests.sql. Result: 67 pass, 0 fail.
+                                    Run: psql -d <empty db> -f schema.sql, then -f schema.tests.sql. Result: 80 pass, 0 fail.
                                     Mutation check done: removing 3 safeguards made 4 tests fail (tests are not vacuous).
 
   Entity map (DB table -> TS type -> mock array -> what must change in the app)
@@ -1691,6 +1697,7 @@ TO VERIFY (suspected, not yet checked)
     LEDGER SAFETY (schema v2.2, owner decisions): a PENDING entry may be corrected or deleted. Once APPROVED an entry can never
     be edited, soft-deleted or deleted: only a note can be added, or it can be VOIDED (voided_by, voided_at, void_reason
     recorded; a voided entry never comes back). REJECTED and VOIDED entries are frozen. Corrections = void + a new entry.
+    APPROVED ACTIVITY ONLY (v2.3): transactions and attendance can only point at an APPROVED project/event (see P1b-1 note).
     OVERDRAFT: approving an expense/refund, or voiding an approved inflow, is rejected when the fund would go below zero
     (exactly zero is allowed). The fund row is locked first: proven with two concurrent sessions (second approval rejected,
     balance 300; without the lock both passed and the fund reached -400). The frontend mirrors this on Approve.
@@ -2588,10 +2595,10 @@ src/test/pages.flows.test.tsx
   CATEGORY 22B — DATABASE REFERENCE (docs only — not runtime, not applied to any database)
 
 FILE: docs/database/schema.sql
-DESCRIPTION: Revised multi-tenant PostgreSQL schema v2.2 (20 tables, 4 derived-number views, 37 permissions, seed_org_defaults(), ledger immutability + overdraft triggers). Include when designing types/mock data, the data layer, or the Supabase discussion.
+DESCRIPTION: Revised multi-tenant PostgreSQL schema v2.3 (20 tables, 4 derived-number views, 37 permissions, seed_org_defaults(), ledger immutability + overdraft + approved-activity triggers). Include when designing types/mock data, the data layer, or the Supabase discussion.
 
 FILE: docs/database/schema.tests.sql
-DESCRIPTION: 67 self-checking tests that prove the schema's rules (isolation, approvals, balances, immutability, overdraft). Include when changing schema.sql.
+DESCRIPTION: 80 self-checking tests that prove the schema's rules (isolation, approvals, balances, immutability, overdraft, approved-activity guard). Include when changing schema.sql.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   CATEGORY 23 — NEVER INCLUDE IN PROMPTS
