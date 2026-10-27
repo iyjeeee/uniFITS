@@ -25,11 +25,11 @@ describe('getItemDetailData', () => {
     expect(e.memberContribs.some(t => ids.has(t.id))).toBe(false)
     expect(MOCK_TRANSACTIONS.length).toBeGreaterThan(0)
   })
-  it('attendance is matched by the item title', () => {
-    const title = MOCK_ATTENDANCES[0].activity
-    const d = getItemDetailData({ ...event, title }, 'event')
-    expect(d.attendanceRecords.length).toBe(MOCK_ATTENDANCES.filter(a => a.activity === title).length)
-    expect(getItemDetailData({ ...event, title: 'No such activity' }, 'event').attendanceRecords).toEqual([])
+  it('attendance is matched by the item id (not the title)', () => {
+    const eventId = MOCK_ATTENDANCES[0].event_id!
+    const d = getItemDetailData({ ...event, id: eventId }, 'event')
+    expect(d.attendanceRecords.length).toBe(MOCK_ATTENDANCES.filter(a => a.event_id === eventId).length)
+    expect(getItemDetailData({ ...event, id: 'no-such-id' }, 'event').attendanceRecords).toEqual([])
   })
 })
 

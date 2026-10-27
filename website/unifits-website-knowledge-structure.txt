@@ -103,6 +103,16 @@
         opening entry while "Current Funding" does (same mismatch as before, B-48 family).
       - Tests: 238 pass in 33 files (new: test/funding.test.tsx, fundingRaised cases in utils/ledger.test.ts; fundLinks test updated: project/
         event openings have no fund).
+    P1c-1 DONE (B-49 FIXED): Attendance = { id, user_id, activity_type, project_id|null, event_id|null, attendance_date, status, remarks,
+      recorded_by } - ALL ids; the stored `user_name` and `activity` (title) are gone. Names/titles are looked up for display with
+      getUserName(id) / getActivityTitle(record) in api/mockData.ts. Matching is by kind + id: belongsToActivity() in
+      parts/useAttendanceMarking.ts (project 4 and event 4 share the id '4' in the sample data, so the kind matters; a test pins it).
+      useAttendanceMarking(currentUser) stores recorded_by = the logged-in user's id (was the placeholder "Current User"; Attendance page
+      passes currentUser). Sample records: recorded_by '2'/'1' (Maria / Juan). Item detail, employee detail, profile and the two detail
+      pages use ids. NO visible change (265 page states identical). Renaming an activity keeps its attendance; a same-titled project no
+      longer inherits an event's records.
+      - Tests: 243 pass in 34 files (new: test/attendanceIds.test.tsx, 5 tests; the old "matched by the item title" test in itemDetail.test.tsx
+        was replaced by a match-by-id test).
     NOTE: the owner's uploaded website.zip had 171 tests = WITHOUT batch 19; the 177 count includes batch 19 (+6 tests).
     This delivery includes batch 19 + step 1 + docs/database as one ZIP (diff against the uploaded ZIP).
   Session 2026-10-27 (date as found, later than the real date; NOT VERIFIED) — STEP B (BUG FIXES), batch 19: B-47 FIXED. (tsc clean, eslint 0 errors,
@@ -561,7 +571,7 @@ TYPE FILE LOCATIONS
   src/types/event.ts         AppEvent (extends ReviewFields), EventStatus (lifecycle only)
   src/types/fund.ts          Fund types (+ FundWithBalance = Fund + derived balance)
   src/types/transaction.ts   Transaction (incl. project_id / event_id / utility_id links), Utility (the bill) + UtilityWithBalance (derived paid/status)
-  src/types/attendance.ts    Attendance types
+  src/types/attendance.ts    Attendance (project_id/event_id/user_id/recorded_by are ids) types
   src/types/announcement.ts  Announcement types
   src/types/audit.ts         AuditLog types
   src/types/ui.ts            Shared UI prop types (BadgeVariant, etc.)
@@ -1381,7 +1391,7 @@ MEDIUM — wrong or misleading behavior
         Where: pages/announcements/Calendar.tsx lines ~42-43 filter is status !== 'completed'.
         Compare Announcements/parts/helpers.ts buildSchedule (only upcoming/ongoing).
   B-06  Placeholder author "Current User" saved on new data.
-        Where: parts/useAttendanceMarking.ts (recorded_by), parts/useAnnouncements.ts
+        Where: parts/useAttendanceMarking.ts (recorded_by: FIXED in P1c-1, now the logged-in user's id), parts/useAnnouncements.ts
         (created_by), pages/settings/Backup.tsx (created_by). Most pages ignore the
         currentUser prop, so real authors are never recorded.
   B-07  Two different formatCurrency / formatDate implementations.
@@ -1515,10 +1525,11 @@ LOW — cosmetic / cleanup
         Financial Summary (numbers phase). Original report: The funding bar used the stored item.current_funding while the panels sum transactions,
         so the two disagree (e.g. "Scholarship Program 2024": funding 200,000 vs total
         contributions 5,000).
-  B-49  Attendance is matched by title text (record.activity === item.title), not by id: two
+  B-49  FIXED (P1c-1): attendance points at project_id / event_id and users by id; titles and names are looked up
+        (getActivityTitle, getUserName). Original report: Attendance was matched by title text (record.activity === item.title), not by id: two
         items with the same title share records and renaming an item detaches its records.
-  B-50  Cleanup: buildDetailRows adds a Status row twice for events and filters the duplicate
-        (convoluted); events get no "Type" tile while projects do. The funding-progress block
+  B-50  PART FIXED (P1b-2: events now have a Type row). Cleanup: buildDetailRows added a Status row twice for events and filtered the duplicate
+        (convoluted); events got no "Type" tile while projects do. The funding-progress block
         also appears in ProjectDetail.tsx and announcements/parts/ActivityDetailContent.tsx
         (same title; whether it is identical is not verified).
   B-51  EmployeeReport "Export PDF" confirmation promises "all financial contributions and
@@ -1751,7 +1762,10 @@ TO VERIFY (suspected, not yet checked)
         1 approval workflow (approval_status separate from lifecycle; B-71) ........ DONE
         2 event_type field instead of the title-keyword guess (B-74) ........ DONE
         3 derived funding (current_funding from approved transactions; needs opening entries for projects/events) ........ DONE
-    P1c attendance by ids (B-49); users/roles by id (B-21); announcements
+    P1c attendance / users / roles / creators, in 3 sub-steps:
+        1 attendance by ids (B-49) ........ DONE
+        2 users <-> roles by id (B-21): user.role (name) -> role_id; role names resolved; Roles page counts by id
+        3 creators/recorders by id (B-06): announcements, funds, audit logs, backups ('Current User' placeholders)
     P1d B-01: pass record id via query param (#/employees/details?id=5); ROUTES table unchanged; "not found" state
     Then phases 2-7 of the agreed fix order. B-47 is fixed by batch 19 (belongsToItem matches by project_id/event_id) - included in this delivery.
     Items needing a backend are DISABLED until Supabase: Add* saving (B-66/B-78), Settings persistence (B-57),
@@ -2126,7 +2140,7 @@ src/components/ItemDetailContent.tsx
   DefaultPhoto.tsx       SVG shown when photo_url is missing.   ItemInfoGrid.tsx   auto-fit info tiles.
   FundingProgress.tsx    funding bar (only when a target exists) (B-48).
   TransactionPanel.tsx   header strip + rows + colored total bar (contributions / income / expense).
-  AttendancePanel.tsx    attendance rows matched by title (B-49).   FinancialSummary.tsx   net balance block.
+  AttendancePanel.tsx    attendance rows (matched by id; names via getUserName).   FinancialSummary.tsx   net balance block.
   MiniSection · EmptyHint · ContributionRow · AttendanceRow   small presentational pieces; itemDetailIcons.tsx = panel icons.
   Include when editing project or event detail content panels.
 
@@ -2186,6 +2200,10 @@ src/constants/approval.ts
 
 src/constants/eventTypes.ts
   EVENT_TYPES + EVENT_TYPE_SELECT_OPTIONS: the event types for the Events filter and the Add/Edit event forms.
+
+src/test/attendanceIds.test.tsx
+  Attendance by ids: record integrity, getUserName/getActivityTitle, same-title and rename cases (B-49), saving records (ids + recorder, same id
+  for a project and an event does not clash).
 
 src/test/funding.test.tsx
   Derived project/event funding reproduces the old numbers (pending items 0), openings are approved/no fund/no member, fund balances
@@ -2254,7 +2272,7 @@ src/types/transaction.ts
   Include when working on transactions, utilities, reports.
 
 src/types/attendance.ts
-  Attendance interface. AttendanceStatus type.
+  Attendance interface (ids, no names/titles). AttendanceStatus, ActivityType types.
   Include when working on attendance page or ItemDetailContent.
 
 src/types/announcement.ts
@@ -2281,7 +2299,7 @@ src/types/ui.ts
 src/api/mockData.ts
   All mock data typed with interfaces from src/types/.
   MOCK_USERS: User[], MOCK_ROLES: Role[], etc.
-  Also exports helpers: formatCurrency, formatDate, relativeTime, fmt12 and getFundName(fund_id) (name for display, '—' when none).
+  Also exports helpers: formatCurrency, formatDate, relativeTime, fmt12, getUserName(user_id), getActivityTitle(record) and getFundName(fund_id) (name for display, '—' when none).
   Legacy helpers (formatCurrency, formatDate, relativeTime, fmt12)
   retained and typed. fmt12(t: string): string is only here.
   Include in EVERY prompt involving data, tables, forms, or content.

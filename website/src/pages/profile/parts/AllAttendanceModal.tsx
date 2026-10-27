@@ -1,7 +1,7 @@
 // parts/AllAttendanceModal.tsx — Full attendance history modal
 import useBreakpoint from '../../../hooks/useBreakpoint'
 import { StatusBadge, InfoModal } from '../../../components/ui'
-import { formatDate } from '../../../api/mockData'
+import { formatDate, getActivityTitle, getUserName } from '../../../api/mockData'
 import type { User, Attendance } from '../../../types'
 import type { AttStats } from './profileShared'
 
@@ -41,9 +41,9 @@ export default function AllAttendanceModal({ user, userAttendance, attStats, ope
             : userAttendance.map((a) => (
                 <div key={a.id} style={{ display: 'flex' as const, alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: 10, background: 'var(--neutral-light)', border: '1px solid var(--border-card)', marginBottom: 4 }}>
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: 13.5 }}>{a.activity}</div>
+                    <div style={{ fontWeight: 600, fontSize: 13.5 }}>{getActivityTitle(a)}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-                      {formatDate(a.attendance_date)} · Recorded by {a.recorded_by}
+                      {formatDate(a.attendance_date)} · Recorded by {getUserName(a.recorded_by)}
                     </div>
                     {a.remarks && <div style={{ fontSize: 11.5, color: 'var(--warning)', marginTop: 2, fontStyle: 'italic' }}>{a.remarks}</div>}
                   </div>

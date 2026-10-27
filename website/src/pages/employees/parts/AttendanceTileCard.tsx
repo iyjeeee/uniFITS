@@ -3,12 +3,13 @@ import { MOCK_USERS, formatDate } from '../../../api/mockData'
 import type { Attendance as AttendanceRecord } from '../../../types'
 import { IcoUsers, IcoClock, IcoPin } from './AttendanceIcons'
 import type { Activity, ActivityKind } from './attendanceShared'
+import { belongsToActivity } from './useAttendanceMarking'
 import { activityDate } from './attendanceShared'
 
 /* ── AttendanceTileCard — clickable activity summary card ────────── */
 interface TileCardProps { activity: Activity; kind: ActivityKind; records: AttendanceRecord[]; onClick: () => void }
 export default function AttendanceTileCard({ activity, kind, records, onClick }: TileCardProps) {
-  const actRecords = records.filter(r => r.activity === activity.title)
+  const actRecords = records.filter(r => belongsToActivity(r, activity, kind))
   const present    = actRecords.filter(r => r.status === 'present' || r.status === 'late').length
   const absent     = actRecords.filter(r => r.status === 'absent' || r.status === 'excused').length   // excused shown as absent — matches the modal mapping
   const total      = MOCK_USERS.length

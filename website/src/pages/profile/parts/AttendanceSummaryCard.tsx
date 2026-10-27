@@ -2,7 +2,7 @@
 import { useOrg } from '../../../context/OrgContext'
 import useBreakpoint from '../../../hooks/useBreakpoint'
 import { StatusBadge, Card, CardHeader } from '../../../components/ui'
-import { formatDate } from '../../../api/mockData'
+import { formatDate, getActivityTitle } from '../../../api/mockData'
 import type { Attendance } from '../../../types'
 import type { AttStats } from './profileShared'
 
@@ -33,7 +33,7 @@ export default function AttendanceSummaryCard({ userAttendance, attStats, attTot
           : userAttendance.slice(0, 3).map((a) => (
               <div key={a.id} style={{ display: 'flex' as const, alignItems: 'center', justifyContent: 'space-between', padding: '8px 18px', borderBottom: '1px solid var(--border-inner)', fontSize: 13 }}>
                 <div>
-                  <div style={{ fontWeight: 500 }}>{a.activity}</div>
+                  <div style={{ fontWeight: 500 }}>{getActivityTitle(a)}</div>
                   <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{formatDate(a.attendance_date)}</div>
                 </div>
                 <StatusBadge status={a.status} />

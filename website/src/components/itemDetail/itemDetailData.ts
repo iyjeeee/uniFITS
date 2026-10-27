@@ -15,7 +15,7 @@ export function getItemDetailData(item: Project | AppEvent, kind: ItemKind) {
   const memberContribs  = scoped.filter((t) => t.user_id !== null && t.entry_type === 'contribution')
   const externalIncome  = scoped.filter((t) => t.user_id === null && t.entry_type === 'income')
   const externalExpense = scoped.filter((t) => t.entry_type === 'expense')
-  const attendanceRecords = MOCK_ATTENDANCES.filter((r: Attendance) => r.activity === item.title)
+  const attendanceRecords = MOCK_ATTENDANCES.filter((r: Attendance) => (kind === 'project' ? r.project_id === item.id : r.event_id === item.id))   // by id (B-49)
   const totalContrib = memberContribs.reduce((s, t) => s + t.amount, 0)
   const totalExtInc  = externalIncome.reduce((s, t) => s + t.amount, 0)
   const totalExtExp  = externalExpense.reduce((s, t) => s + t.amount, 0)

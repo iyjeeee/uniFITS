@@ -1,10 +1,14 @@
 // parts/useAttendanceMarking.ts — Attendance records + modal marking state and handlers (mock data now; swap for API calls later)
 import { useState } from 'react'
-import { MOCK_ATTENDANCES, MOCK_USERS } from '../../../api/mockData'
-import type { Attendance as AttendanceRecord } from '../../../types'
+import { MOCK_ATTENDANCES } from '../../../api/mockData'
+import type { Attendance as AttendanceRecord, User } from '../../../types'
 import type { Activity, ActivityKind, MarkStatus, MemberRow } from './attendanceShared'
 
-export function useAttendanceMarking() {
+// belongs -- does this record belong to that activity? (matched by kind + id, never by title)
+export const belongsToActivity = (r: AttendanceRecord, activity: Activity, kind: ActivityKind): boolean =>
+  r.activity_type === kind && (kind === 'project' ? r.project_id === activity.id : r.event_id === activity.id)
+
+export function useAttendanceMarking(currentUser: User | null = null) {
   // Global attendance records (would come from API — using mock as seed)
   const [allRecords, setAllRecords] = useState<AttendanceRecord[]>(MOCK_ATTENDANCES)
 
@@ -15,7 +19,7 @@ export function useAttendanceMarking() {
   // Open modal — pre-populate localAttendance from existing records for this activity
   function openModal(activity: Activity, kind: ActivityKind) {
     const init: Record<string, MarkStatus> = {}
-    allRecords.filter(r => r.activity === activity.title).forEach(r => {
+    allRecords.filter(r => belongsToActivity(r, activity, kind)).forEach(r => {
       // Map late to present, excused to absent for the simplified 2-option UI
       init[r.user_id] = (r.status === 'present' || r.status === 'late') ? 'present' : 'absent'
     })
@@ -49,24 +53,21 @@ export function useAttendanceMarking() {
   // Save attendance — merge localAttendance back into allRecords
   function handleSave() {
     if (!viewItem) return
-    const activityTitle = viewItem.activity.title
+    const { activity, kind } = viewItem
 
     // Remove existing records for this activity then add updated ones
-    const base = allRecords.filter(r => r.activity !== activityTitle)
-    const newRecords: AttendanceRecord[] = Object.entries(localAttendance).map(([userId, status]) => {
-      const user = MOCK_USERS.find(u => u.id === userId)
-      return {
-        id:              `${activityTitle}-${userId}`,
-        user_id:         userId,
-        user_name:       user?.full_name || '',
-        activity_type:   viewItem.kind,
-        activity:        activityTitle,
-        attendance_date: new Date().toISOString().split('T')[0],
-        status,
-        remarks:         null,
-        recorded_by:     'Current User',
-      }
-    })
+    const base = allRecords.filter(r => !belongsToActivity(r, activity, kind))
+    const newRecords: AttendanceRecord[] = Object.entries(localAttendance).map(([userId, status]) => ({
+      id:              `${kind}-${activity.id}-${userId}`,
+      user_id:         userId,
+      activity_type:   kind,
+      project_id:      kind === 'project' ? activity.id : null,
+      event_id:        kind === 'event' ? activity.id : null,
+      attendance_date: new Date().toISOString().split('T')[0],
+      status,
+      remarks:         null,
+      recorded_by:     currentUser?.id ?? '',   // the logged-in person (Attendance page passes it)
+    }))
     setAllRecords([...base, ...newRecords])
     setViewItem(null)
   }

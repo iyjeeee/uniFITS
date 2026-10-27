@@ -50,6 +50,17 @@ export function fmt12(t: string | null | undefined): string {
   return `${h12}:${String(m).padStart(2, '0')} ${ampm}`
 }
 
+/** getUserName -- full name for a user id ('—' when none/unknown); records link to people by id, never by name */
+export function getUserName(userId: string | null | undefined): string {
+  return MOCK_USERS.find((u) => u.id === userId)?.full_name ?? '—'
+}
+
+/** getActivityTitle -- title of the project/event an attendance record points at ('—' when none/unknown) */
+export function getActivityTitle(a: Pick<Attendance, 'project_id' | 'event_id'>): string {
+  const item = a.project_id ? MOCK_PROJECTS.find((p) => p.id === a.project_id) : a.event_id ? MOCK_EVENTS.find((e) => e.id === a.event_id) : undefined
+  return item?.title ?? '—'
+}
+
 /** getFundName -- fund name for a fund_id ('—' when none/unknown); records link to funds by id, never by name */
 export function getFundName(fundId: string | null | undefined): string {
   return MOCK_FUNDS.find((f) => f.id === fundId)?.name ?? '—'
@@ -177,12 +188,12 @@ export const MOCK_UTILITIES: Utility[] = [
 
 // ── MOCK_ATTENDANCES ──────────────────────────────────────────────────────────
 export const MOCK_ATTENDANCES: Attendance[] = [
-  { id: '1', user_id: '1', user_name: 'Juan Dela Cruz',    activity_type: 'event',   activity: 'Christmas Party 2024',     attendance_date: '2024-12-15', status: 'present', remarks: null,                     recorded_by: 'Maria Santos'   },
-  { id: '2', user_id: '2', user_name: 'Maria Santos',      activity_type: 'event',   activity: 'Christmas Party 2024',     attendance_date: '2024-12-15', status: 'present', remarks: null,                     recorded_by: 'Maria Santos'   },
-  { id: '3', user_id: '3', user_name: 'Pedro Reyes',       activity_type: 'project', activity: 'Scholarship Program 2024', attendance_date: '2024-06-01', status: 'present', remarks: null,                     recorded_by: 'Juan Dela Cruz' },
-  { id: '4', user_id: '4', user_name: 'Ana Lim',           activity_type: 'event',   activity: 'Christmas Party 2024',     attendance_date: '2024-12-15', status: 'late',    remarks: '1 hour late',            recorded_by: 'Maria Santos'   },
-  { id: '5', user_id: '5', user_name: 'Carlos Villanueva', activity_type: 'project', activity: 'Scholarship Program 2024', attendance_date: '2024-06-01', status: 'absent',  remarks: 'Excused — work conflict', recorded_by: 'Juan Dela Cruz' },
-  { id: '6', user_id: '6', user_name: 'Luz Ramos',         activity_type: 'event',   activity: 'Christmas Party 2024',     attendance_date: '2024-12-15', status: 'excused', remarks: 'Medical reason',         recorded_by: 'Maria Santos'   },
+  { id: '1', user_id: '1', activity_type: 'event',   project_id: null, event_id: '4',   attendance_date: '2024-12-15', status: 'present', remarks: null,                     recorded_by: '2' },
+  { id: '2', user_id: '2', activity_type: 'event',   project_id: null, event_id: '4',   attendance_date: '2024-12-15', status: 'present', remarks: null,                     recorded_by: '2' },
+  { id: '3', user_id: '3', activity_type: 'project', project_id: '4',  event_id: null, attendance_date: '2024-06-01', status: 'present', remarks: null,                     recorded_by: '1' },
+  { id: '4', user_id: '4', activity_type: 'event',   project_id: null, event_id: '4',   attendance_date: '2024-12-15', status: 'late',    remarks: '1 hour late',            recorded_by: '2' },
+  { id: '5', user_id: '5', activity_type: 'project', project_id: '4',  event_id: null, attendance_date: '2024-06-01', status: 'absent',  remarks: 'Excused — work conflict', recorded_by: '1' },
+  { id: '6', user_id: '6', activity_type: 'event',   project_id: null, event_id: '4',   attendance_date: '2024-12-15', status: 'excused', remarks: 'Medical reason',         recorded_by: '2' },
 ]
 
 // ── MOCK_AUDIT_LOGS ───────────────────────────────────────────────────────────

@@ -1,13 +1,13 @@
 // EmployeeDetails.jsx — Full profile view: info, officer history, attendance
 import { useState } from 'react'
 import { Avatar, Badge, Button, Card, CardHeader, PageHeader, StatusBadge } from '../../components/ui'
-import { MOCK_USERS, MOCK_ATTENDANCES, formatDate } from '../../api/mockData'
+import { MOCK_USERS, MOCK_ATTENDANCES, getActivityTitle, formatDate } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 
 export default function EmployeeDetails({ userId = '1' }: { userId?: string }) {
   const org  = useOrg()
   const user = MOCK_USERS.find((u) => u.id === userId) || MOCK_USERS[0]
-  const userAttendance = MOCK_ATTENDANCES.filter((a) => a.user_name === user.full_name)
+  const userAttendance = MOCK_ATTENDANCES.filter((a) => a.user_id === user.id)
   const [tab, setTab] = useState('info') // info | attendance
 
   const tabs = ['info', 'attendance']
@@ -88,7 +88,7 @@ export default function EmployeeDetails({ userId = '1' }: { userId?: string }) {
                   : userAttendance.map((a) => (
                       <tr key={a.id} style={{ borderBottom: '1px solid var(--border)' }}>
                         <td style={td}><Badge variant={a.activity_type === 'event' ? 'success' : 'accent'}>{a.activity_type}</Badge></td>
-                        <td style={td}>{a.activity}</td>
+                        <td style={td}>{getActivityTitle(a)}</td>
                         <td style={td}>{formatDate(a.attendance_date)}</td>
                         <td style={td}><StatusBadge status={a.status} /></td>
                         <td style={td}>{a.remarks || '—'}</td>

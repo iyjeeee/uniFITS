@@ -10,14 +10,15 @@ import AttendanceDetailContent from './parts/AttendanceDetailContent'
 import SectionHeader from './parts/AttendanceSectionHeader'
 import { IcoProject, IcoEvent, IcoSave } from './parts/AttendanceIcons'
 import { useAttendanceMarking } from './parts/useAttendanceMarking'
+import type { User } from '../../types'
 
-export default function Attendance() {
+export default function Attendance({ currentUser = null }: { currentUser?: User | null }) {
   const org = useOrg()
   const projects = approvedOnly(MOCK_PROJECTS)   // attendance is taken only for approved activities
   const events   = approvedOnly(MOCK_EVENTS)
   const { isMobile, isTablet } = useBreakpoint()
   const tileCols = isMobile ? '1fr' : isTablet ? 'repeat(2,1fr)' : 'repeat(3,1fr)'
-  const { allRecords, viewItem, setViewItem, localAttendance, openModal, handleStatusChange, handleMarkAllNoRecord, handleResetAll, handleSave } = useAttendanceMarking()
+  const { allRecords, viewItem, setViewItem, localAttendance, openModal, handleStatusChange, handleMarkAllNoRecord, handleResetAll, handleSave } = useAttendanceMarking(currentUser)
 
   return (
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 14 }}>

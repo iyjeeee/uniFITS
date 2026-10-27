@@ -1,7 +1,7 @@
 // ProjectDetail.jsx — Full project view: funding, attendance, contributions, financials
 
 import { Card, PageHeader, Button, StatusBadge } from '../../components/ui'
-import { getProjectsWithFunding, formatCurrency, formatDate } from '../../api/mockData'
+import { getProjectsWithFunding, getUserName, formatCurrency, formatDate } from '../../api/mockData'
 import { getItemDetailData } from '../../components/itemDetail/itemDetailData'
 import { useOrg } from '../../context/OrgContext'
 
@@ -84,7 +84,7 @@ export default function ProjectDetail({ projectId = '1' }: { projectId?: string 
               ? <div style={{ padding: '20px', textAlign: 'center' as const, color: 'var(--text-muted)', fontSize: 13 }}>No attendance records yet.</div>
               : attendance.map((a) => (
                 <div key={a.id} style={{ display: 'flex' as const, alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', borderBottom: '1px solid var(--border)', fontSize: 13.5 }}>
-                  <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{a.user_name}</span>
+                  <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{getUserName(a.user_id)}</span>
                   <StatusBadge status={a.status} />
                 </div>
               ))

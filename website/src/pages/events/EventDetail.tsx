@@ -1,6 +1,6 @@
 // EventDetail.jsx — Full event view: info, attendance, contributions, financials
 import { Button, Card, PageHeader, StatusBadge } from '../../components/ui'
-import { fmt12, getEventsWithFunding, formatCurrency, formatDate } from '../../api/mockData'
+import { fmt12, getEventsWithFunding, getUserName, formatCurrency, formatDate } from '../../api/mockData'
 import { getItemDetailData } from '../../components/itemDetail/itemDetailData'
 import { useOrg } from '../../context/OrgContext'
 
@@ -70,7 +70,7 @@ export default function EventDetail({ eventId = '1' }: { eventId?: string }) {
               ? <div style={{ padding: '20px', textAlign: 'center' as const, color: 'var(--text-muted)', fontSize: 13 }}>No attendance records yet.</div>
               : attendance.map((a) => (
                 <div key={a.id} style={{ display: 'flex' as const, alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', borderBottom: '1px solid var(--border)', fontSize: 13.5 }}>
-                  <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{a.user_name}</span>
+                  <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{getUserName(a.user_id)}</span>
                   <StatusBadge status={a.status} />
                 </div>
               ))

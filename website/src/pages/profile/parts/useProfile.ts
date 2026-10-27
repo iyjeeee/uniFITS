@@ -9,7 +9,7 @@ export function useProfile(userId: string) {
   const user = MOCK_USERS.find((u) => u.id === userId) || MOCK_USERS[0]
 
   // Attendance records for this user
-  const userAttendance = (MOCK_ATTENDANCES || []).filter((a) => a.user_name === user.full_name)
+  const userAttendance = (MOCK_ATTENDANCES || []).filter((a) => a.user_id === user.id)
 
   // Personal transactions
   const userTransactions = MOCK_TRANSACTIONS.filter((t) => t.user_id === user.id).slice(0, 3)

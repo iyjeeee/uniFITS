@@ -1,8 +1,9 @@
-// itemDetail/AttendancePanel.tsx — Attendance records of the activity (matched by title): header strip + status rows
+// itemDetail/AttendancePanel.tsx - Attendance records of the activity (matched by id): header strip + status rows
 import MiniSection from './MiniSection'
 import EmptyHint from './EmptyHint'
 import AttendanceRow from './AttendanceRow'
 import { AttendIcon } from './itemDetailIcons'
+import { getUserName } from '../../api/mockData'
 import type { Attendance, OrgConfig } from '../../types'
 
 export default function AttendancePanel({ records, org }: { records: Attendance[]; org: OrgConfig }) {
@@ -17,7 +18,7 @@ export default function AttendancePanel({ records, org }: { records: Attendance[
         : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {records.map((r: Attendance, i) => (
-              <AttendanceRow key={r.id} member={r.user_name} status={r.status} idx={i} />
+              <AttendanceRow key={r.id} member={getUserName(r.user_id)} status={r.status} idx={i} />
             ))}
           </div>
         )
