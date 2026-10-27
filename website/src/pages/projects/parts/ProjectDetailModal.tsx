@@ -6,9 +6,9 @@ import { formatDate } from '../../../api/mockData'
 import { useOrg } from '../../../context/OrgContext'
 import { modalAccentColor } from '../../../constants/tableColors'
 import { capitalize } from '../../../utils/formatters'
-import type { Project } from '../../../types'
+import type { ProjectWithFunding } from '../../../types'
 
-interface Props { item: Project | null; onClose: () => void; onEdit: () => void }
+interface Props { item: ProjectWithFunding | null; onClose: () => void; onEdit: () => void }
 
 export default function ProjectDetailModal({ item, onClose, onEdit }: Props) {
   const org = useOrg()

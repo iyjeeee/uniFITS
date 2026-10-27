@@ -1,8 +1,8 @@
 // itemDetail/FundingProgress.tsx — Funding progress bar (kind-colored) with raised / goal captions; shown only when a target exists
 import { formatCurrency } from '../../api/mockData'
-import type { Project, AppEvent, OrgConfig } from '../../types'
+import type { ProjectWithFunding, EventWithFunding, OrgConfig } from '../../types'
 
-interface Props { item: Project | AppEvent; pct: number; accentC: string; bgC: string; org: OrgConfig }
+interface Props { item: ProjectWithFunding | EventWithFunding; pct: number; accentC: string; bgC: string; org: OrgConfig }
 
 export default function FundingProgress({ item, pct, accentC, bgC, org }: Props) {
   return (

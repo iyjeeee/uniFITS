@@ -11,10 +11,10 @@ import { ContribIcon, IncomeIcon, ExpenseIcon } from './itemDetail/itemDetailIco
 import { getItemDetailData, buildDetailRows } from './itemDetail/itemDetailData'
 import { KIND_COLOR, KIND_BG } from './itemDetail/itemDetailShared'
 import useBreakpoint from '../hooks/useBreakpoint'
-import type { Project, AppEvent, OrgConfig } from '../types'
+import type { ProjectWithFunding, EventWithFunding, OrgConfig } from '../types'
 
 interface ItemDetailContentProps {
-  item: Project | AppEvent | null
+  item: ProjectWithFunding | EventWithFunding | null
   org:  OrgConfig
   kind: 'project' | 'event'
 }

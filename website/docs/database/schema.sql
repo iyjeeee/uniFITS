@@ -1,5 +1,5 @@
 -- =============================================================================
--- uniFITS — Database Schema v2.3 (REFERENCE — not applied to any database yet)
+-- uniFITS — Database Schema v2.4 (REFERENCE — not applied to any database yet)
 -- PostgreSQL 15+ · Multi-tenant · derived from the owner's v2.0 draft
 -- Tested on PostgreSQL 16: loads clean, behaviour proven by schema.tests.sql
 -- =============================================================================
@@ -39,6 +39,11 @@
 --     pending transaction is being approved. History stays editable: voiding an approved transaction and correcting existing
 --     attendance still work after a project is later rejected. (An approved project can still be set to rejected afterwards —
 --     not blocked yet; ask the owner whether approval decisions should be final.)
+-- v2.4 (project/event funding is DERIVED, like fund balances):
+-- 15. An opening_balance entry may also belong to a project or event ("funding raised before the system started"): it needs the
+--     project/event, no member, and NO fund (so no fund balance changes). Views project_financials / event_financials gain
+--     opening_balance, refunds and funding_raised = contributions + external income + opening - refunds (approved only;
+--     expenses never reduce funding raised; owner confirmed refunds do).
 -- Auth tables/columns (password_hash, tokens, sessions, login_attempts) are kept as in v2.0 but
 -- are marked "AUTH" — their fate depends on the Supabase decision (not made yet).
 -- =============================================================================
@@ -408,7 +413,7 @@ CREATE TABLE transactions (
         (category = 'fund'    AND fund_id    IS NOT NULL AND project_id IS NULL   AND event_id IS NULL AND utility_id IS NULL)),
     CONSTRAINT chk_tx_party        CHECK (user_id IS NULL OR external_source IS NULL),
     CONSTRAINT chk_tx_contribution CHECK (entry_type <> 'contribution' OR user_id IS NOT NULL),
-    CONSTRAINT chk_tx_opening      CHECK (entry_type <> 'opening_balance' OR (category = 'fund' AND user_id IS NULL AND external_source IS NULL)),
+    CONSTRAINT chk_tx_opening      CHECK (entry_type <> 'opening_balance' OR (category IN ('fund', 'project', 'event') AND user_id IS NULL AND external_source IS NULL AND (category = 'fund' OR fund_id IS NULL))),
     CONSTRAINT chk_tx_utility_type CHECK (category <> 'utility' OR entry_type IN ('expense', 'refund')),
     CONSTRAINT chk_tx_review CHECK (
         (status = 'pending'  AND reviewed_by IS NULL AND reviewed_at IS NULL AND rejection_reason IS NULL) OR
@@ -704,7 +709,11 @@ SELECT p.org_id, p.id AS project_id,
        COALESCE(SUM(t.amount) FILTER (WHERE t.status = 'approved' AND t.entry_type = 'contribution'), 0) AS contributions,
        COALESCE(SUM(t.amount) FILTER (WHERE t.status = 'approved' AND t.entry_type = 'income'), 0)       AS external_income,
        COALESCE(SUM(t.amount) FILTER (WHERE t.status = 'approved' AND t.entry_type = 'expense'), 0)      AS expenses,
-       COALESCE(SUM(signed_amount(t.entry_type, t.amount)) FILTER (WHERE t.status = 'approved'), 0)      AS net_balance
+       COALESCE(SUM(signed_amount(t.entry_type, t.amount)) FILTER (WHERE t.status = 'approved'), 0)      AS net_balance,
+       COALESCE(SUM(t.amount) FILTER (WHERE t.status = 'approved' AND t.entry_type = 'opening_balance'), 0) AS opening_balance,
+       COALESCE(SUM(t.amount) FILTER (WHERE t.status = 'approved' AND t.entry_type = 'refund'), 0)       AS refunds,
+       COALESCE(SUM(t.amount) FILTER (WHERE t.status = 'approved' AND t.entry_type IN ('contribution', 'income', 'opening_balance')), 0)
+         - COALESCE(SUM(t.amount) FILTER (WHERE t.status = 'approved' AND t.entry_type = 'refund'), 0)    AS funding_raised
 FROM projects p
 LEFT JOIN transactions t ON t.project_id = p.id AND t.org_id = p.org_id AND t.deleted_at IS NULL
 WHERE p.deleted_at IS NULL
@@ -715,7 +724,11 @@ SELECT e.org_id, e.id AS event_id,
        COALESCE(SUM(t.amount) FILTER (WHERE t.status = 'approved' AND t.entry_type = 'contribution'), 0) AS contributions,
        COALESCE(SUM(t.amount) FILTER (WHERE t.status = 'approved' AND t.entry_type = 'income'), 0)       AS external_income,
        COALESCE(SUM(t.amount) FILTER (WHERE t.status = 'approved' AND t.entry_type = 'expense'), 0)      AS expenses,
-       COALESCE(SUM(signed_amount(t.entry_type, t.amount)) FILTER (WHERE t.status = 'approved'), 0)      AS net_balance
+       COALESCE(SUM(signed_amount(t.entry_type, t.amount)) FILTER (WHERE t.status = 'approved'), 0)      AS net_balance,
+       COALESCE(SUM(t.amount) FILTER (WHERE t.status = 'approved' AND t.entry_type = 'opening_balance'), 0) AS opening_balance,
+       COALESCE(SUM(t.amount) FILTER (WHERE t.status = 'approved' AND t.entry_type = 'refund'), 0)       AS refunds,
+       COALESCE(SUM(t.amount) FILTER (WHERE t.status = 'approved' AND t.entry_type IN ('contribution', 'income', 'opening_balance')), 0)
+         - COALESCE(SUM(t.amount) FILTER (WHERE t.status = 'approved' AND t.entry_type = 'refund'), 0)    AS funding_raised
 FROM events e
 LEFT JOIN transactions t ON t.event_id = e.id AND t.org_id = e.org_id AND t.deleted_at IS NULL
 WHERE e.deleted_at IS NULL

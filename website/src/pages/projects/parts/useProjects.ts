@@ -1,16 +1,16 @@
 // parts/useProjects.ts — Projects page state: list data, filters, paging, detail/edit/delete modals, approve/reject/delete/save, feedback
 import { useState } from 'react'
-import { MOCK_PROJECTS } from '../../../api/mockData'
+import { getProjectsWithFunding } from '../../../api/mockData'
 import { decide } from '../../../utils/approvals'
 import { PROJECT_PAGE_SIZE } from './projectsShared'
 import type { ProjectActionResult } from './projectsShared'
-import type { Project, User } from '../../../types'
+import type { ProjectWithFunding, User } from '../../../types'
 
 export default function useProjects(currentUser: User | null = null) {
-  const [data,         setData]         = useState(MOCK_PROJECTS)
-  const [viewItem,     setViewItem]     = useState<Project | null>(null)
-  const [editItem,     setEditItem]     = useState<Project | null>(null)
-  const [deleteItem,   setDeleteItem]   = useState<Project | null>(null)
+  const [data,         setData]         = useState(getProjectsWithFunding)   // lazy: funding raised is derived from approved transactions
+  const [viewItem,     setViewItem]     = useState<ProjectWithFunding | null>(null)
+  const [editItem,     setEditItem]     = useState<ProjectWithFunding | null>(null)
+  const [deleteItem,   setDeleteItem]   = useState<ProjectWithFunding | null>(null)
   const [actionResult, setActionResult] = useState<ProjectActionResult | null>(null)
   const [search,       setSearch]       = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -43,15 +43,15 @@ export default function useProjects(currentUser: User | null = null) {
     setDeleteItem(null)
     setTimeout(() => setActionResult({ variant: 'danger', title: 'Project Deleted', message: `"${title}" has been permanently removed.` }), 260)
   }
-  function handleApprove(r: Project) {
+  function handleApprove(r: ProjectWithFunding) {
     setData(prev => prev.map((p) => p.id === r.id ? { ...p, ...decide('approved', currentUser?.id ?? null) } : p))   // approval only: lifecycle status is untouched
     setActionResult({ variant: 'success', title: 'Project Approved', message: `"${r.title}" has been approved.` })
   }
-  function handleReject(r: Project) {
+  function handleReject(r: ProjectWithFunding) {
     setData(prev => prev.map((p) => p.id === r.id ? { ...p, ...decide('rejected', currentUser?.id ?? null) } : p))
     setActionResult({ variant: 'danger', title: 'Project Rejected', message: `"${r.title}" has been rejected.` })
   }
-  function handleSaveEdit(updated: Project) {
+  function handleSaveEdit(updated: ProjectWithFunding) {
     setData(prev => prev.map((r) => r.id === updated.id ? updated : r))
     setActionResult({ variant: 'success', title: 'Project Updated', message: `"${updated.title}" has been saved successfully.` })
   }

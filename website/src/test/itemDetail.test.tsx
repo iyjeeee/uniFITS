@@ -3,12 +3,12 @@ import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import ItemDetailContent from '../components/ItemDetailContent'
 import { getItemDetailData, buildDetailRows } from '../components/itemDetail/itemDetailData'
-import { MOCK_PROJECTS, MOCK_EVENTS, MOCK_ATTENDANCES, MOCK_TRANSACTIONS } from '../api/mockData'
+import { MOCK_PROJECTS, MOCK_EVENTS, getProjectsWithFunding, getEventsWithFunding, MOCK_ATTENDANCES, MOCK_TRANSACTIONS } from '../api/mockData'
 import type { OrgConfig } from '../types'
 
 const org: OrgConfig = { name: 'Test', currency_symbol: '₱', currency_code: 'PHP', people_label: 'Employee', project_label: 'Project', event_label: 'Event', fund_label: 'Fund', transaction_label: 'Transaction', utility_label: 'Utility', attendance_label: 'Attendance', report_label: 'Report' }
-const project = MOCK_PROJECTS[0]
-const event = MOCK_EVENTS[0]
+const project = getProjectsWithFunding()[0]
+const event = getEventsWithFunding()[0]
 
 describe('getItemDetailData', () => {
   it('splits transactions by category, member vs external, and totals add up', () => {

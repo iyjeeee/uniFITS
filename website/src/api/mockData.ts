@@ -2,12 +2,12 @@
 // Replace these exports with real API calls (fetch to your backend endpoints)
 // Backend base URL: import.meta.env.VITE_API_URL (see .env.example)
 import type {
-  User, Role, Announcement, Project, AppEvent,
+  User, Role, Announcement, Project, ProjectWithFunding, AppEvent, EventWithFunding,
   Fund, FundWithBalance, Transaction, Utility, UtilityWithBalance, PaymentMethodOption,
   Attendance, AuditLog, BackupJob,
 } from '../types'
 import { parseDate } from '../utils/formatters'
-import { fundBalance, utilityPaid, utilityStatus } from '../utils/ledger'
+import { fundBalance, utilityPaid, utilityStatus, fundingRaised } from '../utils/ledger'
 
 // ── Helper formatters ─────────────────────────────────────────────────────────
 // NOTE: prefer utils/formatters.ts for new code.
@@ -60,6 +60,16 @@ export function getFundsWithBalance(): FundWithBalance[] {
   return MOCK_FUNDS.map((f) => ({ ...f, balance: fundBalance(f.id, MOCK_TRANSACTIONS) }))
 }
 
+/** getProjectsWithFunding -- projects with DERIVED funding raised (approved transactions only); mirrors the project_financials view */
+export function getProjectsWithFunding(): ProjectWithFunding[] {
+  return MOCK_PROJECTS.map((p) => ({ ...p, current_funding: fundingRaised('project', p.id, MOCK_TRANSACTIONS) }))
+}
+
+/** getEventsWithFunding -- events with DERIVED funding raised (approved transactions only); mirrors the event_financials view */
+export function getEventsWithFunding(): EventWithFunding[] {
+  return MOCK_EVENTS.map((e) => ({ ...e, current_funding: fundingRaised('event', e.id, MOCK_TRANSACTIONS) }))
+}
+
 /** getPaymentMethodName -- payment method name for a payment_method_id ('—' when none/unknown); records link by id, never by name */
 export function getPaymentMethodName(methodId: string | null | undefined): string {
   return MOCK_PAYMENT_METHODS.find((m) => m.id === methodId)?.name ?? '—'
@@ -102,20 +112,20 @@ export const MOCK_ANNOUNCEMENTS: Announcement[] = [
 
 // ── MOCK_PROJECTS ─────────────────────────────────────────────────────────────
 export const MOCK_PROJECTS: Project[] = [
-  { id: '1', title: 'Medical Mission 2026',     project_type: 'Medical Mission',   description: 'Free medical check-ups for underprivileged communities in Taal, Batangas.', start_date: '2026-03-15', end_date: '2026-03-16', location: 'Taal, Batangas',      status: 'upcoming',  target_funding: 50000,  current_funding: 32500 , approval_status: 'approved', reviewed_by: '1', reviewed_at: '2025-12-02T09:00:00Z', rejection_reason: null },
-  { id: '2', title: 'School Feeding Program',   project_type: 'Community Service', description: 'Weekly feeding program for public school students in Laguna.',               start_date: '2026-01-10', end_date: '2026-12-20', location: 'San Pablo, Laguna',   status: 'ongoing',   target_funding: 120000, current_funding: 78000 , approval_status: 'approved', reviewed_by: '1', reviewed_at: '2025-12-15T09:00:00Z', rejection_reason: null },
-  { id: '3', title: 'Tree Planting Initiative', project_type: 'Environmental',     description: 'Planting 1,000 native trees in watershed areas.',                            start_date: '2026-03-22', end_date: '2026-03-22', location: 'Sierra Madre, Rizal', status: 'upcoming',  target_funding: 25000,  current_funding: 10000 , approval_status: 'approved', reviewed_by: '1', reviewed_at: '2026-01-20T09:00:00Z', rejection_reason: null },
-  { id: '4', title: 'Scholarship Program 2024', project_type: 'Education',         description: 'College scholarships for deserving students from our community.',            start_date: '2024-06-01', end_date: '2024-12-15', location: 'Metro Manila',        status: 'completed', target_funding: 200000, current_funding: 200000, approval_status: 'approved', reviewed_by: '1', reviewed_at: '2024-05-20T09:00:00Z', rejection_reason: null },
-  { id: '5', title: 'Livelihood Seminar',        project_type: 'Livelihood',        description: 'Practical skills training for out-of-school youth.',                         start_date: '2026-04-05', end_date: '2026-04-07', location: 'Cavite City, Cavite', status: 'upcoming',  target_funding: 30000,  current_funding: 12000 , approval_status: 'pending', reviewed_by: null, reviewed_at: null, rejection_reason: null },
+  { id: '1', title: 'Medical Mission 2026',     project_type: 'Medical Mission',   description: 'Free medical check-ups for underprivileged communities in Taal, Batangas.', start_date: '2026-03-15', end_date: '2026-03-16', location: 'Taal, Batangas',      status: 'upcoming',  target_funding: 50000,  approval_status: 'approved', reviewed_by: '1', reviewed_at: '2025-12-02T09:00:00Z', rejection_reason: null },
+  { id: '2', title: 'School Feeding Program',   project_type: 'Community Service', description: 'Weekly feeding program for public school students in Laguna.',               start_date: '2026-01-10', end_date: '2026-12-20', location: 'San Pablo, Laguna',   status: 'ongoing',   target_funding: 120000, approval_status: 'approved', reviewed_by: '1', reviewed_at: '2025-12-15T09:00:00Z', rejection_reason: null },
+  { id: '3', title: 'Tree Planting Initiative', project_type: 'Environmental',     description: 'Planting 1,000 native trees in watershed areas.',                            start_date: '2026-03-22', end_date: '2026-03-22', location: 'Sierra Madre, Rizal', status: 'upcoming',  target_funding: 25000,  approval_status: 'approved', reviewed_by: '1', reviewed_at: '2026-01-20T09:00:00Z', rejection_reason: null },
+  { id: '4', title: 'Scholarship Program 2024', project_type: 'Education',         description: 'College scholarships for deserving students from our community.',            start_date: '2024-06-01', end_date: '2024-12-15', location: 'Metro Manila',        status: 'completed', target_funding: 200000, approval_status: 'approved', reviewed_by: '1', reviewed_at: '2024-05-20T09:00:00Z', rejection_reason: null },
+  { id: '5', title: 'Livelihood Seminar',        project_type: 'Livelihood',        description: 'Practical skills training for out-of-school youth.',                         start_date: '2026-04-05', end_date: '2026-04-07', location: 'Cavite City, Cavite', status: 'upcoming',  target_funding: 30000,  approval_status: 'pending', reviewed_by: null, reviewed_at: null, rejection_reason: null },
 ]
 
 // ── MOCK_EVENTS ───────────────────────────────────────────────────────────────
 // Typed as AppEvent[] — avoids collision with the DOM's built-in Event type
 export const MOCK_EVENTS: AppEvent[] = [
-  { id: '1', title: 'Annual Gala Night 2026', event_type: 'Fundraising',  description: 'Annual fundraising gala for organizational programs.', event_date: '2026-03-28', event_time: '18:00', location: 'Manila Hotel Ballroom',   status: 'upcoming',  target_funding: 500000, current_funding: 125000, approval_status: 'approved', reviewed_by: '1', reviewed_at: '2026-01-10T09:00:00Z', rejection_reason: null },
-  { id: '2', title: 'Summer Sportsfest', event_type: 'Sports',        description: 'Team building sports activities for all members.',    event_date: '2026-04-18', event_time: '08:00', location: 'San Juan Sports Complex', status: 'upcoming',  target_funding: 15000,  current_funding: 8000  , approval_status: 'pending', reviewed_by: null, reviewed_at: null, rejection_reason: null },
-  { id: '3', title: 'Independence Day Parade', event_type: 'Civic',  description: 'Annual independence day participation.',               event_date: '2026-03-08', event_time: '07:00', location: 'Luneta Park, Manila',     status: 'upcoming',  target_funding: 5000,   current_funding: 3000  , approval_status: 'approved', reviewed_by: '1', reviewed_at: '2026-01-12T09:00:00Z', rejection_reason: null },
-  { id: '4', title: 'Christmas Party 2024', event_type: 'General',     description: 'Year-end celebration for all members and families.',  event_date: '2024-12-15', event_time: '17:00', location: 'Club Headquarters',       status: 'completed', target_funding: 40000,  current_funding: 40000 , approval_status: 'approved', reviewed_by: '1', reviewed_at: '2024-10-01T09:00:00Z', rejection_reason: null },
+  { id: '1', title: 'Annual Gala Night 2026', event_type: 'Fundraising',  description: 'Annual fundraising gala for organizational programs.', event_date: '2026-03-28', event_time: '18:00', location: 'Manila Hotel Ballroom',   status: 'upcoming',  target_funding: 500000, approval_status: 'approved', reviewed_by: '1', reviewed_at: '2026-01-10T09:00:00Z', rejection_reason: null },
+  { id: '2', title: 'Summer Sportsfest', event_type: 'Sports',        description: 'Team building sports activities for all members.',    event_date: '2026-04-18', event_time: '08:00', location: 'San Juan Sports Complex', status: 'upcoming',  target_funding: 15000,  approval_status: 'pending', reviewed_by: null, reviewed_at: null, rejection_reason: null },
+  { id: '3', title: 'Independence Day Parade', event_type: 'Civic',  description: 'Annual independence day participation.',               event_date: '2026-03-08', event_time: '07:00', location: 'Luneta Park, Manila',     status: 'upcoming',  target_funding: 5000,   approval_status: 'approved', reviewed_by: '1', reviewed_at: '2026-01-12T09:00:00Z', rejection_reason: null },
+  { id: '4', title: 'Christmas Party 2024', event_type: 'General',     description: 'Year-end celebration for all members and families.',  event_date: '2024-12-15', event_time: '17:00', location: 'Club Headquarters',       status: 'completed', target_funding: 40000,  approval_status: 'approved', reviewed_by: '1', reviewed_at: '2024-10-01T09:00:00Z', rejection_reason: null },
 ]
 
 // ── MOCK_FUNDS ────────────────────────────────────────────────────────────────
@@ -146,6 +156,14 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
   { id: '13', user_id: null, user_name: null, entry_type: 'expense', category: 'utility', fund_id: '1', utility_id: '2', amount: 2200, payment_method_id: '3', reference_number: 'TXN-20250308-0013', transaction_date: '2025-03-08', status: 'approved', description: 'Internet Service payment (PLDT)' },
   { id: '14', user_id: null, user_name: null, entry_type: 'expense', category: 'utility', fund_id: '1', utility_id: '3', amount: 7500, payment_method_id: '3', reference_number: 'TXN-20250315-0014', transaction_date: '2025-03-15', status: 'approved', description: 'Office Rent partial payment (GreenLeaf Properties)' },
   { id: '15', user_id: null, user_name: null, entry_type: 'expense', category: 'utility', fund_id: '3', utility_id: '5', amount: 25000, payment_method_id: '3', reference_number: 'TXN-20250228-0015', transaction_date: '2025-02-28', status: 'approved', description: 'Venue Rental payment (Manila Hotel)' },
+  // Funding already raised before the system (project/event openings): no member, NO fund, so fund balances do not change
+  { id: '16', user_id: null, user_name: null, entry_type: 'opening_balance', category: 'project', fund_id: null, project_id: '1', amount: 27500, payment_method_id: null, reference_number: 'TXN-20250101-0016', transaction_date: '2025-01-01', status: 'approved', description: 'Funding raised before the system -- Medical Mission 2026' },
+  { id: '17', user_id: null, user_name: null, entry_type: 'opening_balance', category: 'project', fund_id: null, project_id: '2', amount: 78000, payment_method_id: null, reference_number: 'TXN-20250101-0017', transaction_date: '2025-01-01', status: 'approved', description: 'Funding raised before the system -- School Feeding Program' },
+  { id: '18', user_id: null, user_name: null, entry_type: 'opening_balance', category: 'project', fund_id: null, project_id: '3', amount: 10000, payment_method_id: null, reference_number: 'TXN-20250101-0018', transaction_date: '2025-01-01', status: 'approved', description: 'Funding raised before the system -- Tree Planting Initiative' },
+  { id: '19', user_id: null, user_name: null, entry_type: 'opening_balance', category: 'project', fund_id: null, project_id: '4', amount: 200000, payment_method_id: null, reference_number: 'TXN-20250101-0019', transaction_date: '2025-01-01', status: 'approved', description: 'Funding raised before the system -- Scholarship Program 2024' },
+  { id: '20', user_id: null, user_name: null, entry_type: 'opening_balance', category: 'event', fund_id: null, event_id: '1', amount: 122500, payment_method_id: null, reference_number: 'TXN-20250101-0020', transaction_date: '2025-01-01', status: 'approved', description: 'Funding raised before the system -- Annual Gala Night 2026' },
+  { id: '21', user_id: null, user_name: null, entry_type: 'opening_balance', category: 'event', fund_id: null, event_id: '3', amount: 3000, payment_method_id: null, reference_number: 'TXN-20250101-0021', transaction_date: '2025-01-01', status: 'approved', description: 'Funding raised before the system -- Independence Day Parade' },
+  { id: '22', user_id: null, user_name: null, entry_type: 'opening_balance', category: 'event', fund_id: null, event_id: '4', amount: 40000, payment_method_id: null, reference_number: 'TXN-20250101-0022', transaction_date: '2025-01-01', status: 'approved', description: 'Funding raised before the system -- Christmas Party 2024' },
 ]
 
 // ── MOCK_UTILITIES ────────────────────────────────────────────────────────────

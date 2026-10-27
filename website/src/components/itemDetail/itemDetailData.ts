@@ -2,7 +2,7 @@
 import { formatCurrency, formatDate, MOCK_TRANSACTIONS, MOCK_ATTENDANCES, fmt12 } from '../../api/mockData'
 import { capitalize } from '../../utils/formatters'
 import type { ItemKind } from './itemDetailShared'
-import type { Project, AppEvent, OrgConfig, Transaction, Attendance } from '../../types'
+import type { Project, AppEvent, ProjectWithFunding, EventWithFunding, OrgConfig, Transaction, Attendance } from '../../types'
 
 // belongsToItem — true when the transaction is linked (project_id / event_id) to this exact item
 export function belongsToItem(t: Transaction, item: Project | AppEvent, kind: ItemKind): boolean {
@@ -27,7 +27,7 @@ export function getItemDetailData(item: Project | AppEvent, kind: ItemKind) {
 export type ItemDetailData = ReturnType<typeof getItemDetailData>
 
 // buildDetailRows — info grid rows: shared + kind-specific (the duplicate Status row is filtered out)
-export function buildDetailRows(item: Project | AppEvent, kind: ItemKind, org: OrgConfig): [string, string][] {
+export function buildDetailRows(item: ProjectWithFunding | EventWithFunding, kind: ItemKind, org: OrgConfig): [string, string][] {
   const isProject = kind === 'project'
   return [
     ['Status',   capitalize(item.status)],

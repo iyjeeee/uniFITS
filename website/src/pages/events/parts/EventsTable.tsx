@@ -4,9 +4,9 @@ import { IconBtn } from '../../../components/TableUtils'
 import { BtnIco } from '../../../components/Icons'
 import { formatCurrency, formatDate, fmt12 } from '../../../api/mockData'
 import { rowStyle, rowHoverBg } from '../../../constants/tableColors'
-import type { AppEvent } from '../../../types'
+import type { EventWithFunding } from '../../../types'
 
-interface Props { rows: AppEvent[]; onRowClick: (e: AppEvent) => void; onApprove: (e: AppEvent) => void; onReject: (e: AppEvent) => void; onDelete: (e: AppEvent) => void }
+interface Props { rows: EventWithFunding[]; onRowClick: (e: EventWithFunding) => void; onApprove: (e: EventWithFunding) => void; onReject: (e: EventWithFunding) => void; onDelete: (e: EventWithFunding) => void }
 
 export default function EventsTable({ rows, onRowClick, onApprove, onReject, onDelete }: Props) {
   return (

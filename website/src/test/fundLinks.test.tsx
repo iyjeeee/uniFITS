@@ -12,10 +12,12 @@ const rowsText = () => Array.from(document.querySelectorAll('tbody tr')).map((r)
 const search = (value: string) => fireEvent.change(screen.getByPlaceholderText(/^Search/), { target: { value } })
 
 describe('fund links by id', () => {
-  it('every transaction and utility points at an existing fund', () => {
+  it('every transaction and utility with a fund points at an existing one', () => {
     const ids = MOCK_FUNDS.map((f) => f.id)
-    for (const t of MOCK_TRANSACTIONS) expect(ids).toContain(t.fund_id)
-    for (const u of MOCK_UTILITIES)    expect(ids).toContain(u.fund_id)
+    for (const t of MOCK_TRANSACTIONS) {
+      if (t.category === 'fund') expect(t.fund_id).not.toBeNull()          // fund category needs a fund
+      if (t.fund_id !== null) expect(ids).toContain(t.fund_id)            // any fund given must exist (project/event openings have none)
+    }    for (const u of MOCK_UTILITIES)    expect(ids).toContain(u.fund_id)
   })
 
   it('getFundName resolves an id, and shows — for none or unknown', () => {

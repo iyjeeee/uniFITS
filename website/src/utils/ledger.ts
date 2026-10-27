@@ -40,3 +40,9 @@ export function utilityPaid(utilityId: string, txs: Transaction[]): number {
 export function utilityStatus(total: number, paid: number): UtilityStatus {
   return paid <= 0 ? 'unpaid' : paid >= total ? 'paid' : 'partial'
 }
+
+/* fundingRaised -- money raised for ONE project/event: approved contributions + income + opening entry - refunds (expenses never reduce it) */
+export function fundingRaised(kind: 'project' | 'event', id: string, txs: Transaction[]): number {
+  return sumMoney(txs.filter((t) => t.status === 'approved' && (kind === 'project' ? t.project_id === id : t.event_id === id))
+    .map((t) => (t.entry_type === 'refund' ? -t.amount : t.entry_type === 'expense' ? 0 : t.amount)))
+}

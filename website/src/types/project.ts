@@ -26,6 +26,8 @@ export interface Project extends ReviewFields {
   location: string
   status: ProjectStatus
   target_funding: number      // PHP amount
-  current_funding: number     // PHP amount
   photo_url?: string | null   // optional cover photo (set by Add/Edit pages)
 }
+
+// ProjectWithFunding -- Project + DERIVED funding raised (mirrors the project_financials view); never stored
+export type ProjectWithFunding = Project & { current_funding: number }

@@ -1,6 +1,6 @@
 // ledger.test.ts -- money maths and balance rules (direction, approved-only, exact sums, overdraw guard)
 import { describe, it, expect } from 'vitest'
-import { signedAmount, isReceipt, sumMoney, fundBalance, overdrawOnApprove, utilityPaid, utilityStatus } from './ledger'
+import { signedAmount, isReceipt, sumMoney, fundBalance, overdrawOnApprove, utilityPaid, utilityStatus, fundingRaised } from './ledger'
 import type { Transaction, EntryType, TransactionStatus } from '../types'
 
 let n = 0
@@ -88,5 +88,23 @@ describe('utilityPaid / utilityStatus', () => {
     expect(utilityStatus(1000, 1000)).toBe('paid')
     expect(utilityStatus(1000, 1200)).toBe('paid')     // overpayment still reads as paid
     expect(utilityStatus(1000, -50)).toBe('unpaid')    // refunds beyond payments never go negative
+  })
+})
+
+describe('fundingRaised (projects and events)', () => {
+  const pt = (kind: 'project' | 'event', id: string, entry_type: EntryType, amount: number, status: TransactionStatus = 'approved'): Transaction =>
+    ({ ...tx(entry_type, amount, status, null), category: kind, ...(kind === 'project' ? { project_id: id } : { event_id: id }) })
+  it('= contributions + income + opening entry - refunds, approved only; expenses never reduce it', () => {
+    const all = [pt('project', 'P1', 'contribution', 300), pt('project', 'P1', 'income', 100), pt('project', 'P1', 'opening_balance', 1000),
+      pt('project', 'P1', 'refund', 50), pt('project', 'P1', 'expense', 200),
+      pt('project', 'P1', 'income', 9999, 'pending'), pt('project', 'P1', 'income', 9999, 'rejected'), pt('project', 'P1', 'income', 9999, 'voided'),
+      pt('project', 'P2', 'income', 7), pt('event', 'P1', 'income', 5)]
+    expect(fundingRaised('project', 'P1', all)).toBe(1350)
+    expect(fundingRaised('project', 'P2', all)).toBe(7)
+    expect(fundingRaised('event', 'P1', all)).toBe(5)       // an event with the same id is a different thing
+    expect(fundingRaised('project', 'none', all)).toBe(0)
+  })
+  it('adds exact centavos', () => {
+    expect(fundingRaised('event', 'E', [pt('event', 'E', 'income', 0.1), pt('event', 'E', 'income', 0.2)])).toBe(0.3)
   })
 })

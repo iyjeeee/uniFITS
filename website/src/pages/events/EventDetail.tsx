@@ -1,12 +1,13 @@
 // EventDetail.jsx — Full event view: info, attendance, contributions, financials
 import { Button, Card, PageHeader, StatusBadge } from '../../components/ui'
-import { fmt12, MOCK_EVENTS, formatCurrency, formatDate } from '../../api/mockData'
+import { fmt12, getEventsWithFunding, formatCurrency, formatDate } from '../../api/mockData'
 import { getItemDetailData } from '../../components/itemDetail/itemDetailData'
 import { useOrg } from '../../context/OrgContext'
 
 export default function EventDetail({ eventId = '1' }: { eventId?: string }) {
   const org   = useOrg()
-  const event = MOCK_EVENTS.find((e) => e.id === eventId) || MOCK_EVENTS[0]
+  const events = getEventsWithFunding()
+  const event = events.find((e) => e.id === eventId) || events[0]
   const d = getItemDetailData(event, 'event')   // financials + attendance of THIS event only (shared with the detail modal)
   const attendance = d.attendanceRecords
 

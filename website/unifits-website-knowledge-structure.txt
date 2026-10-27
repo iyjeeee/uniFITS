@@ -86,6 +86,23 @@
       - NOTE: form labels are still not linked to their inputs (B-60), so tests locate a field through its label's container.
       - Visible changes: only those additions (265 page states compared against the previous delivery: 11 differ, all additions).
       - Tests: 230 pass in 32 files (events.test.tsx: keyword tests replaced by stored-type tests; new test/addEventType.test.tsx).
+    P1b-3 DONE (P1b COMPLETE): project/event funding is DERIVED. Project/AppEvent no longer store current_funding; ProjectWithFunding /
+      EventWithFunding (types) carry it; getProjectsWithFunding()/getEventsWithFunding() in api/mockData.ts mirror the project_financials /
+      event_financials views; fundingRaised(kind, id, txs) in utils/ledger.ts = approved contributions + income + opening entry - refunds
+      (expenses never reduce it). Owner confirmed refunds reduce it ("continue").
+      - Schema v2.4: an opening_balance entry may belong to a project/event (needs the project/event, no member, NO fund so fund balances
+        never change); views gain opening_balance, refunds, funding_raised. 91 database tests pass (11 new T14a-k; T4e changed because the old
+        "opening only for funds" rule was relaxed on purpose); removing the new rule makes 6 of them fail.
+      - Mock: 7 opening entries (ids 16-22, 2025-01-01, approved, fund null) carry what was stored before: Medical Mission 27,500 (+5,000
+        contribution = 32,500), School Feeding 78,000, Tree Planting 10,000, Scholarship 200,000, Gala 122,500 (+2,500 = 125,000),
+        Independence Day 3,000, Christmas Party 40,000.
+      - Visible changes: the two PENDING items now show 0 funding (Livelihood Seminar 12,000 -> 0, Summer Sportsfest 8,000 -> "--"): the DB rule
+        says a pending project/event cannot hold money. Transactions list: 22 records / 3 pages (7 new opening rows). Everything else identical
+        (265 page states compared against the previous delivery).
+      - Detail pages: "Total Inflow / Net Balance" still sum only member contributions + external income - expenses, so they do not include the
+        opening entry while "Current Funding" does (same mismatch as before, B-48 family).
+      - Tests: 238 pass in 33 files (new: test/funding.test.tsx, fundingRaised cases in utils/ledger.test.ts; fundLinks test updated: project/
+        event openings have no fund).
     NOTE: the owner's uploaded website.zip had 171 tests = WITHOUT batch 19; the 177 count includes batch 19 (+6 tests).
     This delivery includes batch 19 + step 1 + docs/database as one ZIP (diff against the uploaded ZIP).
   Session 2026-10-27 (date as found, later than the real date; NOT VERIFIED) — STEP B (BUG FIXES), batch 19: B-47 FIXED. (tsc clean, eslint 0 errors,
@@ -1493,7 +1510,9 @@ LOW — cosmetic / cleanup
         contributions (5,000), expenses (12,500) and net balance, and EVERY event shows the same
         2,500 (verified 2026-10-18). Cause: Transaction has no project_id / event_id field
         (only category + fund). Needs a data-model change (also before the backend phase).
-  B-48  The funding bar uses the stored item.current_funding while the panels sum transactions,
+  B-48  CHANGED (P1b-3): the funding bar is now DERIVED (includes the opening entry) but the detail panels still list only
+        member contributions + external income, so they still disagree. Fix: show the opening entry as its own line in the
+        Financial Summary (numbers phase). Original report: The funding bar used the stored item.current_funding while the panels sum transactions,
         so the two disagree (e.g. "Scholarship Program 2024": funding 200,000 vs total
         contributions 5,000).
   B-49  Attendance is matched by title text (record.activity === item.title), not by id: two
@@ -1644,10 +1663,10 @@ TO VERIFY (suspected, not yet checked)
   backend get DISABLED until Supabase; Supabase itself is still NOT decided (auth, RLS, backups = later).
 
   Files (reference only — NOT applied to any database, no Supabase code exists):
-    docs/database/schema.sql        v2.3: 20 tables, 4 views, 37 permissions, seed_org_defaults(), ledger + approved-activity triggers. Loads clean on PostgreSQL 16.
-    docs/database/schema.tests.sql  80 self-checking tests (tenant isolation, soft-delete uniques, one active role,
+    docs/database/schema.sql        v2.4: 20 tables, 4 views, 37 permissions, seed_org_defaults(), ledger + approved-activity triggers, project/event funding views. Loads clean on PostgreSQL 16.
+    docs/database/schema.tests.sql  91 self-checking tests (tenant isolation, soft-delete uniques, one active role,
                                     transaction context, attendance, review/self-approval, balances, utilities, seeds).
-                                    Run: psql -d <empty db> -f schema.sql, then -f schema.tests.sql. Result: 80 pass, 0 fail.
+                                    Run: psql -d <empty db> -f schema.sql, then -f schema.tests.sql. Result: 91 pass, 0 fail.
                                     Mutation check done: removing 3 safeguards made 4 tests fail (tests are not vacuous).
 
   Entity map (DB table -> TS type -> mock array -> what must change in the app)
@@ -1666,9 +1685,9 @@ TO VERIFY (suspected, not yet checked)
         content -> body; created_by name string -> user id (name resolved); add image_url (optional).
     projects          -> Project                         -> MOCK_PROJECTS
         status loses 'rejected' (becomes approval_status); add approval_status, reviewed_by/at, rejection_reason;
-        current_funding becomes DERIVED (view project_financials); created_by id.
+        current_funding is DERIVED (view project_financials; ProjectWithFunding) - DONE in P1b-3; created_by id.
     events            -> AppEvent                        -> MOCK_EVENTS
-        same as projects, plus event_type (B-74); current_funding DERIVED (view event_financials).
+        same as projects, plus event_type (B-74, DONE); current_funding DERIVED (view event_financials; EventWithFunding) - DONE in P1b-3.
     attendances       -> Attendance                      -> MOCK_ATTENDANCES
         user_name / activity (title) / recorded_by (name) -> ids: project_id OR event_id, recorded_by id (B-49).
         One row per person + activity + date.
@@ -1695,8 +1714,9 @@ TO VERIFY (suspected, not yet checked)
     Direction: income, contribution, opening_balance = inflow (+); expense, refund = outflow (-). Amount is always > 0.
     Counted in balances/totals: APPROVED, not deleted. Pending, rejected and voided never count (B-27/B-35/B-39 family).
     Status mapping of today's data: completed -> approved, pending -> pending, failed -> rejected, cancelled -> voided.
-    Project/event "funding raised" = contributions + external income (approved). Refunds on a project/event are
-    OPEN: net_balance in the views subtracts them, current_funding does not — owner to confirm the definition.
+    Project/event "funding raised" (current_funding, DERIVED) = approved contributions + external income + the opening entry
+    - refunds (owner confirmed: a refunded donation reduces it); expenses never reduce it. DECIDED in P1b-3; the old open question was:
+    net_balance in the views subtracts refunds, current_funding did not — owner to confirm the definition.
     Approval: new project/event/transaction = pending. Reviewer needs approve_project / approve_event / approve_transaction;
     reviewing your OWN entry also needs approve_own_entries (DB trigger enforces it). Default roles (editable per org):
     Admin = all 37; Secretary = approve project/event + approve_own_entries, no approve_transaction; Treasurer =
@@ -1727,10 +1747,10 @@ TO VERIFY (suspected, not yet checked)
         3 fund balance derived (remove stored balance + currency) ........ DONE (+ opening balances, approve guard, schema v2.2)
         4 utility = bill; amount_paid/status derived from approved payment transactions ........ DONE
         5 payment method by id ........ DONE   (P1a COMPLETE; next: P1b projects/events)
-    P1b projects/events, in 3 sub-steps:
+    P1b projects/events (COMPLETE), in 3 sub-steps:
         1 approval workflow (approval_status separate from lifecycle; B-71) ........ DONE
         2 event_type field instead of the title-keyword guess (B-74) ........ DONE
-        3 derived funding (current_funding from approved transactions; needs opening entries for projects/events)
+        3 derived funding (current_funding from approved transactions; needs opening entries for projects/events) ........ DONE
     P1c attendance by ids (B-49); users/roles by id (B-21); announcements
     P1d B-01: pass record id via query param (#/employees/details?id=5); ROUTES table unchanged; "not found" state
     Then phases 2-7 of the agreed fix order. B-47 is fixed by batch 19 (belongsToItem matches by project_id/event_id) - included in this delivery.
@@ -2166,6 +2186,10 @@ src/constants/approval.ts
 
 src/constants/eventTypes.ts
   EVENT_TYPES + EVENT_TYPE_SELECT_OPTIONS: the event types for the Events filter and the Add/Edit event forms.
+
+src/test/funding.test.tsx
+  Derived project/event funding reproduces the old numbers (pending items 0), openings are approved/no fund/no member, fund balances
+  untouched, Projects/Events tables show the derived amounts.
 
 src/test/addEventType.test.tsx
   Add Event asks for the event type: listed options, Continue blocked until chosen.
@@ -2611,10 +2635,10 @@ src/test/pages.flows.test.tsx
   CATEGORY 22B — DATABASE REFERENCE (docs only — not runtime, not applied to any database)
 
 FILE: docs/database/schema.sql
-DESCRIPTION: Revised multi-tenant PostgreSQL schema v2.3 (20 tables, 4 derived-number views, 37 permissions, seed_org_defaults(), ledger immutability + overdraft + approved-activity triggers). Include when designing types/mock data, the data layer, or the Supabase discussion.
+DESCRIPTION: Revised multi-tenant PostgreSQL schema v2.4 (20 tables, 4 derived-number views, 37 permissions, seed_org_defaults(), ledger immutability + overdraft + approved-activity triggers). Include when designing types/mock data, the data layer, or the Supabase discussion.
 
 FILE: docs/database/schema.tests.sql
-DESCRIPTION: 80 self-checking tests that prove the schema's rules (isolation, approvals, balances, immutability, overdraft, approved-activity guard). Include when changing schema.sql.
+DESCRIPTION: 91 self-checking tests that prove the schema's rules (isolation, approvals, balances, immutability, overdraft, approved-activity guard). Include when changing schema.sql.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   CATEGORY 23 — NEVER INCLUDE IN PROMPTS

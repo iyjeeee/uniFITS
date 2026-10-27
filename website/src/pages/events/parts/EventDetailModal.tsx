@@ -5,9 +5,9 @@ import ItemDetailContent from '../../../components/ItemDetailContent'
 import { formatDate } from '../../../api/mockData'
 import { useOrg } from '../../../context/OrgContext'
 import { modalAccentColor } from '../../../constants/tableColors'
-import type { AppEvent } from '../../../types'
+import type { EventWithFunding } from '../../../types'
 
-interface Props { item: AppEvent | null; onClose: () => void; onEdit: () => void }
+interface Props { item: EventWithFunding | null; onClose: () => void; onEdit: () => void }
 
 export default function EventDetailModal({ item, onClose, onEdit }: Props) {
   const org = useOrg()

@@ -1,13 +1,14 @@
 // ProjectDetail.jsx — Full project view: funding, attendance, contributions, financials
 
 import { Card, PageHeader, Button, StatusBadge } from '../../components/ui'
-import { MOCK_PROJECTS, formatCurrency, formatDate } from '../../api/mockData'
+import { getProjectsWithFunding, formatCurrency, formatDate } from '../../api/mockData'
 import { getItemDetailData } from '../../components/itemDetail/itemDetailData'
 import { useOrg } from '../../context/OrgContext'
 
 export default function ProjectDetail({ projectId = '1' }: { projectId?: string }) {
   const org  = useOrg()
-  const proj = MOCK_PROJECTS.find((p) => p.id === projectId) || MOCK_PROJECTS[0]
+  const projects = getProjectsWithFunding()
+  const proj = projects.find((p) => p.id === projectId) || projects[0]
   const d = getItemDetailData(proj, 'project')   // financials + attendance of THIS project only (shared with the detail modal)
   const attendance = d.attendanceRecords
 

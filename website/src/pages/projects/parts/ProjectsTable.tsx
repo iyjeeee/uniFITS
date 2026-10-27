@@ -4,9 +4,9 @@ import { IconBtn } from '../../../components/TableUtils'
 import { BtnIco } from '../../../components/Icons'
 import { formatCurrency, formatDate } from '../../../api/mockData'
 import { rowStyle, rowHoverBg } from '../../../constants/tableColors'
-import type { Project } from '../../../types'
+import type { ProjectWithFunding } from '../../../types'
 
-interface Props { rows: Project[]; onRowClick: (p: Project) => void; onApprove: (p: Project) => void; onReject: (p: Project) => void; onDelete: (p: Project) => void }
+interface Props { rows: ProjectWithFunding[]; onRowClick: (p: ProjectWithFunding) => void; onApprove: (p: ProjectWithFunding) => void; onReject: (p: ProjectWithFunding) => void; onDelete: (p: ProjectWithFunding) => void }
 
 export default function ProjectsTable({ rows, onRowClick, onApprove, onReject, onDelete }: Props) {
   return (

@@ -1,16 +1,16 @@
 // parts/useEvents.ts — Events page state: list data, filters, paging, detail/edit/delete modals, approve/reject/delete/save, feedback
 import { useState } from 'react'
-import { MOCK_EVENTS } from '../../../api/mockData'
+import { getEventsWithFunding } from '../../../api/mockData'
 import { decide } from '../../../utils/approvals'
 import { EVENT_PAGE_SIZE } from './eventsShared'
 import type { EventActionResult } from './eventsShared'
-import type { AppEvent, User } from '../../../types'
+import type { EventWithFunding, User } from '../../../types'
 
 export default function useEvents(currentUser: User | null = null) {
-  const [data,         setData]         = useState(MOCK_EVENTS)
-  const [viewItem,     setViewItem]     = useState<AppEvent | null>(null)
-  const [editItem,     setEditItem]     = useState<AppEvent | null>(null)
-  const [deleteItem,   setDeleteItem]   = useState<AppEvent | null>(null)
+  const [data,         setData]         = useState(getEventsWithFunding)   // lazy: funding raised is derived from approved transactions
+  const [viewItem,     setViewItem]     = useState<EventWithFunding | null>(null)
+  const [editItem,     setEditItem]     = useState<EventWithFunding | null>(null)
+  const [deleteItem,   setDeleteItem]   = useState<EventWithFunding | null>(null)
   const [actionResult, setActionResult] = useState<EventActionResult | null>(null)
   const [search,       setSearch]       = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -42,15 +42,15 @@ export default function useEvents(currentUser: User | null = null) {
     setDeleteItem(null)
     setTimeout(() => setActionResult({ variant: 'danger', title: 'Event Deleted', message: `"${title}" has been permanently removed.` }), 260)
   }
-  function handleApprove(r: AppEvent) {
+  function handleApprove(r: EventWithFunding) {
     setData(prev => prev.map((e) => e.id === r.id ? { ...e, ...decide('approved', currentUser?.id ?? null) } : e))   // approval only: lifecycle status is untouched
     setActionResult({ variant: 'success', title: 'Event Approved', message: `"${r.title}" has been approved.` })
   }
-  function handleReject(r: AppEvent) {
+  function handleReject(r: EventWithFunding) {
     setData(prev => prev.map((e) => e.id === r.id ? { ...e, ...decide('rejected', currentUser?.id ?? null) } : e))
     setActionResult({ variant: 'danger', title: 'Event Rejected', message: `"${r.title}" has been rejected.` })
   }
-  function handleSaveEdit(updated: AppEvent) {
+  function handleSaveEdit(updated: EventWithFunding) {
     setData(prev => prev.map((r) => r.id === updated.id ? updated : r))
     setActionResult({ variant: 'success', title: 'Event Updated', message: `"${updated.title}" has been saved successfully.` })
   }
