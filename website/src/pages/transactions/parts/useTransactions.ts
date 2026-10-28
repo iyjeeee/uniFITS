@@ -1,6 +1,6 @@
 // parts/useTransactions.ts — Transactions page state: list data, filters, paging, detail/delete modals, approve/reject/delete, feedback
 import { useState } from 'react'
-import { MOCK_TRANSACTIONS, getFundName, getPaymentMethodName, formatCurrency } from '../../../api/mockData'
+import { MOCK_TRANSACTIONS, getFundName, getPaymentMethodName, getUserName, formatCurrency } from '../../../api/mockData'
 import { isReceipt, overdrawOnApprove, sumMoney } from '../../../utils/ledger'
 import { useOrg } from '../../../context/OrgContext'
 import { TX_PAGE_SIZE } from './transactionsShared'
@@ -32,7 +32,7 @@ export default function useTransactions() {
   const filtered = data
     .filter((t) => typeFilter   === 'all' || t.entry_type === typeFilter)
     .filter((t) => statusFilter === 'all' || t.status     === statusFilter)
-    .filter((t) => Object.values({ ...t, fund_id: getFundName(t.fund_id), payment_method_id: getPaymentMethodName(t.payment_method_id) }).some((v) => String(v).toLowerCase().includes(search.toLowerCase())))   // search the fund + method NAMES, not their ids
+    .filter((t) => Object.values({ ...t, fund_id: getFundName(t.fund_id), payment_method_id: getPaymentMethodName(t.payment_method_id), user_id: t.user_id ? getUserName(t.user_id) : '' }).some((v) => String(v).toLowerCase().includes(search.toLowerCase())))   // search the fund, method and member NAMES, not their ids
   const totalPages = Math.max(1, Math.ceil(filtered.length / TX_PAGE_SIZE))
   const paged      = filtered.slice((page - 1) * TX_PAGE_SIZE, page * TX_PAGE_SIZE)
 

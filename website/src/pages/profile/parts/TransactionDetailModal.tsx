@@ -2,7 +2,7 @@
 import { useOrg } from '../../../context/OrgContext'
 import useBreakpoint from '../../../hooks/useBreakpoint'
 import { Button, InfoModal } from '../../../components/ui'
-import { formatDate, formatCurrency, getFundName, getPaymentMethodName } from '../../../api/mockData'
+import { formatDate, formatCurrency, getFundName, getPaymentMethodName, getPartyName } from '../../../api/mockData'
 import type { Transaction } from '../../../types'
 import TypeBadge from './TransactionTypeBadge'
 
@@ -25,7 +25,7 @@ export default function TransactionDetailModal({ tx, onClose }: { tx: Transactio
           <div style={{ display: 'flex' as const, alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <div style={{ flex: 1, minWidth: 100, padding: '12px 14px', borderRadius: 10, background: 'var(--neutral-light)', border: '1px solid var(--border-card)', textAlign: 'center' as const }}>
               <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '.07em', marginBottom: 5 }}>From</div>
-              <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)' }}>{tx.user_name || 'Me'}</div>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)' }}>{getPartyName(tx.user_id, 'Me')}</div>
             </div>
             <div style={{ display: 'flex' as const, flexDirection: 'column' as const, alignItems: 'center', gap: 4, flexShrink: 0 }}>
               <TypeBadge type={tx.entry_type} />

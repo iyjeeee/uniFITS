@@ -2,7 +2,7 @@
 import { StatusBadge } from '../../../components/ui'
 import { IconBtn } from '../../../components/TableUtils'
 import { TableIco } from '../../../components/Icons'
-import { formatCurrency, formatDate, getFundName } from '../../../api/mockData'
+import { formatCurrency, formatDate, getFundName, getUserName } from '../../../api/mockData'
 import { useOrg } from '../../../context/OrgContext'
 import { rowStyle, rowHoverBg } from '../../../constants/tableColors'
 import { TX_PAGE_SIZE } from './transactionsShared'
@@ -36,7 +36,7 @@ export default function TransactionsTable({ rows, page, onRowClick, onApprove, o
               <td style={{ padding: '10px 14px' }}>
                 <code style={{ fontSize: 11, color: 'var(--text-primary)', fontFamily: 'monospace' }}>{t.reference_number}</code>
               </td>
-              <td style={{ padding: '10px 14px', fontWeight: 500 }}>{t.user_name || <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>External</span>}</td>
+              <td style={{ padding: '10px 14px', fontWeight: 500 }}>{t.user_id ? getUserName(t.user_id) : <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>External</span>}</td>
               <td style={{ padding: '10px 14px', fontWeight: 700, color: t.entry_type === 'expense' ? 'var(--danger)' : 'var(--success)' }}>
                 {t.entry_type === 'expense' ? '−' : '+'}{formatCurrency(t.amount, org.currency_symbol)}
               </td>

@@ -1,7 +1,7 @@
 // PersonalTransactions.tsx — A member's contributions summary, required dues, and full transaction history
 // Composition only — pieces live in ./parts (data + modal state in usePersonalTransactions)
 import { DataTable } from '../../components/ui'
-import { getFundName, getPaymentMethodName } from '../../api/mockData'
+import { getFundName, getPaymentMethodName, getUserName } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 import useBreakpoint from '../../hooks/useBreakpoint'
 import ContributionsCard from './parts/ContributionsCard'
@@ -38,7 +38,7 @@ export default function PersonalTransactions({ userId = '1' }: { userId?: string
         subtitle="All your financial contributions and dues — click any row for details"
         emptyMsg="No transactions found."
         onRowClick={t.setViewTx}
-        searchValues={(tx) => Object.values({ ...tx, fund_id: getFundName(tx.fund_id), payment_method_id: getPaymentMethodName(tx.payment_method_id) })}   // search names, not ids
+        searchValues={(tx) => Object.values({ ...tx, fund_id: getFundName(tx.fund_id), payment_method_id: getPaymentMethodName(tx.payment_method_id), user_id: tx.user_id ? getUserName(tx.user_id) : '' })}   // search names, not ids
       />
 
       <TransactionDetailModal tx={t.viewTx} onClose={() => t.setViewTx(null)} />

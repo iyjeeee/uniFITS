@@ -9,7 +9,6 @@ export type UtilityStatus = 'paid' | 'unpaid' | 'partial'
 export interface Transaction {
   id: string
   user_id: string | null      // null for external/org-level transactions
-  user_name: string | null    // null for external/org-level transactions
   entry_type: EntryType
   category: TransactionCategory
   fund_id: string | null      // FK to funds.id (required when category is 'fund'); name via getFundName()

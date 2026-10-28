@@ -5,7 +5,7 @@ import type { Transaction, EntryType, TransactionStatus } from '../types'
 
 let n = 0
 const tx = (entry_type: EntryType, amount: number, status: TransactionStatus = 'approved', fund_id: string | null = 'F1'): Transaction => ({
-  id: String(++n), user_id: null, user_name: null, entry_type, category: 'fund', fund_id, amount, payment_method_id: null,
+  id: String(++n), user_id: null, entry_type, category: 'fund', fund_id, amount, payment_method_id: null,
   reference_number: `T${n}`, transaction_date: '2025-01-01', status, description: '',
 })
 

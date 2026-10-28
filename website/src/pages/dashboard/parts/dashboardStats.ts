@@ -1,5 +1,5 @@
 // parts/dashboardStats.ts — Computed dashboard figures from the mock records (KPIs, top contributors, recent transactions)
-import { MOCK_USERS, MOCK_TRANSACTIONS, MOCK_PROJECTS, MOCK_EVENTS, getFundsWithBalance } from '../../../api/mockData'
+import { MOCK_USERS, MOCK_TRANSACTIONS, MOCK_PROJECTS, MOCK_EVENTS, getFundsWithBalance, getUserName } from '../../../api/mockData'
 import { isReceipt, sumMoney } from '../../../utils/ledger'
 import { approvedOnly } from '../../../utils/approvals'
 
@@ -17,12 +17,12 @@ export function getDashboardStats() {
 
   const topContributors = Object.values(
     MOCK_TRANSACTIONS
-      .filter((t) => t.user_name && isReceipt(t))
+      .filter((t) => t.user_id && isReceipt(t))
       .reduce((acc: Record<string,{name:string;total:number;count:number}>, t) => {
-        if (!t.user_name) return acc   // already filtered above — narrows user_name to string
-        if (!acc[t.user_name]) acc[t.user_name] = { name: t.user_name, total: 0, count: 0 }
-        acc[t.user_name].total += t.amount
-        acc[t.user_name].count += 1
+        if (!t.user_id) return acc   // already filtered above -- narrows user_id to string
+        if (!acc[t.user_id]) acc[t.user_id] = { name: getUserName(t.user_id), total: 0, count: 0 }   // grouped by id, name looked up
+        acc[t.user_id].total += t.amount
+        acc[t.user_id].count += 1
         return acc
       }, {} as Record<string,{name:string;total:number;count:number}>)
   ).sort((a, b) => b.total - a.total).slice(0, 5)

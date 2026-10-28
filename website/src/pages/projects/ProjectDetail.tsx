@@ -1,7 +1,7 @@
 // ProjectDetail.jsx — Full project view: funding, attendance, contributions, financials
 
 import { Card, PageHeader, Button, StatusBadge } from '../../components/ui'
-import { getProjectsWithFunding, getUserName, formatCurrency, formatDate } from '../../api/mockData'
+import { getProjectsWithFunding, getUserName, formatCurrency, formatDate, getPartyName } from '../../api/mockData'
 import { getItemDetailData } from '../../components/itemDetail/itemDetailData'
 import { useOrg } from '../../context/OrgContext'
 
@@ -60,7 +60,7 @@ export default function ProjectDetail({ projectId = '1' }: { projectId?: string 
               ? <div style={{ padding: '20px', textAlign: 'center' as const, color: 'var(--text-muted)', fontSize: 13 }}>No contributions yet.</div>
               : d.memberContribs.slice(0, 5).map((t) => (
                 <div key={t.id} style={{ display: 'flex' as const, alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', borderBottom: '1px solid var(--border)', fontSize: 13.5 }}>
-                  <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{t.user_name || 'Member'}</span>
+                  <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{getPartyName(t.user_id, 'Member')}</span>
                   <span style={{ fontWeight: 700, color: 'var(--success)' }}>+{formatCurrency(t.amount, org?.currency_symbol)}</span>
                 </div>
               ))
@@ -106,7 +106,7 @@ export default function ProjectDetail({ projectId = '1' }: { projectId?: string 
               ? <div style={{ padding: '20px', textAlign: 'center' as const, color: 'var(--text-muted)', fontSize: 13 }}>No external income recorded.</div>
               : d.externalIncome.slice(0, 5).map((t) => (
                 <div key={t.id} style={{ display: 'flex' as const, alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', borderBottom: '1px solid var(--border)', fontSize: 13.5 }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>{t.user_name || 'External'}</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>{getPartyName(t.user_id, 'External')}</span>
                   <span style={{ fontWeight: 700, color: 'var(--success)' }}>+{formatCurrency(t.amount, org?.currency_symbol)}</span>
                 </div>
               ))
@@ -128,7 +128,7 @@ export default function ProjectDetail({ projectId = '1' }: { projectId?: string 
               ? <div style={{ padding: '20px', textAlign: 'center' as const, color: 'var(--text-muted)', fontSize: 13 }}>No expenses recorded.</div>
               : d.externalExpense.slice(0, 5).map((t) => (
                 <div key={t.id} style={{ display: 'flex' as const, alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', borderBottom: '1px solid var(--border)', fontSize: 13.5 }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>{t.user_name || 'External'}</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>{getPartyName(t.user_id, 'External')}</span>
                   <span style={{ fontWeight: 700, color: 'var(--danger)' }}>−{formatCurrency(t.amount, org?.currency_symbol)}</span>
                 </div>
               ))

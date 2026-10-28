@@ -128,7 +128,14 @@
       (Backup page). Renaming a person updates the announcement author, fund "Managed by" and the audit actor everywhere. NO visible
       change (275 page states compared incl. the audit page with its clock-based times normalised: only the audit page's own timestamp
       seconds differ). The backup creator is not displayed anywhere, so that part is covered by the types only.
-      - Still text (next step P1c-4): Transaction.user_name. Projects/events/utilities have no created_by in the app yet (the DB requires one).
+      - Projects/events/utilities have no created_by in the app yet (the DB requires one; add it when saving exists).
+    P1c-4 DONE (P1c COMPLETE): Transaction no longer stores user_name. The member is user_id (null = external / org-level); the name is looked
+      up: getPartyName(user_id, fallback) in api/mockData.ts (fallbacks kept per screen: 'External', 'Member', 'Me', the dash). Converted:
+      Transactions table + receipt, profile detail, recent-transactions card, project/event detail panels, contribution rows, dashboard top
+      contributors (now grouped by user id, name looked up). SEARCH keeps working on names: the Transactions page and the profile
+      DataTable search the member name (not the id). Renaming a person updates every transaction row. NO visible change (275 page states
+      identical; the stored names matched the ids in all 22 rows before converting).
+      - Tests: 263 pass in 37 files (new: test/transactionPeople.test.tsx, 7 tests; dashboard.stats contributors test uses ids + isReceipt).
       - Tests: 256 pass in 36 files (new: test/creatorsById.test.tsx, 6 tests).
     NOTE: the owner's uploaded website.zip had 171 tests = WITHOUT batch 19; the 177 count includes batch 19 (+6 tests).
     This delivery includes batch 19 + step 1 + docs/database as one ZIP (diff against the uploaded ZIP).
@@ -1730,7 +1737,7 @@ TO VERIFY (suspected, not yet checked)
         amount_paid and status are DERIVED from approved payments (view utility_balances) -> they cannot contradict (B-19/B-78).
         MOCK_TRANSACTIONS needs matching category 'utility' payment rows so derived values equal today's numbers.
     transactions      -> Transaction                     -> MOCK_TRANSACTIONS (14 rows, all 'completed' today)
-        fund (name) -> fund_id; payment_method (string) -> payment_method_id; user_name DERIVED; keep project_id/event_id;
+        fund (name) -> fund_id; payment_method (string) -> payment_method_id; user_name DERIVED (DONE in P1c-4); keep project_id/event_id;
         add utility_id, reviewed_by/at, rejection_reason; description + notes kept.
         EntryType gains refund, opening_balance; TransactionCategory gains utility; TransactionStatus -> pending/approved/rejected/voided.
     audit_logs        -> AuditLog                        -> MOCK_AUDIT_LOGS
@@ -1785,7 +1792,7 @@ TO VERIFY (suspected, not yet checked)
         1 attendance by ids (B-49) ........ DONE
         2 users <-> roles by id (B-21) ........ DONE
         3 creators/recorders by id (B-06): announcements, funds, audit logs, backups ........ DONE
-        4 transactions: stored user_name (text) -> derived from user_id (getUserName); searches/lists/top contributors by id
+        4 transactions: stored user_name (text) -> derived from user_id (getPartyName); searches/lists/top contributors by id ........ DONE (P1c COMPLETE)
     P1d B-01: pass record id via query param (#/employees/details?id=5); ROUTES table unchanged; "not found" state
     Then phases 2-7 of the agreed fix order. B-47 is fixed by batch 19 (belongsToItem matches by project_id/event_id) - included in this delivery.
     Items needing a backend are DISABLED until Supabase: Add* saving (B-66/B-78), Settings persistence (B-57),
@@ -2221,6 +2228,9 @@ src/constants/approval.ts
 src/constants/eventTypes.ts
   EVENT_TYPES + EVENT_TYPE_SELECT_OPTIONS: the event types for the Events filter and the Add/Edit event forms.
 
+src/test/transactionPeople.test.tsx
+  Transaction people by id: no stored user_name, getPartyName, rename-safe names, search by member NAME (Transactions + profile table), top contributors.
+
 src/test/creatorsById.test.tsx
   Creators/actors by id: data integrity, getActorName, rename-safe announcement/fund/audit names, new announcements record the logged-in id.
 
@@ -2326,7 +2336,7 @@ src/types/ui.ts
 src/api/mockData.ts
   All mock data typed with interfaces from src/types/.
   MOCK_USERS: User[], MOCK_ROLES: Role[], etc.
-  Also exports helpers: formatCurrency, formatDate, relativeTime, fmt12, getUserName(user_id), getActorName(user_id|null -> System), getActivityTitle(record), getRoleName(role_id), isOfficer(user) and getFundName(fund_id) (name for display, '—' when none).
+  Also exports helpers: formatCurrency, formatDate, relativeTime, fmt12, getUserName(user_id), getPartyName(user_id, fallback), getActorName(user_id|null -> System), getActivityTitle(record), getRoleName(role_id), isOfficer(user) and getFundName(fund_id) (name for display, '—' when none).
   Legacy helpers (formatCurrency, formatDate, relativeTime, fmt12)
   retained and typed. fmt12(t: string): string is only here.
   Include in EVERY prompt involving data, tables, forms, or content.

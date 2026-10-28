@@ -1,5 +1,5 @@
 // itemDetail/ContributionRow.tsx — One transaction line (#, member or External, signed amount) in the contribution/income/expense panels
-import { formatCurrency } from '../../api/mockData'
+import { formatCurrency, getPartyName } from '../../api/mockData'
 import type { Transaction, OrgConfig } from '../../types'
 
 export default function ContributionRow({ tx, idx, org }: { tx: Transaction; idx: number; org: OrgConfig }) {
@@ -8,7 +8,7 @@ export default function ContributionRow({ tx, idx, org }: { tx: Transaction; idx
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
         <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', flexShrink: 0 }}>#{idx + 1}</span>
         <span style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {tx.user_name ?? 'External'}
+          {getPartyName(tx.user_id, 'External')}
         </span>
       </div>
       <span style={{ fontSize: 13.5, fontWeight: 800, color: tx.entry_type === 'expense' ? 'var(--danger)' : 'var(--success)', flexShrink: 0 }}>

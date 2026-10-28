@@ -1,6 +1,6 @@
 // parts/RecentTransactionsCard.tsx — Table of the first 6 transactions (array order, not sorted by date)
 import { Badge, Card, CardHeader, StatusBadge } from '../../../components/ui'
-import { formatCurrency, formatDate } from '../../../api/mockData'
+import { formatCurrency, formatDate, getPartyName } from '../../../api/mockData'
 import { useOrg } from '../../../context/OrgContext'
 import type { DashboardStats } from './dashboardStats'
 
@@ -22,7 +22,7 @@ export default function RecentTransactionsCard({ recentTransactions }: { recentT
           {recentTransactions.map((t) => (
             <tr key={t.id} style={{ borderBottom: '1px solid var(--border-inner)' }}>
               <td style={{ padding: '10px 14px' }}><code style={{ fontSize: 11 }}>{t.reference_number}</code></td>
-              <td style={{ padding: '10px 14px' }}>{t.user_name || '—'}</td>
+              <td style={{ padding: '10px 14px' }}>{getPartyName(t.user_id, '—')}</td>
               <td style={{ padding: '10px 14px', fontWeight: 700, color: t.entry_type === 'expense' ? 'var(--danger)' : 'var(--success)' }}>
                 {t.entry_type === 'expense' ? '−' : '+'}{formatCurrency(t.amount, org.currency_symbol)}
               </td>

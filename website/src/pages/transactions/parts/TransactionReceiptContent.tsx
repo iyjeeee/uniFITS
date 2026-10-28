@@ -1,5 +1,5 @@
 // parts/TransactionReceiptContent.tsx — Receipt-style transaction detail: header, key-value grid, From -> Type -> To flow, category + amount
-import { formatCurrency, formatDate, getFundName, getPaymentMethodName } from '../../../api/mockData'
+import { formatCurrency, formatDate, getFundName, getPaymentMethodName, getPartyName } from '../../../api/mockData'
 import { useOrg } from '../../../context/OrgContext'
 import useBreakpoint from '../../../hooks/useBreakpoint'
 import EntryTypeBadge from './EntryTypeBadge'
@@ -20,7 +20,7 @@ export default function TransactionReceiptContent({ tx }: { tx: Transaction }) {
         {[
           ['Reference #',    tx.reference_number],
           ['Date',           formatDate(tx.transaction_date)],
-          ['Member',         tx.user_name || 'External'],
+          ['Member',         getPartyName(tx.user_id, 'External')],
           ['Status',         tx.status.charAt(0).toUpperCase() + tx.status.slice(1)],
           ['Payment Method', getPaymentMethodName(tx.payment_method_id)],
           ['Fund',           getFundName(tx.fund_id)],
@@ -38,7 +38,7 @@ export default function TransactionReceiptContent({ tx }: { tx: Transaction }) {
           {/* FROM node */}
           <div style={{ flex: 1, minWidth: 100, padding: '12px 14px', borderRadius: 10, background: 'var(--neutral-light)', border: '1px solid var(--border-card)', textAlign: 'center' as const }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '.07em', marginBottom: 5 }}>From</div>
-            <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)' }}>{tx.user_name || 'External'}</div>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)' }}>{getPartyName(tx.user_id, 'External')}</div>
           </div>
           {/* Arrow + type badge */}
           <div style={{ display: 'flex' as const, flexDirection: 'column' as const, alignItems: 'center', gap: 4, flexShrink: 0 }}>

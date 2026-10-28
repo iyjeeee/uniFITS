@@ -1,7 +1,8 @@
 // dashboard.stats.test.ts — getDashboardStats derives KPIs/top contributors/recent rows from the mock records
 import { describe, it, expect } from 'vitest'
+import { isReceipt } from '../utils/ledger'
 import { getDashboardStats } from '../pages/dashboard/parts/dashboardStats'
-import { MOCK_TRANSACTIONS, getFundsWithBalance } from '../api/mockData'
+import { MOCK_TRANSACTIONS, getFundsWithBalance, getUserName } from '../api/mockData'
 
 describe('getDashboardStats', () => {
   const s = getDashboardStats()
@@ -18,10 +19,10 @@ describe('getDashboardStats', () => {
     expect(s.topContributors.length).toBeLessThanOrEqual(5)
     const totals = s.topContributors.map((c) => c.total)
     expect(totals).toEqual([...totals].sort((a, b) => b - a))
-    const contributorsWithIncome = new Set(MOCK_TRANSACTIONS.filter((t) => t.entry_type !== 'expense' && t.user_name).map((t) => t.user_name))
-    s.topContributors.forEach((c) => {   // total = sum of that person's non-expense amounts
+    const contributorsWithIncome = new Set(MOCK_TRANSACTIONS.filter((t) => isReceipt(t) && t.user_id).map((t) => getUserName(t.user_id)))
+    s.topContributors.forEach((c) => {   // total = sum of that person's receipts (income + contributions; opening balances are not)
       expect(contributorsWithIncome.has(c.name)).toBe(true)
-      const sum = MOCK_TRANSACTIONS.filter((t) => t.user_name === c.name && t.entry_type !== 'expense').reduce((a, t) => a + t.amount, 0)
+      const sum = MOCK_TRANSACTIONS.filter((t) => t.user_id && getUserName(t.user_id) === c.name && isReceipt(t)).reduce((a, t) => a + t.amount, 0)
       expect(c.total).toBe(sum)
     })
   })
