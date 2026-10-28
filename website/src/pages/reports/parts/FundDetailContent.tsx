@@ -1,5 +1,5 @@
 // parts/FundDetailContent.tsx — Body of the fund detail modal: balance hero, 3-column detail grid (1 on mobile), contributions list
-import { formatCurrency } from '../../../api/mockData'
+import { formatCurrency, getUserName } from '../../../api/mockData'
 import useBreakpoint from '../../../hooks/useBreakpoint'
 import { capitalize } from '../../../utils/formatters'
 import { getFundContributions } from './fundReportData'
@@ -37,7 +37,7 @@ export default function FundDetailContent({ fund, org }: { fund: FundWithBalance
           ['Pay Frequency', capitalize(fund.payment_frequency)],
           ['Annual Fee',    fund.annual_fee ? formatCurrency(fund.annual_fee, org.currency_symbol) : '—'],
           ['Balance',       formatCurrency(fund.balance, org.currency_symbol)],
-          ['Managed by',    fund.created_by || '—'],
+          ['Managed by',    getUserName(fund.created_by)],
           ['Currency',      org.currency_code],
         ].map(([k, v]) => (
           <div key={k} style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--neutral-light)', border: '1px solid var(--border-card)' }}>

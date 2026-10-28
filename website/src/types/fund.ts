@@ -12,7 +12,7 @@ export interface Fund {
   fund_type: FundType
   is_required: boolean        // true = all members must contribute
   status: FundStatus
-  created_by: string          // full name string
+  created_by: string          // FK to users.id of the fund's manager -- name via getUserName()
   payment_frequency: PaymentFrequency
   annual_fee: number | null   // PHP amount, null if not applicable
 }

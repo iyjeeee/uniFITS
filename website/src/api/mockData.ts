@@ -50,6 +50,11 @@ export function fmt12(t: string | null | undefined): string {
   return `${h12}:${String(m).padStart(2, '0')} ${ampm}`
 }
 
+/** getActorName -- who did it: a person's name, 'System' when there is no user (null), '—' when the id is unknown */
+export function getActorName(userId: string | null | undefined): string {
+  return userId === null ? 'System' : getUserName(userId)
+}
+
 /** getRoleName -- role name for a role_id ('—' when none/unknown); users point at a role by id, never by name */
 export function getRoleName(roleId: string | null | undefined): string {
   return MOCK_ROLES.find((r) => r.id === roleId)?.name ?? '—'
@@ -125,10 +130,10 @@ export const MOCK_ROLES: Role[] = [
 
 // ── MOCK_ANNOUNCEMENTS ────────────────────────────────────────────────────────
 export const MOCK_ANNOUNCEMENTS: Announcement[] = [
-  { id: '1', title: 'General Assembly Meeting',  content: 'All members are required to attend the General Assembly this Saturday, March 22, 2025 at 9:00 AM. The agenda includes budget review, project updates, and officer elections.', is_pinned: true,  created_by: 'Juan Dela Cruz',    created_at: '2025-03-15T08:00:00Z' },
-  { id: '2', title: 'Membership Dues Reminder',  content: 'Kindly settle your annual membership dues before March 31, 2025. Please coordinate with our Treasurer Pedro Reyes for payment details. Payment can be made via GCash or cash.',  is_pinned: true,  created_by: 'Maria Santos',      created_at: '2025-03-12T10:30:00Z' },
-  { id: '3', title: 'Medical Mission Volunteers',content: 'We are looking for volunteers for our upcoming Medical Mission on April 5, 2025. Activities include medical check-ups, medicine distribution, and dental care.',               is_pinned: false, created_by: 'Carlos Villanueva', created_at: '2025-03-10T14:00:00Z' },
-  { id: '4', title: 'New Year Activity Planning', content: 'We are planning our year-end celebration. Please submit your activity suggestions to the Events Committee by March 25.',                                                     is_pinned: false, created_by: 'Luz Ramos',         created_at: '2025-03-08T09:00:00Z' },
+  { id: '1', title: 'General Assembly Meeting',  content: 'All members are required to attend the General Assembly this Saturday, March 22, 2025 at 9:00 AM. The agenda includes budget review, project updates, and officer elections.', is_pinned: true,  created_by: '1',    created_at: '2025-03-15T08:00:00Z' },
+  { id: '2', title: 'Membership Dues Reminder',  content: 'Kindly settle your annual membership dues before March 31, 2025. Please coordinate with our Treasurer Pedro Reyes for payment details. Payment can be made via GCash or cash.',  is_pinned: true,  created_by: '2',      created_at: '2025-03-12T10:30:00Z' },
+  { id: '3', title: 'Medical Mission Volunteers',content: 'We are looking for volunteers for our upcoming Medical Mission on April 5, 2025. Activities include medical check-ups, medicine distribution, and dental care.',               is_pinned: false, created_by: '5', created_at: '2025-03-10T14:00:00Z' },
+  { id: '4', title: 'New Year Activity Planning', content: 'We are planning our year-end celebration. Please submit your activity suggestions to the Events Committee by March 25.',                                                     is_pinned: false, created_by: '6',         created_at: '2025-03-08T09:00:00Z' },
 ]
 
 // ── MOCK_PROJECTS ─────────────────────────────────────────────────────────────
@@ -151,11 +156,11 @@ export const MOCK_EVENTS: AppEvent[] = [
 
 // ── MOCK_FUNDS ────────────────────────────────────────────────────────────────
 export const MOCK_FUNDS: Fund[] = [
-  { id: '1', name: 'Membership Dues Fund', description: 'Annual mandatory membership fees',      fund_type: 'internal', is_required: true,  status: 'active', created_by: 'Pedro Reyes',    payment_frequency: 'annually', annual_fee: 1200 },
-  { id: '2', name: 'Project Fund',         description: 'General fund for all club projects',    fund_type: 'internal', is_required: false, status: 'active', created_by: 'Juan Dela Cruz', payment_frequency: null,       annual_fee: null },
-  { id: '3', name: 'Event Fund',           description: 'For events and celebrations',            fund_type: 'external', is_required: false, status: 'active', created_by: 'Luz Ramos',      payment_frequency: null,       annual_fee: null },
-  { id: '4', name: 'Emergency Fund',       description: 'Reserve for unforeseen expenses',       fund_type: 'internal', is_required: false, status: 'active', created_by: 'Pedro Reyes',    payment_frequency: null,       annual_fee: null },
-  { id: '5', name: 'Building Fund',        description: 'Savings for future office acquisition', fund_type: 'internal', is_required: true,  status: 'active', created_by: 'Juan Dela Cruz', payment_frequency: 'monthly',  annual_fee: 600  },
+  { id: '1', name: 'Membership Dues Fund', description: 'Annual mandatory membership fees',      fund_type: 'internal', is_required: true,  status: 'active', created_by: '3',    payment_frequency: 'annually', annual_fee: 1200 },
+  { id: '2', name: 'Project Fund',         description: 'General fund for all club projects',    fund_type: 'internal', is_required: false, status: 'active', created_by: '1', payment_frequency: null,       annual_fee: null },
+  { id: '3', name: 'Event Fund',           description: 'For events and celebrations',            fund_type: 'external', is_required: false, status: 'active', created_by: '6',      payment_frequency: null,       annual_fee: null },
+  { id: '4', name: 'Emergency Fund',       description: 'Reserve for unforeseen expenses',       fund_type: 'internal', is_required: false, status: 'active', created_by: '3',    payment_frequency: null,       annual_fee: null },
+  { id: '5', name: 'Building Fund',        description: 'Savings for future office acquisition', fund_type: 'internal', is_required: true,  status: 'active', created_by: '1', payment_frequency: 'monthly',  annual_fee: 600  },
 ]
 
 // ── MOCK_TRANSACTIONS ─────────────────────────────────────────────────────────
@@ -208,14 +213,14 @@ export const MOCK_ATTENDANCES: Attendance[] = [
 
 // ── MOCK_AUDIT_LOGS ───────────────────────────────────────────────────────────
 export const MOCK_AUDIT_LOGS: AuditLog[] = [
-  { id: '1', user: 'Juan Dela Cruz',  action: 'login',  table_name: 'sessions',      summary: 'User logged in',                          ip_address: '192.168.1.1', created_at: new Date(Date.now() - 2  * 60000).toISOString()     },
-  { id: '2', user: 'Maria Santos',    action: 'insert', table_name: 'announcements', summary: 'Created announcement: Dues Reminder',      ip_address: '192.168.1.2', created_at: new Date(Date.now() - 15 * 60000).toISOString()     },
-  { id: '3', user: 'Pedro Reyes',     action: 'insert', table_name: 'transactions',  summary: 'Recorded transaction TXN-20250305-0003',   ip_address: '192.168.1.3', created_at: new Date(Date.now() - 30 * 60000).toISOString()     },
-  { id: '4', user: 'Juan Dela Cruz',  action: 'update', table_name: 'projects',      summary: 'Updated project: Medical Mission 2025',    ip_address: '192.168.1.1', created_at: new Date(Date.now() - 2  * 3600000).toISOString()   },
-  { id: '5', user: 'System',          action: 'backup', table_name: 'backup_jobs',   summary: 'Automated daily backup completed',         ip_address: '127.0.0.1',   created_at: new Date(Date.now() - 6  * 3600000).toISOString()   },
-  { id: '6', user: 'Maria Santos',    action: 'delete', table_name: 'users',         summary: 'Deactivated member: Luz Ramos',            ip_address: '192.168.1.2', created_at: new Date(Date.now() - 24 * 3600000).toISOString()   },
-  { id: '7', user: 'Pedro Reyes',     action: 'update', table_name: 'funds',         summary: 'Updated fund: Building Fund balance',      ip_address: '192.168.1.3', created_at: new Date(Date.now() - 48 * 3600000).toISOString()   },
-  { id: '8', user: 'Juan Dela Cruz',  action: 'insert', table_name: 'events',        summary: 'Created event: Annual Gala Night 2025',    ip_address: '192.168.1.1', created_at: new Date(Date.now() - 72 * 3600000).toISOString()   },
+  { id: '1', user_id: '1',  action: 'login',  table_name: 'sessions',      summary: 'User logged in',                          ip_address: '192.168.1.1', created_at: new Date(Date.now() - 2  * 60000).toISOString()     },
+  { id: '2', user_id: '2',    action: 'insert', table_name: 'announcements', summary: 'Created announcement: Dues Reminder',      ip_address: '192.168.1.2', created_at: new Date(Date.now() - 15 * 60000).toISOString()     },
+  { id: '3', user_id: '3',     action: 'insert', table_name: 'transactions',  summary: 'Recorded transaction TXN-20250305-0003',   ip_address: '192.168.1.3', created_at: new Date(Date.now() - 30 * 60000).toISOString()     },
+  { id: '4', user_id: '1',  action: 'update', table_name: 'projects',      summary: 'Updated project: Medical Mission 2025',    ip_address: '192.168.1.1', created_at: new Date(Date.now() - 2  * 3600000).toISOString()   },
+  { id: '5', user_id: null,          action: 'backup', table_name: 'backup_jobs',   summary: 'Automated daily backup completed',         ip_address: '127.0.0.1',   created_at: new Date(Date.now() - 6  * 3600000).toISOString()   },
+  { id: '6', user_id: '2',    action: 'delete', table_name: 'users',         summary: 'Deactivated member: Luz Ramos',            ip_address: '192.168.1.2', created_at: new Date(Date.now() - 24 * 3600000).toISOString()   },
+  { id: '7', user_id: '3',     action: 'update', table_name: 'funds',         summary: 'Updated fund: Building Fund balance',      ip_address: '192.168.1.3', created_at: new Date(Date.now() - 48 * 3600000).toISOString()   },
+  { id: '8', user_id: '1',  action: 'insert', table_name: 'events',        summary: 'Created event: Annual Gala Night 2025',    ip_address: '192.168.1.1', created_at: new Date(Date.now() - 72 * 3600000).toISOString()   },
 ]
 
 // ── MOCK_PAYMENT_METHODS ──────────────────────────────────────────────────────
@@ -229,8 +234,8 @@ export const MOCK_PAYMENT_METHODS: PaymentMethodOption[] = [
 
 // ── MOCK_BACKUP_JOBS ──────────────────────────────────────────────────────────
 export const MOCK_BACKUP_JOBS: BackupJob[] = [
-  { id: '1', filename: 'backup_2025-03-15_auto.sql.gz',   job_type: 'backup', trigger: 'scheduled', file_size_bytes: 5242880, status: 'success', started_at: '2025-03-15T02:00:00Z', completed_at: '2025-03-15T02:01:30Z', created_by: 'System'         },
-  { id: '2', filename: 'backup_2025-03-14_manual.sql.gz', job_type: 'backup', trigger: 'manual',    file_size_bytes: 5200000, status: 'success', started_at: '2025-03-14T14:30:00Z', completed_at: '2025-03-14T14:31:20Z', created_by: 'Juan Dela Cruz' },
-  { id: '3', filename: 'backup_2025-03-10_auto.sql.gz',   job_type: 'backup', trigger: 'scheduled', file_size_bytes: 4900000, status: 'success', started_at: '2025-03-10T02:00:00Z', completed_at: '2025-03-10T02:01:10Z', created_by: 'System'         },
-  { id: '4', filename: 'backup_2025-03-07_auto.sql.gz',   job_type: 'backup', trigger: 'scheduled', file_size_bytes: 4750000, status: 'success', started_at: '2025-03-07T02:00:00Z', completed_at: '2025-03-07T02:00:55Z', created_by: 'System'         },
+  { id: '1', filename: 'backup_2025-03-15_auto.sql.gz',   job_type: 'backup', trigger: 'scheduled', file_size_bytes: 5242880, status: 'success', started_at: '2025-03-15T02:00:00Z', completed_at: '2025-03-15T02:01:30Z', created_by: null         },
+  { id: '2', filename: 'backup_2025-03-14_manual.sql.gz', job_type: 'backup', trigger: 'manual',    file_size_bytes: 5200000, status: 'success', started_at: '2025-03-14T14:30:00Z', completed_at: '2025-03-14T14:31:20Z', created_by: '1' },
+  { id: '3', filename: 'backup_2025-03-10_auto.sql.gz',   job_type: 'backup', trigger: 'scheduled', file_size_bytes: 4900000, status: 'success', started_at: '2025-03-10T02:00:00Z', completed_at: '2025-03-10T02:01:10Z', created_by: null         },
+  { id: '4', filename: 'backup_2025-03-07_auto.sql.gz',   job_type: 'backup', trigger: 'scheduled', file_size_bytes: 4750000, status: 'success', started_at: '2025-03-07T02:00:00Z', completed_at: '2025-03-07T02:00:55Z', created_by: null         },
 ]

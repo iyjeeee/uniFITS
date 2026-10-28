@@ -6,6 +6,6 @@ export interface Announcement {
   title: string
   content: string
   is_pinned: boolean          // pinned announcements appear at the top
-  created_by: string          // full name string
+  created_by: string          // FK to users.id of the author -- name via getUserName()
   created_at: string          // ISO date string
 }

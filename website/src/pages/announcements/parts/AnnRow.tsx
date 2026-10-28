@@ -1,5 +1,5 @@
 // parts/AnnRow.tsx — One announcement row (panel + View All modal)
-import { relativeTime } from '../../../api/mockData'
+import { relativeTime, getUserName } from '../../../api/mockData'
 import type { Announcement } from '../../../types'
 import { Ico } from './icons'
 
@@ -12,7 +12,7 @@ export default function AnnRow({ a, onClick }: { a: Announcement; onClick: () =>
       {a.is_pinned && <span style={{ color:'var(--accent)', display:'flex', flexShrink:0, marginTop:3 }}><Ico.Pin /></span>}
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ fontSize:13, fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{a.title}</div>
-        <div style={{ fontSize:11.5, color:'var(--text-muted)', marginTop:2 }}>{a.created_by} · {relativeTime(a.created_at)}</div>
+        <div style={{ fontSize:11.5, color:'var(--text-muted)', marginTop:2 }}>{getUserName(a.created_by)} · {relativeTime(a.created_at)}</div>
       </div>
       <span style={{ color:'var(--text-muted)', flexShrink:0, marginTop:3 }}><Ico.Arrow /></span>
     </div>

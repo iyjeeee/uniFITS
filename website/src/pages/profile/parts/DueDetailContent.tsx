@@ -1,6 +1,6 @@
 // parts/DueDetailContent.tsx — Body of the due detail modal
 import useBreakpoint from '../../../hooks/useBreakpoint'
-import { formatCurrency } from '../../../api/mockData'
+import { formatCurrency, getUserName } from '../../../api/mockData'
 import type { OrgConfig } from '../../../types'
 import type { DueFund } from './dueShared'
 
@@ -34,7 +34,7 @@ export default function DueDetailContent({ fund, org }: { fund: DueFund; org: Or
           ['Pay Frequency',   fund.payment_frequency ? (fund.payment_frequency.charAt(0).toUpperCase() + fund.payment_frequency.slice(1)) : '—'],
           ['Annual Fee',      fund.annual_fee ? formatCurrency(fund.annual_fee, org.currency_symbol) : '—'],
           ['Current Balance', formatCurrency(fund.balance, org.currency_symbol)],
-          ['Managed by',      fund.created_by],
+          ['Managed by',      getUserName(fund.created_by)],
         ].map(([k, v]) => (
           <div key={k} style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--neutral-light)', border: '1px solid var(--border-card)' }}>
             <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '.07em', marginBottom: 4 }}>{k}</div>

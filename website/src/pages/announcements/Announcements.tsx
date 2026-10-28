@@ -16,14 +16,15 @@ import DayDetailModal from './parts/DayDetailModal'
 import { useAnnouncements } from './parts/useAnnouncements'
 import { buildTiles, buildSchedule } from './parts/helpers'
 import type { TileItem, SelectedDay } from './parts/types'
+import type { User } from '../../types'
 
 const PANEL_LIMIT = 5   // rows shown in the announcements panel and the schedule card
 
-export default function Announcements() {
+export default function Announcements({ currentUser = null }: { currentUser?: User | null }) {
   const { isMobile } = useBreakpoint()
   const twoColLayout = isMobile ? '1fr' : '1fr 300px'   // main column + side panel; collapses on mobile
 
-  const ann = useAnnouncements()
+  const ann = useAnnouncements(currentUser)
   const [showAllAnn,   setShowAllAnn]   = useState(false)
   const [allAnnPage,   setAllAnnPage]   = useState(1)
   const [showAllSched, setShowAllSched] = useState(false)

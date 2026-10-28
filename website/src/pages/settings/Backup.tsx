@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Badge, Button, Card, CardHeader, ResponseModal } from '../../components/ui'
 import { MOCK_BACKUP_JOBS, formatDate } from '../../api/mockData'
 import useBreakpoint from '../../hooks/useBreakpoint'
+import type { User } from '../../types'
 
 // SVG icons for action tiles — no emoji
 function IconSave()    { return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> }
@@ -17,7 +18,7 @@ function formatFileSize(bytes: number): string {
   return (bytes / 1024 / 1024).toFixed(2) + ' MB'
 }
 
-export default function Backup() {
+export default function Backup({ currentUser = null }: { currentUser?: User | null }) {
   const { isMobile, isTablet } = useBreakpoint()
   const actionCols = isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)' // action tiles responsive
   const backupLayout = isMobile || isTablet ? '1fr' : '1fr 240px' // history + status panel
@@ -34,7 +35,7 @@ export default function Backup() {
       setJobs(prev => [{
         id: String(Date.now()), filename: `backup_${now.slice(0,10)}.sql.gz`,
         job_type: 'backup', trigger: 'manual', file_size_bytes: 4200000,
-        status: 'success', started_at: now, completed_at: now, created_by: 'Current User',
+        status: 'success', started_at: now, completed_at: now, created_by: currentUser?.id ?? null,   // who started it
       }, ...prev])
       setCreating(false)
     }, 1500)

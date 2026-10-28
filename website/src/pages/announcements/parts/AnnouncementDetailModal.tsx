@@ -1,6 +1,6 @@
 // parts/AnnouncementDetailModal.tsx — Read one announcement; pin/unpin or delete it
 import { Button, InfoModal } from '../../../components/ui'
-import { relativeTime } from '../../../api/mockData'
+import { relativeTime, getUserName } from '../../../api/mockData'
 import type { Announcement } from '../../../types'
 import { Ico } from './icons'
 
@@ -9,7 +9,7 @@ export default function AnnouncementDetailModal({ ann, onClose, onTogglePin, onD
   return (
     <InfoModal open={!!ann} onClose={onClose}
       title={ann.title}
-      subtitle={`By ${ann.created_by} · ${relativeTime(ann.created_at)}`}
+      subtitle={`By ${getUserName(ann.created_by)} · ${relativeTime(ann.created_at)}`}
       accentColor={ann.is_pinned ? 'var(--accent)' : 'var(--text-muted)'}
       footer={
         <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>

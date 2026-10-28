@@ -122,6 +122,14 @@
       <option value> attributes on the Employees page; the new "Project Lead" option exists in the edit form, which those states do not open).
       - NOT changed on purpose: the stored full_name (the DB derives it, but the app reads it in too many places); Permission keys (34 -> 37).
       - Tests: 250 pass in 35 files (new: test/rolesById.test.tsx, 7 tests; the Employees role-filter test now selects by role id).
+    P1c-3 DONE (B-06 FIXED): Announcement.created_by and Fund.created_by are user ids; AuditLog.user (name text) -> user_id (null = System);
+      BackupJob.created_by is a user id or null (System). getActorName(id|null) shows the name or "System"; getUserName for the rest. New
+      announcements record the logged-in user (useAnnouncements(currentUser); Announcements page passes it); new backups likewise
+      (Backup page). Renaming a person updates the announcement author, fund "Managed by" and the audit actor everywhere. NO visible
+      change (275 page states compared incl. the audit page with its clock-based times normalised: only the audit page's own timestamp
+      seconds differ). The backup creator is not displayed anywhere, so that part is covered by the types only.
+      - Still text (next step P1c-4): Transaction.user_name. Projects/events/utilities have no created_by in the app yet (the DB requires one).
+      - Tests: 256 pass in 36 files (new: test/creatorsById.test.tsx, 6 tests).
     NOTE: the owner's uploaded website.zip had 171 tests = WITHOUT batch 19; the 177 count includes batch 19 (+6 tests).
     This delivery includes batch 19 + step 1 + docs/database as one ZIP (diff against the uploaded ZIP).
   Session 2026-10-27 (date as found, later than the real date; NOT VERIFIED) — STEP B (BUG FIXES), batch 19: B-47 FIXED. (tsc clean, eslint 0 errors,
@@ -581,8 +589,8 @@ TYPE FILE LOCATIONS
   src/types/fund.ts          Fund types (+ FundWithBalance = Fund + derived balance)
   src/types/transaction.ts   Transaction (incl. project_id / event_id / utility_id links), Utility (the bill) + UtilityWithBalance (derived paid/status)
   src/types/attendance.ts    Attendance (project_id/event_id/user_id/recorded_by are ids) types
-  src/types/announcement.ts  Announcement types
-  src/types/audit.ts         AuditLog types
+  src/types/announcement.ts  Announcement types (created_by = user id)
+  src/types/audit.ts         AuditLog (user_id, null = System), BackupJob (created_by id or null) types
   src/types/ui.ts            Shared UI prop types (BadgeVariant, etc.)
   src/types/index.ts         Barrel export of all the above
 
@@ -1338,7 +1346,7 @@ Baseline: tsc -b clean · vite build clean · npm test 62/62 · eslint 0 errors,
     Only exception: route-table type in App.tsx (pages have different props).
   · KpiMetric type (types/ui.ts) is now unused after KPI/ was deleted.
   · Attendance Save: late/excused collapse to present/absent, remarks
-    cleared, recorded_by = 'Current User' (mock behavior).
+    cleared, recorded_by = the logged-in user's id (P1c-1; was the placeholder 'Current User').
   · Header "My Profile" avatar ignores photo_url.
   · Detail/Edit pages (EmployeeDetails, EditEmployee, EditFund, EventDetail,
     ProjectDetail, Profile, EditProfile, PersonalTransactions) default their id
@@ -1399,7 +1407,8 @@ MEDIUM — wrong or misleading behavior
   B-05  Calendar "upcoming" list includes cancelled/rejected items.
         Where: pages/announcements/Calendar.tsx lines ~42-43 filter is status !== 'completed'.
         Compare Announcements/parts/helpers.ts buildSchedule (only upcoming/ongoing).
-  B-06  Placeholder author "Current User" saved on new data.
+  B-06  FIXED (P1c-1 + P1c-3): new attendance, announcements and backups record the logged-in user's id (backups: null = System).
+        Original report: Placeholder author "Current User" saved on new data.
         Where: parts/useAttendanceMarking.ts (recorded_by: FIXED in P1c-1, now the logged-in user's id), parts/useAnnouncements.ts
         (created_by), pages/settings/Backup.tsx (created_by). Most pages ignore the
         currentUser prop, so real authors are never recorded.
@@ -1775,7 +1784,8 @@ TO VERIFY (suspected, not yet checked)
     P1c attendance / users / roles / creators, in 3 sub-steps:
         1 attendance by ids (B-49) ........ DONE
         2 users <-> roles by id (B-21) ........ DONE
-        3 creators/recorders by id (B-06): announcements, funds, audit logs, backups ('Current User' placeholders)
+        3 creators/recorders by id (B-06): announcements, funds, audit logs, backups ........ DONE
+        4 transactions: stored user_name (text) -> derived from user_id (getUserName); searches/lists/top contributors by id
     P1d B-01: pass record id via query param (#/employees/details?id=5); ROUTES table unchanged; "not found" state
     Then phases 2-7 of the agreed fix order. B-47 is fixed by batch 19 (belongsToItem matches by project_id/event_id) - included in this delivery.
     Items needing a backend are DISABLED until Supabase: Add* saving (B-66/B-78), Settings persistence (B-57),
@@ -2211,6 +2221,9 @@ src/constants/approval.ts
 src/constants/eventTypes.ts
   EVENT_TYPES + EVENT_TYPE_SELECT_OPTIONS: the event types for the Events filter and the Add/Edit event forms.
 
+src/test/creatorsById.test.tsx
+  Creators/actors by id: data integrity, getActorName, rename-safe announcement/fund/audit names, new announcements record the logged-in id.
+
 src/test/rolesById.test.tsx
   Roles by id: user.role_id integrity, getRoleName, rename-safe (Employees + Roles pages), role filter by id, B-21 edit form (all roles, custom role kept,
   role change), officers vs members.
@@ -2313,7 +2326,7 @@ src/types/ui.ts
 src/api/mockData.ts
   All mock data typed with interfaces from src/types/.
   MOCK_USERS: User[], MOCK_ROLES: Role[], etc.
-  Also exports helpers: formatCurrency, formatDate, relativeTime, fmt12, getUserName(user_id), getActivityTitle(record), getRoleName(role_id), isOfficer(user) and getFundName(fund_id) (name for display, '—' when none).
+  Also exports helpers: formatCurrency, formatDate, relativeTime, fmt12, getUserName(user_id), getActorName(user_id|null -> System), getActivityTitle(record), getRoleName(role_id), isOfficer(user) and getFundName(fund_id) (name for display, '—' when none).
   Legacy helpers (formatCurrency, formatDate, relativeTime, fmt12)
   retained and typed. fmt12(t: string): string is only here.
   Include in EVERY prompt involving data, tables, forms, or content.
@@ -2403,7 +2416,7 @@ src/pages/employees/Attendance.tsx — Props: none (ignores currentUser)
   (Activity = Project | AppEvent; MarkStatus; MemberRow) — no `any`.
   viewItem.activity is the full object — always use activity.title for
   text. Known limits: Save collapses late/excused into present/absent and
-  clears remarks; recorded_by is the placeholder 'Current User'.
+  clears remarks; recorded_by is the logged-in user's id (P1c-1).
   Include when editing attendance tiles, marking modal, or save logic.
 
 

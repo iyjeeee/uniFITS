@@ -1,6 +1,6 @@
 // parts/FundDetailContent.tsx — Read-only fund view: balance hero + detail grid
 import useBreakpoint from '../../../hooks/useBreakpoint'
-import { MOCK_TRANSACTIONS, formatCurrency } from '../../../api/mockData'
+import { MOCK_TRANSACTIONS, formatCurrency, getUserName } from '../../../api/mockData'
 import { capitalize } from '../../../utils/formatters'
 import { isReceipt } from '../../../utils/ledger'
 import type { FundWithBalance, OrgConfig } from '../../../types'
@@ -30,7 +30,7 @@ export default function FundDetailContent({ fund, org }: { fund: FundWithBalance
           ['Annual Fee',     fund.annual_fee ? formatCurrency(fund.annual_fee, org.currency_symbol) : '—'],
           ['Balance',        formatCurrency(fund.balance, org.currency_symbol)],
           ['Total Received', formatCurrency(received, org.currency_symbol)],
-          ['Managed by',     fund.created_by || '—'],
+          ['Managed by',     getUserName(fund.created_by)],
         ].map(([k, v]) => (
           <div key={k} style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--neutral-light)', border: '1px solid var(--border-card)' }}>
             <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '.07em', marginBottom: 4 }}>{k}</div>

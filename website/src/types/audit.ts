@@ -5,7 +5,7 @@ export type AuditAction = 'login' | 'logout' | 'insert' | 'update' | 'delete' | 
 // AuditLog — matches MOCK_AUDIT_LOGS + backend audit_logs table
 export interface AuditLog {
   id: string
-  user: string                // full name of the actor (or 'System')
+  user_id: string | null      // FK to users.id of the actor; null = the System -- name via getActorName()
   action: AuditAction
   table_name: string          // e.g. 'users', 'transactions', 'sessions'
   summary: string             // human-readable description of the action
@@ -26,5 +26,5 @@ export interface BackupJob {
   status: BackupJobStatus
   started_at: string          // ISO date string
   completed_at: string        // ISO date string
-  created_by: string          // 'System' or full name
+  created_by: string | null   // FK to users.id of who started it; null = the System (scheduled job)
 }

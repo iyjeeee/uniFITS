@@ -1,12 +1,12 @@
 // parts/useAnnouncements.ts — Announcement list state + CRUD (mock data now; swap for API calls later)
 import { useState } from 'react'
 import { MOCK_ANNOUNCEMENTS } from '../../../api/mockData'
-import type { Announcement } from '../../../types'
+import type { Announcement, User } from '../../../types'
 import type { AnnResponse, AnnouncementForm } from './types'
 
 const EMPTY_FORM: AnnouncementForm = { title: '', content: '', is_pinned: false }
 
-export function useAnnouncements() {
+export function useAnnouncements(currentUser: User | null = null) {
   const [announcements, setAnnouncements] = useState(MOCK_ANNOUNCEMENTS)
   const [showNewModal,  setShowNewModal]  = useState(false)
   const [viewAnn,       setViewAnn]       = useState<Announcement | null>(null)
@@ -19,7 +19,8 @@ export function useAnnouncements() {
 
   function handleAdd() {
     if (!form.title || !form.content) return
-    setAnnouncements(prev => [{ id: String(Date.now()), ...form, created_by: 'Current User', created_at: new Date().toISOString() } as Announcement, ...prev])
+    // the author is the logged-in user (by id)
+    setAnnouncements(prev => [{ id: String(Date.now()), ...form, created_by: currentUser?.id ?? '', created_at: new Date().toISOString() } as Announcement, ...prev])
     setForm(EMPTY_FORM)
     setShowNewModal(false)
     setAnnResponse({ variant:'success', title:'Announcement Posted', message:'Your announcement has been published and is now visible to all members.' })

@@ -2,7 +2,7 @@
 // Responsive detail grid via useBreakpoint
 import { useState } from 'react'
 import { Card, InfoModal } from '../../components/ui'
-import { MOCK_AUDIT_LOGS, formatDate, relativeTime } from '../../api/mockData'
+import { MOCK_AUDIT_LOGS, formatDate, relativeTime, getActorName } from '../../api/mockData'
 import useBreakpoint from '../../hooks/useBreakpoint'
 import type { AuditLog, AuditAction } from '../../types'
 
@@ -91,7 +91,7 @@ export default function AuditLogs() {
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--neutral-light)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <td style={{ padding: '11px 16px', color: 'var(--text-muted)', fontSize: 12 }}>{data.length - i}</td>
-                  <td style={{ padding: '11px 16px', fontWeight: 600 }}>{row.user}</td>
+                  <td style={{ padding: '11px 16px', fontWeight: 600 }}>{getActorName(row.user_id)}</td>
                   <td style={{ padding: '11px 16px' }}><ActionBadge action={row.action} /></td>
                   <td style={{ padding: '11px 16px', color: 'var(--text-secondary)', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>{row.summary}</td>
                   <td style={{ padding: '11px 16px' }}><code style={{ fontSize: 11, background: 'var(--table-head-bg)', padding: '2px 7px', borderRadius: 4, color: 'var(--table-head-fg)' }}>{row.table_name}</code></td>
@@ -113,7 +113,7 @@ export default function AuditLogs() {
           open={!!viewLog}
           onClose={() => setViewLog(null)}
           title="Audit Log Detail"
-          subtitle={`${viewLog.user} · ${relativeTime(viewLog.created_at)}`}
+          subtitle={`${getActorName(viewLog.user_id)} · ${relativeTime(viewLog.created_at)}`}
           accentColor={(ACTION_ACCENT as Record<string,string>)[viewLog.action] || 'var(--accent)'}
           footer={
             <button onClick={() => setViewLog(null)} style={{ padding: '10px 28px', borderRadius: 9, border: '1.5px solid var(--border-card)', background: 'var(--neutral-light)', color: 'var(--text-primary)', fontSize: 14, fontWeight: 600, cursor: 'pointer' as const, fontFamily: 'var(--font-body)' }}>
@@ -130,7 +130,7 @@ export default function AuditLogs() {
             {/* Detail grid — 2-col desktop, 1-col mobile */}
             <div style={{ display: 'grid' as const, gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
               {[
-                ['Performed By',   viewLog.user],
+                ['Performed By',   getActorName(viewLog.user_id)],
                 ['Action Type',    viewLog.action.charAt(0).toUpperCase() + viewLog.action.slice(1)],
                 ['Affected Table', viewLog.table_name],
                 ['IP Address',     viewLog.ip_address],
