@@ -1,6 +1,6 @@
 // parts/EmployeeDetailContent.tsx — Detail modal body: profile hero + detail grid (3 columns desktop, 2 on mobile)
 import { StatusBadge, Avatar, TypePill } from '../../../components/ui'
-import { formatDate } from '../../../api/mockData'
+import { formatDate, getRoleName } from '../../../api/mockData'
 import useBreakpoint from '../../../hooks/useBreakpoint'
 import { capitalize } from '../../../utils/formatters'
 import type { User } from '../../../types'
@@ -15,7 +15,7 @@ export default function EmployeeDetailContent({ item }: { item: User }) {
       <div>
         <div style={{ fontSize: 18, fontWeight: 700 }}>{item.full_name}</div>
         <div style={{ display: 'flex' as const, gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
-          <TypePill>{item.role}</TypePill>
+          <TypePill>{getRoleName(item.role_id)}</TypePill>
           <StatusBadge status={item.status} />
         </div>
       </div>

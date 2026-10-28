@@ -20,7 +20,7 @@ export function useRoles() {
     setViewRole(role)
     setEditPerms([...role.permissions])
     // Derive assigned member ids from MOCK_USERS where role name matches
-    setAssignedIds(MOCK_USERS.filter((u) => u.role === role.name).map((u) => u.id))
+    setAssignedIds(MOCK_USERS.filter((u) => u.role_id === role.id).map((u) => u.id))
   }
 
   /* Toggle a permission inside the detail modal */

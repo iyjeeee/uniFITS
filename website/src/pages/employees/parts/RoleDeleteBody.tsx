@@ -4,7 +4,7 @@ import type { Role, OrgConfig } from '../../../types'
 
 /* ── Delete confirmation body ────────────────────────────────────── */
 export default function DeleteBody({ role, org: _org }: { role: Role; org: OrgConfig }) {
-  const assigned = MOCK_USERS.filter((u) => u.role === role.name)
+  const assigned = MOCK_USERS.filter((u) => u.role_id === role.id)
   return (
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 16 }}>
       <div style={{ padding: '14px 16px', borderRadius: 10, background: '#fdecea', border: '1.5px solid rgba(192,57,43,.30)', display: 'flex' as const, gap: 10, alignItems: 'flex-start' }}>

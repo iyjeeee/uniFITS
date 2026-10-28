@@ -59,7 +59,7 @@ export interface User {
   gender: string
   email: string
   contact_number: string      // Philippine format: '09XXXXXXXXX'
-  role: string                // role name string, not Role id
+  role_id: string             // FK to roles.id -- name via getRoleName()
   department: string
   occupation: string
   joined: string              // ISO date string 'YYYY-MM-DD'

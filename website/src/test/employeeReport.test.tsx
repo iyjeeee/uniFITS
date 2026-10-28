@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { OrgProvider } from '../context/OrgContext'
 import EmployeeReport from '../pages/reports/EmployeeReport'
-import { MOCK_USERS } from '../api/mockData'
+import { MOCK_USERS, isOfficer } from '../api/mockData'
 import type { User } from '../types'
 
 const mount = () => render(<OrgProvider orgData={{}}><EmployeeReport /></OrgProvider>)
@@ -30,7 +30,7 @@ describe('EmployeeReport', () => {
   it('All Employees modal lists officers and members with totals', () => {
     mount(); fireEvent.click(btn(/View All Employees/))
     expect(screen.getByText('All Employees List')).toBeTruthy()
-    const officers = MOCK_USERS.filter(u => u.role !== 'Member').length
+    const officers = MOCK_USERS.filter(isOfficer).length
     expect(document.body.textContent).toContain(`${MOCK_USERS.length} total · ${officers} officers`)
     fireEvent.click(btn(/^Close$/)); expect(screen.queryByText('All Employees List')).toBeNull()
   })

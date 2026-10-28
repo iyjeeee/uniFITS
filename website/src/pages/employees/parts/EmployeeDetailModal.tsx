@@ -5,6 +5,7 @@ import { useOrg } from '../../../context/OrgContext'
 import { modalAccentColor } from '../../../constants/tableColors'
 import EmployeeDetailContent from './EmployeeDetailContent'
 import type { User } from '../../../types'
+import { getRoleName } from '../../../api/mockData'
 
 interface Props { item: User | null; onClose: () => void; onEdit: () => void }
 
@@ -16,7 +17,7 @@ export default function EmployeeDetailModal({ item, onClose, onEdit }: Props) {
       open={!!item}
       onClose={onClose}
       title={item.full_name}
-      subtitle={`${item.role} · ${item.employee_number}`}
+      subtitle={`${getRoleName(item.role_id)} · ${item.employee_number}`}
       accentColor={modalAccentColor(item.status)}
       footer={
     <div style={{ display: 'flex' as const, gap: 10, justifyContent: 'flex-end' }}>

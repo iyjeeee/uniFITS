@@ -1,10 +1,11 @@
 // parts/RoleAccessCard.tsx — Current role and permission list
 import { Card, CardHeader } from '../../../components/ui'
-import { formatDate } from '../../../api/mockData'
+import { formatDate, getRoleName } from '../../../api/mockData'
 import { IcoUser } from './ProfileIcons'
 import type { User } from '../../../types'
 
 export default function RoleAccessCard({ user }: { user: User }) {
+  const roleName = getRoleName(user.role_id)   // the access summary below is chosen by role NAME until it is read from the role's permissions (RBAC phase)
   return (
     <Card>
       <CardHeader title="Role & Access" />
@@ -15,7 +16,7 @@ export default function RoleAccessCard({ user }: { user: User }) {
             <IcoUser />
           </div>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--accent)' }}>{user.role}</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--accent)' }}>{roleName}</div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Since {formatDate(user.joined)}</div>
           </div>
         </div>
@@ -23,11 +24,11 @@ export default function RoleAccessCard({ user }: { user: User }) {
         {/* Permissions list based on role */}
         <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '.06em', marginBottom: 8 }}>Access Level</div>
         <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 6 }}>
-          {(user.role === 'President'
+          {(roleName === 'President'
             ? ['View Dashboard', 'Manage Members', 'Manage Funds', 'Add Transactions', 'View Reports', 'View Audit Logs', 'Manage Settings', 'Backup & Restore']
-            : user.role === 'Treasurer'
+            : roleName === 'Treasurer'
             ? ['View Dashboard', 'Manage Funds', 'Add Transactions', 'View Reports']
-            : user.role === 'Secretary'
+            : roleName === 'Secretary'
             ? ['View Dashboard', 'Manage Members', 'Add Projects', 'Add Events', 'View Reports']
             : ['View Dashboard', 'View Announcements']
           ).map(perm => (

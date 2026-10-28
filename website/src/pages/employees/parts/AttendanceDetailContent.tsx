@@ -1,5 +1,5 @@
 // parts/AttendanceDetailContent.tsx — Body of the marking modal (counts + three sections)
-import { MOCK_USERS } from '../../../api/mockData'
+import { MOCK_USERS, getRoleName } from '../../../api/mockData'
 import { IcoProject, IcoEvent, IcoCheck, IcoX } from './AttendanceIcons'
 import type { Activity, ActivityKind, MarkStatus, MemberRow, StatusChangeHandler } from './attendanceShared'
 import AttendanceSection from './AttendanceSection'
@@ -22,7 +22,7 @@ export default function AttendanceDetailContent({ activity, kind, localAttendanc
     num:    idx + 1,
     userId: user.id,
     name:   user.full_name,
-    role:   user.role,
+    role:   getRoleName(user.role_id),
     status: localAttendance[user.id] || null,
   }))
 

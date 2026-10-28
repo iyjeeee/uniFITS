@@ -5,6 +5,7 @@ import { TableIco } from '../../../components/Icons'
 import { useOrg } from '../../../context/OrgContext'
 import { capitalize } from '../../../utils/formatters'
 import { IcoUpload } from './EmployeesIcons'
+import { getRoleName } from '../../../api/mockData'
 
 interface Props {
   total: number
@@ -18,7 +19,7 @@ export default function EmployeesToolbar({ total, typeFilter, typeOptions, onTyp
   return (
     <TableToolbar title={`${org.people_label} Data Table`} subtitle={`${total} records · click any row for details`}>
       {/* Type filter — by role */}
-      <NativeFilterSelect value={typeFilter} onChange={onTypeChange} options={typeOptions.map((t) => ({ value: t, label: t === 'all' ? 'All Types' : t }))} />
+      <NativeFilterSelect value={typeFilter} onChange={onTypeChange} options={typeOptions.map((t) => ({ value: t, label: t === 'all' ? 'All Types' : getRoleName(t) }))} />
       {/* Status filter */}
       <NativeFilterSelect value={statusFilter} onChange={onStatusChange} options={statusOptions.map((s) => ({ value: s, label: s === 'all' ? 'All Status' : capitalize(s) }))} />
       <ToolbarSearch value={search} onChange={onSearchChange} />

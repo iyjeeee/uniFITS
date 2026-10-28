@@ -1,5 +1,5 @@
 // parts/clubReportStats.ts — Club report figures from the mock records (income, expenses, member/project/event stats, fund rows)
-import { MOCK_USERS, MOCK_PROJECTS, MOCK_EVENTS, MOCK_TRANSACTIONS, getFundsWithBalance, getUtilitiesWithBalance } from '../../../api/mockData'
+import { MOCK_USERS, MOCK_PROJECTS, MOCK_EVENTS, MOCK_TRANSACTIONS, getFundsWithBalance, getUtilitiesWithBalance, isOfficer } from '../../../api/mockData'
 import { isReceipt, sumMoney } from '../../../utils/ledger'
 import { approvedOnly } from '../../../utils/approvals'
 
@@ -24,8 +24,8 @@ export function getClubReportStats() {
 
   // Member stats
   const activeMembers       = MOCK_USERS.filter((u) => u.status === 'active').length
-  const officers            = MOCK_USERS.filter((u) => u.role !== 'Member').length
-  const regularMembers      = MOCK_USERS.filter((u) => u.role === 'Member').length
+  const officers            = MOCK_USERS.filter(isOfficer).length
+  const regularMembers      = MOCK_USERS.filter((u) => !isOfficer(u)).length
 
   // Project stats
   const projects            = approvedOnly(MOCK_PROJECTS)   // pending / rejected items are not counted

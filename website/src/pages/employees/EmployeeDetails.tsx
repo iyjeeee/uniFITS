@@ -1,7 +1,7 @@
 // EmployeeDetails.jsx — Full profile view: info, officer history, attendance
 import { useState } from 'react'
 import { Avatar, Badge, Button, Card, CardHeader, PageHeader, StatusBadge } from '../../components/ui'
-import { MOCK_USERS, MOCK_ATTENDANCES, getActivityTitle, formatDate } from '../../api/mockData'
+import { MOCK_USERS, MOCK_ATTENDANCES, getActivityTitle, formatDate, getRoleName } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 
 export default function EmployeeDetails({ userId = '1' }: { userId?: string }) {
@@ -25,7 +25,7 @@ export default function EmployeeDetails({ userId = '1' }: { userId?: string }) {
           <div style={{ flex: 1 }}>
             <h2 style={{ margin: '0 0 4px', fontSize: 22 }}>{user.full_name}</h2>
             <div style={{ display: 'flex' as const, gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
-              <Badge variant="accent">{user.role}</Badge>
+              <Badge variant="accent">{getRoleName(user.role_id)}</Badge>
               <StatusBadge status={user.status} />
             </div>
             <div style={{ display: 'flex' as const, gap: 24, flexWrap: 'wrap', fontSize: 13.5, color: 'var(--text-muted)' }}>

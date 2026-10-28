@@ -1,5 +1,5 @@
 // parts/FundContributionsList.tsx — Member contributions to a fund: header with total, ranked rows (rank, name, role, payments, total), members without contributions
-import { formatCurrency, MOCK_USERS } from '../../../api/mockData'
+import { formatCurrency, MOCK_USERS, getRoleName } from '../../../api/mockData'
 import type { getFundContributions } from './fundReportData'
 import type { OrgConfig } from '../../../types'
 
@@ -47,7 +47,7 @@ export default function FundContributionsList({ data, accentC, org }: Props) {
               <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)' }}>{idx + 1}</div>
               <div>
                 <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)' }}>{m.user.full_name}</div>
-                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 1 }}>{m.user.role}</div>
+                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 1 }}>{getRoleName(m.user.role_id)}</div>
               </div>
               <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>{m.txns.length} payment{m.txns.length !== 1 ? 's' : ''}</div>
               <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--success)' }}>

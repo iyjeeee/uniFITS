@@ -1,6 +1,6 @@
 // parts/ProfileHeroCard.tsx — Avatar, name, role and contact summary with Edit Profile button
 import { Badge, StatusBadge, Avatar, Card, Button } from '../../../components/ui'
-import { formatDate } from '../../../api/mockData'
+import { formatDate, getRoleName } from '../../../api/mockData'
 import { IcoId, IcoMail, IcoPhone, IcoCal, IcoEdit } from './ProfileIcons'
 import type { User } from '../../../types'
 
@@ -15,7 +15,7 @@ export default function ProfileHeroCard({ user, onEdit }: { user: User; onEdit: 
       <div style={{ flex: 1, minWidth: 0 }}>
         <h2 style={{ margin: '0 0 6px', fontSize: 22, fontWeight: 700 }}>{user.full_name}</h2>
         <div style={{ display: 'flex' as const, gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
-          <Badge variant="accent">{user.role}</Badge>
+          <Badge variant="accent">{getRoleName(user.role_id)}</Badge>
           <Badge variant="neutral">{user.department}</Badge>
           <StatusBadge status={user.status} />
         </div>

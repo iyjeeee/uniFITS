@@ -1,6 +1,6 @@
 // parts/useEmployeeReport.ts — Employee report state: selected member, export modals, All Employees modal + page, derived lists
 import { useState } from 'react'
-import { MOCK_USERS, MOCK_TRANSACTIONS } from '../../../api/mockData'
+import { MOCK_USERS, MOCK_TRANSACTIONS, isOfficer } from '../../../api/mockData'
 import { LIST_PAGE_SIZE } from './employeeReportShared'
 import type { EmployeeReportExportResult } from './employeeReportShared'
 
@@ -10,8 +10,8 @@ export default function useEmployeeReport() {
   const [exportResult, setExportResult] = useState<EmployeeReportExportResult | null>(null)    /* Export PDF result feedback */
   const [showAllList,  setShowAllList] = useState(false)
   const [listPage,     setListPage]   = useState(1)
-  const officers = MOCK_USERS.filter((u) => u.role !== 'Member')
-  const members  = MOCK_USERS.filter((u) => u.role === 'Member')
+  const officers = MOCK_USERS.filter(isOfficer)
+  const members  = MOCK_USERS.filter((u) => !isOfficer(u))
   const listTotalPages = Math.max(1, Math.ceil(MOCK_USERS.length / LIST_PAGE_SIZE))
   const myTx     = MOCK_TRANSACTIONS.filter((t) => t.user_id === selected?.id).slice(0, 6)
 

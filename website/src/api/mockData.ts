@@ -50,6 +50,16 @@ export function fmt12(t: string | null | undefined): string {
   return `${h12}:${String(m).padStart(2, '0')} ${ampm}`
 }
 
+/** getRoleName -- role name for a role_id ('—' when none/unknown); users point at a role by id, never by name */
+export function getRoleName(roleId: string | null | undefined): string {
+  return MOCK_ROLES.find((r) => r.id === roleId)?.name ?? '—'
+}
+
+/** isOfficer -- anyone whose role is not the regular 'Member' role (the Member role is recognised by name until roles carry a flag) */
+export function isOfficer(u: Pick<User, 'role_id'>): boolean {
+  return getRoleName(u.role_id) !== 'Member'
+}
+
 /** getUserName -- full name for a user id ('—' when none/unknown); records link to people by id, never by name */
 export function getUserName(userId: string | null | undefined): string {
   return MOCK_USERS.find((u) => u.id === userId)?.full_name ?? '—'
@@ -96,12 +106,12 @@ export function getUtilitiesWithBalance(): UtilityWithBalance[] {
 
 // ── MOCK_USERS ────────────────────────────────────────────────────────────────
 export const MOCK_USERS: User[] = [
-  { id: '1', employee_number: 'EMP-0001', first_name: 'Juan',   last_name: 'Dela Cruz',  full_name: 'Juan Dela Cruz',      gender: 'Male',   email: 'juan@example.com',   contact_number: '09171234567', role: 'President',   department: 'Executive',      occupation: 'Executive Officer',   joined: '2022-01-15', status: 'active',   address_city: 'Manila',      address_province: 'Metro Manila', photo_url: null },
-  { id: '2', employee_number: 'EMP-0002', first_name: 'Maria',  last_name: 'Santos',     full_name: 'Maria Santos',        gender: 'Female', email: 'maria@example.com',  contact_number: '09181234567', role: 'Secretary',   department: 'Administration', occupation: 'Secretary General',   joined: '2022-02-10', status: 'active',   address_city: 'Quezon City', address_province: 'Metro Manila', photo_url: null },
-  { id: '3', employee_number: 'EMP-0003', first_name: 'Pedro',  last_name: 'Reyes',      full_name: 'Pedro Reyes',         gender: 'Male',   email: 'pedro@example.com',  contact_number: '09191234567', role: 'Treasurer',   department: 'Finance',        occupation: 'Finance Manager',     joined: '2022-03-20', status: 'active',   address_city: 'Makati',      address_province: 'Metro Manila', photo_url: null },
-  { id: '4', employee_number: 'EMP-0004', first_name: 'Ana',    last_name: 'Lim',        full_name: 'Ana Lim',             gender: 'Female', email: 'ana@example.com',    contact_number: '09201234567', role: 'Member',      department: 'Operations',     occupation: 'Operations Staff',    joined: '2022-05-01', status: 'active',   address_city: 'Taguig',      address_province: 'Metro Manila', photo_url: null },
-  { id: '5', employee_number: 'EMP-0005', first_name: 'Carlos', last_name: 'Villanueva', full_name: 'Carlos Villanueva',   gender: 'Male',   email: 'carlos@example.com', contact_number: '09211234567', role: 'Member',      department: 'Projects',       occupation: 'Project Coordinator', joined: '2022-06-15', status: 'active',   address_city: 'Pasig',       address_province: 'Metro Manila', photo_url: null },
-  { id: '6', employee_number: 'EMP-0006', first_name: 'Luz',    last_name: 'Ramos',      full_name: 'Luz Ramos',           gender: 'Female', email: 'luz@example.com',    contact_number: '09221234567', role: 'Member',      department: 'Events',         occupation: 'Events Coordinator',  joined: '2022-07-10', status: 'inactive', address_city: 'Caloocan',    address_province: 'Metro Manila', photo_url: null },
+  { id: '1', employee_number: 'EMP-0001', first_name: 'Juan',   last_name: 'Dela Cruz',  full_name: 'Juan Dela Cruz',      gender: 'Male',   email: 'juan@example.com',   contact_number: '09171234567', role_id: '1',   department: 'Executive',      occupation: 'Executive Officer',   joined: '2022-01-15', status: 'active',   address_city: 'Manila',      address_province: 'Metro Manila', photo_url: null },
+  { id: '2', employee_number: 'EMP-0002', first_name: 'Maria',  last_name: 'Santos',     full_name: 'Maria Santos',        gender: 'Female', email: 'maria@example.com',  contact_number: '09181234567', role_id: '2',   department: 'Administration', occupation: 'Secretary General',   joined: '2022-02-10', status: 'active',   address_city: 'Quezon City', address_province: 'Metro Manila', photo_url: null },
+  { id: '3', employee_number: 'EMP-0003', first_name: 'Pedro',  last_name: 'Reyes',      full_name: 'Pedro Reyes',         gender: 'Male',   email: 'pedro@example.com',  contact_number: '09191234567', role_id: '3',   department: 'Finance',        occupation: 'Finance Manager',     joined: '2022-03-20', status: 'active',   address_city: 'Makati',      address_province: 'Metro Manila', photo_url: null },
+  { id: '4', employee_number: 'EMP-0004', first_name: 'Ana',    last_name: 'Lim',        full_name: 'Ana Lim',             gender: 'Female', email: 'ana@example.com',    contact_number: '09201234567', role_id: '4',      department: 'Operations',     occupation: 'Operations Staff',    joined: '2022-05-01', status: 'active',   address_city: 'Taguig',      address_province: 'Metro Manila', photo_url: null },
+  { id: '5', employee_number: 'EMP-0005', first_name: 'Carlos', last_name: 'Villanueva', full_name: 'Carlos Villanueva',   gender: 'Male',   email: 'carlos@example.com', contact_number: '09211234567', role_id: '4',      department: 'Projects',       occupation: 'Project Coordinator', joined: '2022-06-15', status: 'active',   address_city: 'Pasig',       address_province: 'Metro Manila', photo_url: null },
+  { id: '6', employee_number: 'EMP-0006', first_name: 'Luz',    last_name: 'Ramos',      full_name: 'Luz Ramos',           gender: 'Female', email: 'luz@example.com',    contact_number: '09221234567', role_id: '4',      department: 'Events',         occupation: 'Events Coordinator',  joined: '2022-07-10', status: 'inactive', address_city: 'Caloocan',    address_province: 'Metro Manila', photo_url: null },
 ]
 
 // ── MOCK_ROLES ────────────────────────────────────────────────────────────────

@@ -2,7 +2,7 @@
 import { StatusBadge, Avatar, TypePill } from '../../../components/ui'
 import { IconBtn } from '../../../components/TableUtils'
 import { BtnIco } from '../../../components/Icons'
-import { formatDate } from '../../../api/mockData'
+import { formatDate, getRoleName } from '../../../api/mockData'
 import { rowStyle, rowHoverBg } from '../../../constants/tableColors'
 import { EMPLOYEE_PAGE_SIZE } from './employeesShared'
 import type { User } from '../../../types'
@@ -40,7 +40,7 @@ export default function EmployeesTable({ rows, page, onRowClick, onDelete }: Pro
                 </div>
               </td>
               <td style={{ padding: '10px 14px' }}>
-                <TypePill>{r.role}</TypePill>
+                <TypePill>{getRoleName(r.role_id)}</TypePill>
               </td>
               <td style={{ padding: '10px 14px' }}>
                 <a href={`mailto:${r.email}`} onClick={e => e.stopPropagation()} style={{ color: 'var(--accent)', fontSize: 13 }}>{r.email}</a>

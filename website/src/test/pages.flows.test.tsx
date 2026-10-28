@@ -13,7 +13,7 @@ import Announcements from '../pages/announcements/Announcements'
 import RolesPage from '../pages/employees/RolesPage'
 import Profile from '../pages/profile/Profile'
 import PersonalTransactions from '../pages/profile/PersonalTransactions'
-import { MOCK_TRANSACTIONS, MOCK_PROJECTS } from '../api/mockData'
+import { MOCK_TRANSACTIONS, MOCK_PROJECTS, MOCK_ROLES } from '../api/mockData'
 import type { ReactElement } from 'react'
 
 const mount = (ui: ReactElement) => render(<OrgProvider orgData={{}}>{ui}</OrgProvider>)
@@ -72,7 +72,7 @@ describe('edit/save flows', () => {
   it('Employees: role filter narrows the table and the search box finds by name', () => {
     mount(<Employees />)
     const selects = () => Array.from(document.querySelectorAll('select'))
-    fireEvent.change(selects()[0], { target: { value: 'Member' } })   // role filter
+    fireEvent.change(selects()[0], { target: { value: MOCK_ROLES.find(r => r.name === 'Member')!.id } })   // role filter (by role id)
     expect(document.querySelectorAll('tbody tr').length).toBe(3)
     expect(document.body.textContent).not.toContain('Juan Dela Cruz')
     fireEvent.change(selects()[0], { target: { value: 'all' } })

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import type { ChangeEvent } from 'react'
 import { InfoModal, Input, Select, SectionDivider } from './ui'
 import { modalAccentColor } from '../constants/tableColors'
+import { MOCK_ROLES } from '../api/mockData'
 import type { User, OrgConfig } from '../types'
 
 const GENDER_OPTIONS = [
@@ -15,12 +16,6 @@ const GENDER_OPTIONS = [
 const STATUS_OPTIONS = [
   { value: 'active',   label: 'Active'   },
   { value: 'inactive', label: 'Inactive' },
-]
-const ROLE_OPTIONS = [
-  { value: 'President', label: 'President' },
-  { value: 'Treasurer', label: 'Treasurer' },
-  { value: 'Secretary', label: 'Secretary' },
-  { value: 'Member',    label: 'Member'    },
 ]
 
 // EditFormState — working copy of User fields inside the edit form
@@ -99,7 +94,7 @@ export default function EditEmployeeModal({ open, onClose, employee, org, onSave
               <Select label="Gender" value={form.gender ?? ''} onChange={set('gender')} options={GENDER_OPTIONS} />
               <Select label="Status" value={form.status ?? 'active'} onChange={set('status')} options={STATUS_OPTIONS} />
             </div>
-            <Select label="Role" value={form.role ?? 'Member'} onChange={set('role')} options={ROLE_OPTIONS} />
+            <Select label="Role" value={form.role_id ?? ''} onChange={set('role_id')} options={MOCK_ROLES.map((r) => ({ value: r.id, label: r.name }))} />   {/* every real role (B-21), by id */}
           </div>
         </div>
 

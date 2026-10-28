@@ -26,7 +26,7 @@ export default function RolesTable({ roles, onOpen, onDelete }: { roles: Role[];
           </thead>
           <tbody>
             {roles.map(role => {
-              const assigned = MOCK_USERS.filter((u) => u.role === role.name)
+              const assigned = MOCK_USERS.filter((u) => u.role_id === role.id)
               return (
                 <tr key={role.id}
                   style={{ borderBottom: '1px solid var(--border-inner)', cursor: 'pointer' as const, transition: 'background .12s' }}

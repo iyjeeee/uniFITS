@@ -1,9 +1,10 @@
 // parts/EmployeeDeleteBody.tsx — Delete confirmation content: warning banner + employee summary rows
 import { capitalize } from '../../../utils/formatters'
 import type { User } from '../../../types'
+import { getRoleName } from '../../../api/mockData'
 
 export default function EmployeeDeleteBody({ item, type }: { item: User; type: string }) {
-  const rows = [['Full Name', item.full_name], ['Employee ID', item.employee_number], ['Role', item.role], ['Email', item.email], ['Department', item.department || '—'], ['Status', capitalize(item.status)]]
+  const rows = [['Full Name', item.full_name], ['Employee ID', item.employee_number], ['Role', getRoleName(item.role_id)], ['Email', item.email], ['Department', item.department || '—'], ['Status', capitalize(item.status)]]
   return (
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 16 }}>
       <div style={{ padding: '14px 16px', borderRadius: 10, background: '#fdecea', border: '1.5px solid rgba(192,57,43,.30)', display: 'flex' as const, gap: 10, alignItems: 'flex-start' }}>

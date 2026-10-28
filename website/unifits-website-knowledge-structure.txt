@@ -113,6 +113,15 @@
       longer inherits an event's records.
       - Tests: 243 pass in 34 files (new: test/attendanceIds.test.tsx, 5 tests; the old "matched by the item title" test in itemDetail.test.tsx
         was replaced by a match-by-id test).
+    P1c-2 DONE (B-21 FIXED): User.role (name) -> User.role_id (FK to roles.id; mock ids 1 President / 2 Secretary / 3 Treasurer / 4 Member /
+      5 Project Lead). Names come from getRoleName(role_id) (api/mockData.ts); isOfficer(user) = any role except the regular "Member" role
+      (the Member role is recognised BY NAME in that one helper until roles carry a flag - revisit in the RBAC phase). The Employees role
+      filter works on role ids and shows names; Roles page / delete body / assigned members match by id; the Edit Employee form lists EVERY
+      role from MOCK_ROLES and keeps a custom role; renaming a role keeps its members. Profile RoleAccessCard still picks its access text by
+      role NAME (until it reads the role's permissions - RBAC phase). NO visible text change (265 page states: 17 differ only in hidden
+      <option value> attributes on the Employees page; the new "Project Lead" option exists in the edit form, which those states do not open).
+      - NOT changed on purpose: the stored full_name (the DB derives it, but the app reads it in too many places); Permission keys (34 -> 37).
+      - Tests: 250 pass in 35 files (new: test/rolesById.test.tsx, 7 tests; the Employees role-filter test now selects by role id).
     NOTE: the owner's uploaded website.zip had 171 tests = WITHOUT batch 19; the 177 count includes batch 19 (+6 tests).
     This delivery includes batch 19 + step 1 + docs/database as one ZIP (diff against the uploaded ZIP).
   Session 2026-10-27 (date as found, later than the real date; NOT VERIFIED) — STEP B (BUG FIXES), batch 19: B-47 FIXED. (tsc clean, eslint 0 errors,
@@ -564,7 +573,7 @@ NEW FOLDER ADDED
     index.ts             Central barrel: re-exports all types
 
 TYPE FILE LOCATIONS
-  src/types/user.ts          User, Role, Permission types
+  src/types/user.ts          User (role_id = FK to roles.id), Role, Permission types
   src/types/org.ts           OrgConfig type (for OrgContext)
   src/types/project.ts       Project (extends ReviewFields), ProjectStatus (lifecycle only), ProjectType
   src/types/approval.ts      ApprovalStatus (pending|approved|rejected) + ReviewFields (approval_status, reviewed_by/at, rejection_reason)
@@ -1436,7 +1445,8 @@ LOW — cosmetic / cleanup
         different from the dropdown/search box every list page renders (add to B-11 cleanup).
         All five list pages (Utilities, Employees, Transactions, Projects, Events) now use
         components/KpiStrip + TableToolbar + ui/FilterSelect|NativeFilterSelect — no inline copies remain.
-  B-21  EditEmployeeModal.tsx has a hard-coded ROLE_OPTIONS list (President, Treasurer,
+  B-21  FIXED (P1c-2): the edit form lists the real roles (MOCK_ROLES, by id) and keeps a custom role. Original report:
+        EditEmployeeModal.tsx had a hard-coded ROLE_OPTIONS list (President, Treasurer,
         Secretary, Member) but MOCK_ROLES also has "Project Lead" (and RolesPage can add
         roles). A user with another role shows "Member" in the edit form and would be saved
         as Member. No mock user currently has such a role, so it is not visible yet.
@@ -1684,7 +1694,7 @@ TO VERIFY (suspected, not yet checked)
     organizations     -> OrgConfig (types/org.ts)        -> DEFAULT_ORG (OrgContext)
         add plural labels (*_label_plural) so "Utilitys" (B-63) cannot happen; add id/slug/timezone/plan only if needed.
     users             -> User (types/user.ts)            -> MOCK_USERS
-        role (name string) -> role_id (name resolved from roles); joined -> joined_date; add date_of_birth (AddEmployee
+        role (name string) -> role_id (name resolved from roles) - DONE in P1c-2; joined -> joined_date; add date_of_birth (AddEmployee
         already collects it), username, middle_name, address_street/barangay (optional); full_name stays DERIVED.
         status: 'active'|'inactive' stay valid; schema also allows delinquent/suspended/expelled.
     roles, user_roles, permissions, role_permissions -> Role, Permission -> MOCK_ROLES
@@ -1764,7 +1774,7 @@ TO VERIFY (suspected, not yet checked)
         3 derived funding (current_funding from approved transactions; needs opening entries for projects/events) ........ DONE
     P1c attendance / users / roles / creators, in 3 sub-steps:
         1 attendance by ids (B-49) ........ DONE
-        2 users <-> roles by id (B-21): user.role (name) -> role_id; role names resolved; Roles page counts by id
+        2 users <-> roles by id (B-21) ........ DONE
         3 creators/recorders by id (B-06): announcements, funds, audit logs, backups ('Current User' placeholders)
     P1d B-01: pass record id via query param (#/employees/details?id=5); ROUTES table unchanged; "not found" state
     Then phases 2-7 of the agreed fix order. B-47 is fixed by batch 19 (belongsToItem matches by project_id/event_id) - included in this delivery.
@@ -2201,6 +2211,10 @@ src/constants/approval.ts
 src/constants/eventTypes.ts
   EVENT_TYPES + EVENT_TYPE_SELECT_OPTIONS: the event types for the Events filter and the Add/Edit event forms.
 
+src/test/rolesById.test.tsx
+  Roles by id: user.role_id integrity, getRoleName, rename-safe (Employees + Roles pages), role filter by id, B-21 edit form (all roles, custom role kept,
+  role change), officers vs members.
+
 src/test/attendanceIds.test.tsx
   Attendance by ids: record integrity, getUserName/getActivityTitle, same-title and rename cases (B-49), saving records (ids + recorder, same id
   for a project and an event does not clash).
@@ -2299,7 +2313,7 @@ src/types/ui.ts
 src/api/mockData.ts
   All mock data typed with interfaces from src/types/.
   MOCK_USERS: User[], MOCK_ROLES: Role[], etc.
-  Also exports helpers: formatCurrency, formatDate, relativeTime, fmt12, getUserName(user_id), getActivityTitle(record) and getFundName(fund_id) (name for display, '—' when none).
+  Also exports helpers: formatCurrency, formatDate, relativeTime, fmt12, getUserName(user_id), getActivityTitle(record), getRoleName(role_id), isOfficer(user) and getFundName(fund_id) (name for display, '—' when none).
   Legacy helpers (formatCurrency, formatDate, relativeTime, fmt12)
   retained and typed. fmt12(t: string): string is only here.
   Include in EVERY prompt involving data, tables, forms, or content.

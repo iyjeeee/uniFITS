@@ -41,10 +41,10 @@ export default function useEmployees() {
 
   /* Filter + paginate */
   const statusOptions = ['all', ...Array.from(new Set(data.map((r) => r.status)))]
-  const typeOptions   = ['all', ...Array.from(new Set(data.map((r) => r.role).filter(Boolean)))]
+  const typeOptions   = ['all', ...Array.from(new Set(data.map((r) => r.role_id).filter(Boolean)))]   // role ids; the toolbar shows their names
   const filtered = data
     .filter((r) => statusFilter === 'all' || r.status === statusFilter)
-    .filter((r) => typeFilter   === 'all' || r.role   === typeFilter)
+    .filter((r) => typeFilter   === 'all' || r.role_id === typeFilter)
     .filter((r) => Object.values(r).some((v) => String(v).toLowerCase().includes(search.toLowerCase())))
   const totalPages = Math.max(1, Math.ceil(filtered.length / EMPLOYEE_PAGE_SIZE))
   const paged      = filtered.slice((page - 1) * EMPLOYEE_PAGE_SIZE, page * EMPLOYEE_PAGE_SIZE)

@@ -1,5 +1,5 @@
 // parts/EmployeeInfoSection.tsx — "Member Information" grid (name, position, ID, contact, joined, email, gender, occupation)
-import { formatDate } from '../../../api/mockData'
+import { formatDate, getRoleName } from '../../../api/mockData'
 import type { User } from '../../../types'
 
 export default function EmployeeInfoSection({ selected }: { selected: User }) {
@@ -11,7 +11,7 @@ export default function EmployeeInfoSection({ selected }: { selected: User }) {
       <div style={{ display: 'grid' as const, gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
         {[
           ['Name',       selected.full_name],
-          ['Position',   selected.role],
+          ['Position',   getRoleName(selected.role_id)],
           ['ID',         selected.employee_number],
           ['Contact',    selected.contact_number],
           ['Joined',     formatDate(selected.joined)],

@@ -9,6 +9,7 @@ import LogoutModal from './header/LogoutModal'
 import useHeaderMenus from './header/useHeaderMenus'
 import { useOrg } from '../context/OrgContext'
 import type { User, NavigateFn } from '../types'
+import { getRoleName } from '../api/mockData'
 
 interface HeaderProps {
   page:        string
@@ -21,7 +22,7 @@ interface HeaderProps {
 
 export default function Header({ page, sub, onMenuClick, navigate, onLogout, currentUser }: HeaderProps) {
   const userName = currentUser?.full_name ?? 'Guest'   // profile pill — falls back if no session user
-  const userRole = currentUser?.role ?? ''
+  const userRole = currentUser ? getRoleName(currentUser.role_id) : ''
   useOrg() // org available for future label use
   const m = useHeaderMenus()
 
