@@ -12,10 +12,14 @@ import AllAttendanceModal from './parts/AllAttendanceModal'
 import AllTransactionsModal from './parts/AllTransactionsModal'
 import EditProfileModal from './parts/EditProfileModal'
 import { useProfile } from './parts/useProfile'
+import { resolveProfileUser } from './parts/profileUser'
+import type { ProfilePageProps } from './parts/profileUser'
+import RecordNotFound from '../../components/RecordNotFound'
+import type { User } from '../../types'
 
-export default function Profile({ userId = '1' }: { userId?: string }) {
+function ProfileView({ user }: { user: User }) {
   const { isMobile, isTablet } = useBreakpoint()
-  const p = useProfile(userId)
+  const p = useProfile(user)
 
   return (
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 14 }}>
@@ -46,4 +50,10 @@ export default function Profile({ userId = '1' }: { userId?: string }) {
       />
     </div>
   )
+}
+
+// Page entry — shows the logged-in user (or an explicit userId); nobody found -> not-found (B-01)
+export default function Profile(props: ProfilePageProps) {
+  const user = resolveProfileUser(props)
+  return user ? <ProfileView user={user} /> : <RecordNotFound label="Profile" backPath="/dashboard" navigate={props.navigate} />
 }

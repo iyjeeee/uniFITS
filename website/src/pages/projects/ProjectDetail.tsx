@@ -4,11 +4,11 @@ import { Card, PageHeader, Button, StatusBadge } from '../../components/ui'
 import { getProjectsWithFunding, getUserName, formatCurrency, formatDate, getPartyName } from '../../api/mockData'
 import { getItemDetailData } from '../../components/itemDetail/itemDetailData'
 import { useOrg } from '../../context/OrgContext'
+import RecordNotFound from '../../components/RecordNotFound'
+import type { ProjectWithFunding, RecordPageProps } from '../../types'
 
-export default function ProjectDetail({ projectId = '1' }: { projectId?: string }) {
+function ProjectDetailView({ proj }: { proj: ProjectWithFunding }) {
   const org  = useOrg()
-  const projects = getProjectsWithFunding()
-  const proj = projects.find((p) => p.id === projectId) || projects[0]
   const d = getItemDetailData(proj, 'project')   // financials + attendance of THIS project only (shared with the detail modal)
   const attendance = d.attendanceRecords
 
@@ -142,3 +142,10 @@ export default function ProjectDetail({ projectId = '1' }: { projectId?: string 
 
 const metaLabel = { fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '.06em', marginBottom: 4 }
 const metaVal   = { fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }
+
+// Page entry — resolves the record from ?id=; unknown/missing id shows not-found instead of record 1 (B-01)
+export default function ProjectDetail({ id, navigate }: RecordPageProps) {
+  const org  = useOrg()
+  const proj = getProjectsWithFunding().find((p) => p.id === id)
+  return proj ? <ProjectDetailView proj={proj} /> : <RecordNotFound label={org.project_label} backPath="/projects" navigate={navigate} />
+}

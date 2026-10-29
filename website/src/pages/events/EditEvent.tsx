@@ -5,7 +5,8 @@ import { Button, Card, Input, PageHeader, SectionDivider, Select, Textarea, Resp
 import { MOCK_EVENTS } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
 import { EVENT_TYPE_SELECT_OPTIONS } from '../../constants/eventTypes'
-import type { NavigateFn } from '../../types'
+import type { AppEvent, NavigateFn, RecordPageProps } from '../../types'
+import RecordNotFound from '../../components/RecordNotFound'
 
 // Edit form — target_funding stays string|number: stored value is a number, the input yields strings
 interface EventForm { title: string; event_type: string; description: string; event_date: string; event_time: string; location: string; status: string; target_funding: string | number }
@@ -15,9 +16,8 @@ const STATUS_OPTIONS = [
   { value: 'completed', label: 'Completed'}, { value: 'cancelled', label: 'Cancelled' },
 ]
 
-export default function EditEvent({ eventId = '1', navigate }: { eventId?: string; navigate: NavigateFn }) {
+function EditEventForm({ event, navigate }: { event: AppEvent; navigate?: NavigateFn }) {
   const org = useOrg()
-  const event = MOCK_EVENTS.find((e) => e.id === eventId) || MOCK_EVENTS[0]
 
   const [form, setForm] = useState<EventForm>({
     title: event.title, event_type: event.event_type || '', description: event.description || '',
@@ -114,4 +114,11 @@ export default function EditEvent({ eventId = '1', navigate }: { eventId?: strin
       variant="success" title="Changes Saved!" message="The event has been successfully updated." confirmLabel="Done" />
     </>
   )
+}
+
+// Page entry — resolves the record from ?id=; unknown/missing id shows not-found instead of record 1 (B-01)
+export default function EditEvent({ id, navigate }: RecordPageProps) {
+  const org   = useOrg()
+  const event = MOCK_EVENTS.find((e) => e.id === id)
+  return event ? <EditEventForm event={event} navigate={navigate} /> : <RecordNotFound label={org.event_label} backPath="/events" navigate={navigate} />
 }

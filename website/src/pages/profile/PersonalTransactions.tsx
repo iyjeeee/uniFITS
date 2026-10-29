@@ -11,8 +11,11 @@ import DueDetailModal from './parts/DueDetailModal'
 import AllDuesModal from './parts/AllDuesModal'
 import { buildTransactionColumns } from './parts/transactionColumns'
 import { usePersonalTransactions } from './parts/usePersonalTransactions'
+import { resolveProfileUser } from './parts/profileUser'
+import type { ProfilePageProps } from './parts/profileUser'
+import RecordNotFound from '../../components/RecordNotFound'
 
-export default function PersonalTransactions({ userId = '1' }: { userId?: string }) {
+function PersonalTransactionsView({ userId }: { userId: string }) {
   const org = useOrg()
   const { isMobile } = useBreakpoint() // responsive grid control
   const t = usePersonalTransactions(userId)
@@ -53,4 +56,10 @@ export default function PersonalTransactions({ userId = '1' }: { userId?: string
       />
     </div>
   )
+}
+
+// Page entry — shows the logged-in user's transactions (or an explicit userId); nobody found -> not-found (B-01)
+export default function PersonalTransactions(props: ProfilePageProps) {
+  const user = resolveProfileUser(props)
+  return user ? <PersonalTransactionsView userId={user.id} /> : <RecordNotFound label="Profile" backPath="/dashboard" navigate={props.navigate} />
 }

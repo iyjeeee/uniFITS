@@ -7,6 +7,7 @@ import AppLayout from './layouts/AppLayout'
 import { OrgProvider } from './context/OrgContext'
 import ErrorBoundary from './components/ErrorBoundary'
 import type { User, OrgConfig, NavigateFn } from './types'
+import { splitHash } from './utils/route'
 
 // ── Page imports — all 35 routes (Login/ForgotPassword eager, the rest code-split via lazy) ─────────────────────────────────────────────
 import Login               from './pages/login/Login'
@@ -171,7 +172,9 @@ export default function App() {
   }
 
   // Resolve the current route — fall back to dashboard on unknown hash
-  const route = ROUTES[hash] ?? ROUTES['/dashboard']
+  const { path, params } = splitHash(hash)   // "/projects/detail?id=5" -> path + id (B-01)
+  const recordId = params.get('id') ?? undefined
+  const route = ROUTES[path] ?? ROUTES['/dashboard']
   const { Component, page = 'Dashboard', sub, auth = true } = route
 
   // Signed-in user on a public route (/login, /forgot-password) — redirect to dashboard
@@ -182,7 +185,7 @@ export default function App() {
 
   // Unauthenticated or explicitly public route — render without AppLayout
   if (!authed || !auth) {
-    if (hash === '/forgot-password') {
+    if (path === '/forgot-password') {
       return <OrgProvider orgData={DEFAULT_ORG}><ForgotPassword /></OrgProvider>
     }
     return <OrgProvider orgData={DEFAULT_ORG}><Login onLogin={handleLogin} /></OrgProvider>
@@ -193,7 +196,7 @@ export default function App() {
       <AppLayout page={page} sub={sub} navigate={navigate} currentUser={currentUser} onLogout={handleLogout}>
         <ErrorBoundary key={hash} onGoHome={() => navigate('/dashboard')}>
           <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13.5 }}>Loading…</div>}>
-            <Component currentUser={currentUser} navigate={navigate} />
+            <Component currentUser={currentUser} navigate={navigate} id={recordId} />
           </Suspense>
         </ErrorBoundary>
       </AppLayout>

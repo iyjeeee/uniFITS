@@ -6,6 +6,26 @@
   Status: TYPESCRIPT MIGRATION COMPLETE & VERIFIED (2026-09-10)
   NEXT STEPS (owner decision 2026-10-14): finish splitting (bugs found meanwhile are only
     logged in section 1.18, not fixed) -> fix section 1.18 -> discuss Supabase first.
+  Session 2026-10-29 — STEP B, P1d: B-01 FIXED (record id in the address). tsc clean, build clean, eslint 0 errors + the 1 known warning,
+    tests: 300 pass in 39 files (263 before). Nothing Supabase-related was touched.
+    · App.tsx parses the hash with splitHash (utils/route.ts): "/projects/detail?id=2" -> path "/projects/detail" + id "2". ROUTES keys are
+      unchanged (matched on the path only); every page now also receives `id` (undefined when the address has none). withId(path, id)
+      builds such an address. ErrorBoundary still keys on the FULL hash, so changing ?id= remounts the page.
+    · The 7 detail/edit pages (EmployeeDetails, EditEmployee, ProjectDetail, EditProject, EventDetail, EditEvent, EditFund) take
+      RecordPageProps { id?, navigate? } (types/ui.ts) and each is now an entry component (looks the record up) + an inner view/form.
+      The silent `|| MOCK_X[0]` fallback is GONE: unknown/missing id -> components/RecordNotFound.tsx ("<Label> not found" + "Back to list").
+    · Profile, EditProfile, PersonalTransactions follow the LOGGED-IN user (currentUser) unless an explicit userId prop is given
+      (pages/profile/parts/profileUser.ts: ProfilePageProps + resolveProfileUser); the default user '1' is gone, so "My Profile" no
+      longer shows Juan when Maria is logged in. useProfile now takes a User (was an id with a record-1 fallback).
+    · Sidebar active detection (useSidebarNav) ignores the query part: without it /transactions/utilities?id=1 highlighted "Transactions".
+    · Visible changes: none for record 1 / user 1 (241 page states compared with the previous delivery: only the Audit Logs clock-based
+      times differ). Intended changes: a missing/unknown id shows "not found"; Profile pages show the logged-in user.
+    · NOT done on purpose (owner to decide): no list links to the detail/edit pages yet (lists still open modals), so those 7 routes are
+      reachable only by typing the address; the ~34 direct window.location.hash assignments (B-09) were left as they are because none of
+      them opens a detail/edit page (they are Add buttons, KPI cards, modal-close redirects, sidebar, logout).
+    · Tests: NEW utils/route.test.ts (5), test/recordIds.test.tsx (31: 7 pages x record, 7 x unknown id, 7 x no id, back button, profile
+      pages, real-router deep links); sidebar.test.tsx +1; detailPages.test.tsx props renamed (projectId/eventId -> id); pages.smoke passes
+      id="1". Mutation checks: restoring the record-1 fallback fails 3 tests; removing the query handling in the sidebar fails 1 test.
   Session 2026-10-23..25 — DATA MODEL FOUNDATION: owner's R-FITS draft revised into docs/database/schema.sql v2.1
     (multi-tenant, approvals, derived balances) + schema.tests.sql. See section 1.19. Schema is now v2.3 (80 tests pass).
     P1a step 1 DONE: TransactionStatus pending/approved/rejected/voided (types, 6 mock rows, filters, colours), shim removed.
@@ -640,6 +660,8 @@ ROUTING
     (3) add to ROUTES, (4) add nav item to Sidebar buildNav()
   · navigate(path) prop passed from App.tsx — pages use this, not
     window.location.hash directly
+  · Record id travels in the address: navigate(withId('/projects/detail', id)) -> #/projects/detail?id=2 (utils/route.ts);
+    App passes it to the page as the `id` prop. Routes are matched on the path only.
   · Never suggest installing react-router
 
 STYLING
@@ -1355,10 +1377,7 @@ Baseline: tsc -b clean · vite build clean · npm test 62/62 · eslint 0 errors,
   · Attendance Save: late/excused collapse to present/absent, remarks
     cleared, recorded_by = the logged-in user's id (P1c-1; was the placeholder 'Current User').
   · Header "My Profile" avatar ignores photo_url.
-  · Detail/Edit pages (EmployeeDetails, EditEmployee, EditFund, EventDetail,
-    ProjectDetail, Profile, EditProfile, PersonalTransactions) default their id
-    prop to '1' — App.tsx never passes it, so they always show record 1.
-    Fix when wiring real routing/data.
+  · Detail/Edit pages take the record id from the address (#/path?id=N, B-01 fixed); no list links to them yet (lists open modals).
   · Not verified: real browser rendering/visual layout (checked via jsdom
     behavior tests only), mobile/tablet visuals, backend integration.
 
@@ -1390,13 +1409,10 @@ the owner BEFORE any Supabase work (never start it unprompted).
 Every entry below was checked against the code (2026-10-14). "Where" = files.
 
 HIGH — wrong data or missing behavior users can see
-  B-01  Detail/Edit pages always show record 1. (Step B plan: pass the id as a query param,
-        #/employees/details?id=5; no page currently links to these routes — see batch 19 note.)
-        Where: EmployeeDetails, EditEmployee, EditFund, EventDetail, ProjectDetail,
-        Profile, EditProfile, PersonalTransactions (prop defaults to '1').
-        Why: App.tsx only passes currentUser + navigate, never an id. Effect: "My
-        Profile" shows Juan even when Maria is logged in; every Edit page edits record 1.
-        Fix idea: pass the logged-in user id / route param from App (needs routing change).
+  B-01  FIXED (P1d, 2026-10-29). Detail/Edit pages used to show record 1 (App.tsx passed no id).
+        Now: #/path?id=N, parsed in App.tsx (utils/route.ts splitHash); the 7 detail/edit pages use `id`; Profile/EditProfile/
+        PersonalTransactions use the logged-in user; unknown/missing id -> RecordNotFound. Still open from this family: nothing
+        links to the 7 detail/edit routes (owner decision pending); direct hash assignments are B-09.
   B-02  Role permissions are never enforced.
         Where: whole app. Permissions exist (types/user.ts, RolesPage) but no page or
         component reads them; Sidebar shows every item to every role.
@@ -1793,7 +1809,7 @@ TO VERIFY (suspected, not yet checked)
         2 users <-> roles by id (B-21) ........ DONE
         3 creators/recorders by id (B-06): announcements, funds, audit logs, backups ........ DONE
         4 transactions: stored user_name (text) -> derived from user_id (getPartyName); searches/lists/top contributors by id ........ DONE (P1c COMPLETE)
-    P1d B-01: pass record id via query param (#/employees/details?id=5); ROUTES table unchanged; "not found" state
+    P1d B-01: pass record id via query param (#/employees/details?id=5); ROUTES table unchanged; "not found" state ........ DONE
     Then phases 2-7 of the agreed fix order. B-47 is fixed by batch 19 (belongsToItem matches by project_id/event_id) - included in this delivery.
     Items needing a backend are DISABLED until Supabase: Add* saving (B-66/B-78), Settings persistence (B-57),
     Wipe All Data (B-58), Import (B-23), live notifications (B-43). Real PDF export (B-37/B-51) comes after the bug fixes.
@@ -2052,6 +2068,7 @@ src/App.tsx
   auth guard logic, handleLogin(user: User) / handleLogout(),
   DEFAULT_ORG config object, currentUser: User | null state,
   navigate() helper passed as prop, OrgProvider wrapper, AppLayout wrapper.
+  Parses the hash with splitHash (path + ?id=) and passes `id` to every page (B-01).
   Pages are React.lazy imports (except Login/ForgotPassword); each page is
   wrapped in <ErrorBoundary key={hash}> + <Suspense>. Signed-in users on
   /login or /forgot-password are redirected to /dashboard.
@@ -2212,6 +2229,23 @@ src/utils/formatters.test.ts
   Vitest tests for parseDate/formatDate (local-date, no day shift) and entryTypeLabel.
   Include when changing date helpers.
 
+src/utils/route.ts
+  splitHash ("#/p?id=5" -> path + params) and withId (build an address with ?id=). Used by App.tsx and useSidebarNav. Include for any
+  routing/deep-link work.
+
+src/utils/route.test.ts
+  Unit tests for route.ts.
+
+src/components/RecordNotFound.tsx
+  "<Label> not found" card with a "Back to list" button; shown by detail/edit/profile pages for an unknown or missing id (B-01).
+
+src/pages/profile/parts/profileUser.ts
+  ProfilePageProps + resolveProfileUser: which user the profile pages show (explicit userId, else the logged-in user; undefined -> not found).
+
+src/test/recordIds.test.tsx
+  B-01 tests: each detail/edit page opens the record named by id; unknown/missing id -> not found (never record 1); profile pages follow
+  the logged-in user; real-router deep links. Include when changing routing or detail/edit pages.
+
 src/utils/ledger.ts
   Money rules, pure functions: sumMoney (exact centavo sums), signedAmount (inflow +/outflow -), isReceipt, fundBalance
   (approved only), overdrawOnApprove (fund may never go below zero). Mirrors schema.sql. Include for ANY total/balance work.
@@ -2322,7 +2356,7 @@ src/types/audit.ts
 
 src/types/ui.ts
   Shared UI prop types reused across components:
-  BadgeVariant, ButtonVariant, ButtonSize, ModalVariant,
+  RecordPageProps { id?, navigate? } (detail/edit pages), BadgeVariant, ButtonVariant, ButtonSize, ModalVariant,
   KpiMetric, Column (DataTable column definition),
   BreakpointResult (useBreakpoint return), ModalState<T>,
   Toast, ToastVariant (for useToast/ToastContainer).
@@ -2409,8 +2443,8 @@ src/pages/employees/Employees.tsx
   DeleteEmployeeModal.tsx    remove confirmation modal; EmployeeDeleteBody.tsx = its body.
 
 src/pages/employees/AddEmployee.tsx — Props: { currentUser?: User | null }
-src/pages/employees/EditEmployee.tsx — Props: { currentUser?: User | null }
-src/pages/employees/EmployeeDetails.tsx — Props: { currentUser?: User | null }
+src/pages/employees/EditEmployee.tsx — Props: RecordPageProps (id from ?id=; not-found if unknown)
+src/pages/employees/EmployeeDetails.tsx — Props: RecordPageProps (id from ?id=; not-found if unknown)
 src/pages/employees/RolesPage.tsx — Props: {}
   Composition only; pieces in pages/employees/parts/ (RolesHeaderCard, RolesTable,
   RoleDetailModal, AddRoleModal, DeleteRoleModal, PermPill, RoleModalContent,
@@ -2444,8 +2478,8 @@ src/pages/projects/Projects.tsx       Props: { currentUser?: User | null }
   ProjectDetailModal.tsx  row-click detail InfoModal (components/ItemDetailContent); footer Edit + Close.
   DeleteProjectModal.tsx  delete confirmation; ProjectDeleteBody.tsx = its body.
 src/pages/projects/AddProject.tsx     Props: { currentUser?: User | null }
-src/pages/projects/EditProject.tsx    Props: { currentUser?: User | null }
-src/pages/projects/ProjectDetail.tsx  (uses getItemDetailData) Props: { currentUser?: User | null }
+src/pages/projects/EditProject.tsx    Props: RecordPageProps (id from ?id=; not-found if unknown)
+src/pages/projects/ProjectDetail.tsx  (uses getItemDetailData) Props: RecordPageProps (id from ?id=)
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -2462,8 +2496,8 @@ src/pages/events/Events.tsx       Props: { currentUser?: User | null }
   EventDetailModal.tsx   detail InfoModal (components/ItemDetailContent, kind="event"), footer Edit + Close.
   DeleteEventModal.tsx   delete confirmation; EventDeleteBody.tsx = its body.
 src/pages/events/AddEvent.tsx     Props: { currentUser?: User | null }
-src/pages/events/EditEvent.tsx    Props: { currentUser?: User | null }
-src/pages/events/EventDetail.tsx  (uses getItemDetailData) Props: { currentUser?: User | null }
+src/pages/events/EditEvent.tsx    Props: RecordPageProps (id from ?id=; not-found if unknown)
+src/pages/events/EventDetail.tsx  (uses getItemDetailData) Props: RecordPageProps (id from ?id=)
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -2478,7 +2512,7 @@ src/pages/funds/Funds.tsx       Props: none
   Tiles come from components/FundTileCard (shared with FundReport).
   Edit saves annual_fee as number|null (the input yields a string).
 src/pages/funds/AddFund.tsx     Props: { currentUser?: User | null }
-src/pages/funds/EditFund.tsx    Props: { currentUser?: User | null }
+src/pages/funds/EditFund.tsx    Props: RecordPageProps (id from ?id=; not-found if unknown)
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -2557,12 +2591,12 @@ src/pages/announcements/Calendar.tsx       Props: {}
   CATEGORY 18 — PAGES / PROFILE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-src/pages/profile/Profile.tsx              Props: { userId?: string } (defaults to '1')
+src/pages/profile/Profile.tsx              Props: ProfilePageProps { userId?, currentUser?, navigate? } (logged-in user unless userId given)
   Composition only; pieces in pages/profile/parts/ (cards, modals, icons, profileShared.ts,
   useProfile hook = derived attendance/transaction data + edit state). EditProfile.tsx
   shares GENDER_OPTIONS (constants/profile.ts) and ProfileForm (parts/profileShared).
-src/pages/profile/EditProfile.tsx          Props: { currentUser: User | null }
-src/pages/profile/PersonalTransactions.tsx Props: { userId?: string } (defaults to '1')
+src/pages/profile/EditProfile.tsx          Props: ProfilePageProps (logged-in user unless userId given)
+src/pages/profile/PersonalTransactions.tsx Props: ProfilePageProps (logged-in user unless userId given)
   Composition only; pieces in pages/profile/parts/ (ContributionsCard, RequiredDuesCard,
   TransactionDetailModal, DueDetailModal, AllDuesModal, DueTileCard, DueDetailContent,
   TransactionTypeBadge, transactionColumns.tsx, dueShared.ts, usePersonalTransactions).

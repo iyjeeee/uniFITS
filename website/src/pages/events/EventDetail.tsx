@@ -3,11 +3,11 @@ import { Button, Card, PageHeader, StatusBadge } from '../../components/ui'
 import { fmt12, getEventsWithFunding, getUserName, formatCurrency, formatDate, getPartyName } from '../../api/mockData'
 import { getItemDetailData } from '../../components/itemDetail/itemDetailData'
 import { useOrg } from '../../context/OrgContext'
+import RecordNotFound from '../../components/RecordNotFound'
+import type { EventWithFunding, RecordPageProps } from '../../types'
 
-export default function EventDetail({ eventId = '1' }: { eventId?: string }) {
+function EventDetailView({ event }: { event: EventWithFunding }) {
   const org   = useOrg()
-  const events = getEventsWithFunding()
-  const event = events.find((e) => e.id === eventId) || events[0]
   const d = getItemDetailData(event, 'event')   // financials + attendance of THIS event only (shared with the detail modal)
   const attendance = d.attendanceRecords
 
@@ -127,3 +127,10 @@ export default function EventDetail({ eventId = '1' }: { eventId?: string }) {
 }
 const ml = { fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '.06em', marginBottom: 4 }
 const mv = { fontSize: 14, fontWeight: 500 }
+
+// Page entry — resolves the record from ?id=; unknown/missing id shows not-found instead of record 1 (B-01)
+export default function EventDetail({ id, navigate }: RecordPageProps) {
+  const org   = useOrg()
+  const event = getEventsWithFunding().find((e) => e.id === id)
+  return event ? <EventDetailView event={event} /> : <RecordNotFound label={org.event_label} backPath="/events" navigate={navigate} />
+}

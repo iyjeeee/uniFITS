@@ -37,6 +37,9 @@ describe('Sidebar active detection (longest prefix wins)', () => {
   })
   it('/transactions/add activates Transactions', () => { setup('/transactions/add'); expect(isActive('Transactions')).toBe(true) })
   it('an unknown route activates nothing', () => { setup('/nowhere'); expect(isActive('Dashboard')).toBe(false); expect(isActive('Employees')).toBe(false) })
+  it('a query (?id=) in the address does not change the highlight (B-01/B-65)', () => {
+    setup('/transactions/utilities?id=1'); expect(isActive(screen.getByText(/^Utilit/).textContent as string)).toBe(true); expect(isActive('Transactions')).toBe(false)
+  })
   it('no hash falls back to the dashboard', () => { setup(''); expect(isActive('Dashboard')).toBe(true) })
 })
 

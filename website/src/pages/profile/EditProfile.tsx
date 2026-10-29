@@ -1,7 +1,10 @@
 // EditProfile.jsx — User self-service profile edit page
 import { useState } from 'react'
 import { Avatar, Button, Card, Input, PageHeader, SectionDivider, Select, ResponseModal } from '../../components/ui'
-import { MOCK_USERS } from '../../api/mockData'
+import { resolveProfileUser } from './parts/profileUser'
+import type { ProfilePageProps } from './parts/profileUser'
+import RecordNotFound from '../../components/RecordNotFound'
+import type { User } from '../../types'
 import useBreakpoint from '../../hooks/useBreakpoint'
 import { GENDER_OPTIONS } from '../../constants/profile'
 import type { ProfileForm } from './parts/profileShared'
@@ -9,10 +12,8 @@ import type { ProfileForm } from './parts/profileShared'
 type EditProfileForm = ProfileForm & { showPwSection: boolean }   // adds the password-section toggle
 
 
-export default function EditProfile({ userId = '1' }: { userId?: string }) {
-  
+function EditProfileForm({ user }: { user: User }) {
   const { isMobile } = useBreakpoint()
-  const user = MOCK_USERS.find((u) => u.id === userId) || MOCK_USERS[0]
   const [form, setForm] = useState<EditProfileForm>({
     first_name: user.first_name, last_name: user.last_name,
     gender: user.gender, contact_number: user.contact_number,
@@ -100,4 +101,10 @@ export default function EditProfile({ userId = '1' }: { userId?: string }) {
       variant="success" title="Profile Updated!" message="Your profile has been successfully saved." confirmLabel="Done" />
     </>
   )
+}
+
+// Page entry — edits the logged-in user (or an explicit userId); nobody found -> not-found (B-01)
+export default function EditProfile(props: ProfilePageProps) {
+  const user = resolveProfileUser(props)
+  return user ? <EditProfileForm user={user} /> : <RecordNotFound label="Profile" backPath="/dashboard" navigate={props.navigate} />
 }

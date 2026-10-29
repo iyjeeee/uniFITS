@@ -3,15 +3,17 @@ import { useState } from 'react'
 import { Avatar, Button, Card, Input, PageHeader, SectionDivider, Select, ResponseModal } from '../../components/ui'
 import { MOCK_USERS } from '../../api/mockData'
 import useBreakpoint from '../../hooks/useBreakpoint'
+import { useOrg } from '../../context/OrgContext'
+import RecordNotFound from '../../components/RecordNotFound'
+import type { User, RecordPageProps } from '../../types'
 
 const GENDER_OPTIONS = [
   { value: 'Male', label: 'Male' },{ value: 'Female', label: 'Female' },
   { value: 'Non-binary', label: 'Non-binary' },{ value: 'Prefer not to say', label: 'Prefer not to say' },
 ]
 
-export default function EditEmployee({ userId = '1' }: { userId?: string }) {
+function EditEmployeeForm({ user }: { user: User }) {
   const { isMobile } = useBreakpoint()
-  const user = MOCK_USERS.find((u) => u.id === userId) || MOCK_USERS[0]
   const [form, setForm] = useState<Record<string, string>>({
     first_name: user.first_name, last_name: user.last_name,
     gender: user.gender, email: user.email,
@@ -71,4 +73,11 @@ export default function EditEmployee({ userId = '1' }: { userId?: string }) {
       variant="success" title="Profile Updated!" message="Employee profile has been successfully updated." confirmLabel="Done" />
     </>
   )
+}
+
+// Page entry — resolves the record from ?id=; unknown/missing id shows not-found instead of record 1 (B-01)
+export default function EditEmployee({ id, navigate }: RecordPageProps) {
+  const org  = useOrg()
+  const user = MOCK_USERS.find((u) => u.id === id)
+  return user ? <EditEmployeeForm user={user} /> : <RecordNotFound label={org.people_label} backPath="/employees" navigate={navigate} />
 }

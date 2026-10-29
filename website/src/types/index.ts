@@ -18,5 +18,5 @@ export type { AuditLog, BackupJob, AuditAction, BackupJobStatus, BackupTrigger }
 export type {
   BadgeVariant, ButtonVariant, ButtonSize, ModalVariant,
   Column, KpiMetric, BreakpointResult, ModalState,
-  NavigateFn, NavItem, Toast, ToastVariant,
+  NavigateFn, RecordPageProps, NavItem, Toast, ToastVariant,
 } from './ui'

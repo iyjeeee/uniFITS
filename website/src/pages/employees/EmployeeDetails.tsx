@@ -3,10 +3,11 @@ import { useState } from 'react'
 import { Avatar, Badge, Button, Card, CardHeader, PageHeader, StatusBadge } from '../../components/ui'
 import { MOCK_USERS, MOCK_ATTENDANCES, getActivityTitle, formatDate, getRoleName } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
+import RecordNotFound from '../../components/RecordNotFound'
+import type { User, RecordPageProps } from '../../types'
 
-export default function EmployeeDetails({ userId = '1' }: { userId?: string }) {
+function EmployeeDetailsView({ user }: { user: User }) {
   const org  = useOrg()
-  const user = MOCK_USERS.find((u) => u.id === userId) || MOCK_USERS[0]
   const userAttendance = MOCK_ATTENDANCES.filter((a) => a.user_id === user.id)
   const [tab, setTab] = useState('info') // info | attendance
 
@@ -106,3 +107,10 @@ export default function EmployeeDetails({ userId = '1' }: { userId?: string }) {
 
 const th = { padding: '10px 16px', textAlign: 'left' as const, fontSize: 11.5, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase' as const, color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }
 const td = { padding: '12px 16px', verticalAlign: 'middle' }
+
+// Page entry — resolves the record from ?id=; unknown/missing id shows not-found instead of record 1 (B-01)
+export default function EmployeeDetails({ id, navigate }: RecordPageProps) {
+  const org  = useOrg()
+  const user = MOCK_USERS.find((u) => u.id === id)
+  return user ? <EmployeeDetailsView user={user} /> : <RecordNotFound label={org.people_label} backPath="/employees" navigate={navigate} />
+}

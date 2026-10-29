@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { Button, Card, Input, PageHeader, SectionDivider, Select, Textarea, ResponseModal } from '../../components/ui'
 import { MOCK_FUNDS } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
+import RecordNotFound from '../../components/RecordNotFound'
+import type { Fund, RecordPageProps } from '../../types'
 
 // Edit form — annual_fee stays string|number because the input yields strings while the stored value is a number
 interface FundForm { name: string; description: string; status: string; is_required: boolean; payment_frequency: string; annual_fee: string | number }
@@ -10,9 +12,8 @@ interface FundForm { name: string; description: string; status: string; is_requi
 const STATUS_OPTIONS = [{ value: 'active', label: 'Active' },{ value: 'inactive', label: 'Inactive' }]
 const FREQ_OPTIONS   = [{ value: 'monthly', label: 'Monthly' },{ value: 'quarterly', label: 'Quarterly' },{ value: 'annually', label: 'Annually' }]
 
-export default function EditFund({ fundId = '1' }: { fundId?: string }) {
+function EditFundForm({ fund }: { fund: Fund }) {
   const org  = useOrg()
-  const fund = MOCK_FUNDS.find((f) => f.id === fundId) || MOCK_FUNDS[0]
   const [form, setForm] = useState<FundForm>({ name: fund.name, description: fund.description || '', status: fund.status, is_required: fund.is_required, payment_frequency: fund.payment_frequency || '', annual_fee: fund.annual_fee || '' })
   const [feedback, setFeedback] = useState(false)  // success confirmation modal visibility
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setForm((f) => ({ ...f, [k]: e.target.value }))
@@ -58,4 +59,11 @@ export default function EditFund({ fundId = '1' }: { fundId?: string }) {
       variant="success" title="Changes Saved!" message="The fund has been successfully updated." confirmLabel="Done" />
     </>
   )
+}
+
+// Page entry — resolves the record from ?id=; unknown/missing id shows not-found instead of record 1 (B-01)
+export default function EditFund({ id, navigate }: RecordPageProps) {
+  const org  = useOrg()
+  const fund = MOCK_FUNDS.find((f) => f.id === id)
+  return fund ? <EditFundForm fund={fund} /> : <RecordNotFound label={org.fund_label} backPath="/funds" navigate={navigate} />
 }

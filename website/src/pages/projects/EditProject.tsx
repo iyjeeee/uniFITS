@@ -4,7 +4,8 @@ import type { ChangeEvent } from 'react'
 import { Button, Card, Input, PageHeader, SectionDivider, Select, Textarea, ResponseModal } from '../../components/ui'
 import { MOCK_PROJECTS } from '../../api/mockData'
 import { useOrg } from '../../context/OrgContext'
-import type { NavigateFn } from '../../types'
+import type { Project, NavigateFn, RecordPageProps } from '../../types'
+import RecordNotFound from '../../components/RecordNotFound'
 
 // Edit form — target_funding stays string|number: stored value is a number, the input yields strings
 interface ProjectForm { title: string; project_type: string; description: string; start_date: string; end_date: string; location: string; target_funding: string | number; status: string }
@@ -22,9 +23,8 @@ const PROJECT_TYPE_OPTIONS = [
   { value: 'Other',             label: 'Other'             },
 ]
 
-export default function EditProject({ projectId = '1', navigate }: { projectId?: string; navigate: NavigateFn }) {
+function EditProjectForm({ proj, navigate }: { proj: Project; navigate?: NavigateFn }) {
   const org = useOrg()
-  const proj = MOCK_PROJECTS.find((p) => p.id === projectId) || MOCK_PROJECTS[0]
 
   const [form, setForm] = useState<ProjectForm>({
     title: proj.title, project_type: proj.project_type || '', description: proj.description || '',
@@ -120,4 +120,11 @@ export default function EditProject({ projectId = '1', navigate }: { projectId?:
       variant="success" title="Changes Saved!" message="The project has been successfully updated." confirmLabel="Done" />
     </>
   )
+}
+
+// Page entry — resolves the record from ?id=; unknown/missing id shows not-found instead of record 1 (B-01)
+export default function EditProject({ id, navigate }: RecordPageProps) {
+  const org  = useOrg()
+  const proj = MOCK_PROJECTS.find((p) => p.id === id)
+  return proj ? <EditProjectForm proj={proj} navigate={navigate} /> : <RecordNotFound label={org.project_label} backPath="/projects" navigate={navigate} />
 }

@@ -1,12 +1,11 @@
 // parts/useProfile.ts — Derived profile data (attendance, transactions, totals) + modal/edit state (mock data now; swap for API calls later)
 import { useState } from 'react'
-import { MOCK_USERS, MOCK_ATTENDANCES, MOCK_TRANSACTIONS } from '../../../api/mockData'
+import { MOCK_ATTENDANCES, MOCK_TRANSACTIONS } from '../../../api/mockData'
 import { isReceipt } from '../../../utils/ledger'
-import type { ModalVariant } from '../../../types'
+import type { ModalVariant, User } from '../../../types'
 import type { ProfileForm, AttStats, FieldHandler } from './profileShared'
 
-export function useProfile(userId: string) {
-  const user = MOCK_USERS.find((u) => u.id === userId) || MOCK_USERS[0]
+export function useProfile(user: User) {
 
   // Attendance records for this user
   const userAttendance = (MOCK_ATTENDANCES || []).filter((a) => a.user_id === user.id)

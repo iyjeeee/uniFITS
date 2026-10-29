@@ -9,13 +9,13 @@ const wrap = (ui: React.ReactElement) => render(<OrgProvider orgData={{}}>{ui}</
 
 describe('ProjectDetail financials', () => {
   it('project 1 shows its own contribution and expense, and external income is not the contribution total', () => {
-    wrap(<ProjectDetail projectId="1" />)
+    wrap(<ProjectDetail id="1" />)
     expect(screen.getByText('Pedro Reyes')).toBeTruthy()
     expect(screen.getByText('No external income recorded.')).toBeTruthy()
     expect(screen.queryAllByText('₱5,000.00').length).toBe(1)   // only the Employee Contributions header total (rows carry a +/− prefix)
   })
   it('project 2 has no transactions, so every financial panel is empty', () => {
-    wrap(<ProjectDetail projectId="2" />)
+    wrap(<ProjectDetail id="2" />)
     expect(screen.getByText('No contributions yet.')).toBeTruthy()
     expect(screen.getByText('No external income recorded.')).toBeTruthy()
     expect(screen.getByText('No expenses recorded.')).toBeTruthy()
@@ -24,10 +24,10 @@ describe('ProjectDetail financials', () => {
 
 describe('EventDetail financials', () => {
   it('event 1 shows its own contribution; event 2 shows none', () => {
-    const { unmount } = wrap(<EventDetail eventId="1" />)
+    const { unmount } = wrap(<EventDetail id="1" />)
     expect(screen.getByText('Ana Lim')).toBeTruthy()
     unmount()
-    wrap(<EventDetail eventId="2" />)
+    wrap(<EventDetail id="2" />)
     expect(screen.getByText('No contributions yet.')).toBeTruthy()
     expect(screen.getByText('No expenses recorded.')).toBeTruthy()
   })

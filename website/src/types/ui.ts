@@ -77,6 +77,9 @@ export interface Toast {
 // NavigateFn — type of the navigate() prop passed from App.tsx to all pages
 export type NavigateFn = (path: string) => void
 
+// RecordPageProps — props App passes to detail/edit pages: the record id from "?id=" (B-01) + navigate
+export interface RecordPageProps { id?: string; navigate?: NavigateFn }
+
 // NavItem — single sidebar navigation entry
 export interface NavItem {
   label: string

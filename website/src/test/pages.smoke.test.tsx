@@ -7,7 +7,7 @@ import { OrgProvider } from '../context/OrgContext'
 import { MOCK_USERS } from '../api/mockData'
 import type { User, NavigateFn } from '../types'
 
-interface PageProps { currentUser: User | null; navigate: NavigateFn }
+interface PageProps { currentUser: User | null; navigate: NavigateFn; id?: string }
 const modules = import.meta.glob<{ default: ComponentType<PageProps> }>(['../pages/**/*.tsx', '!../pages/login/**', '!../pages/**/parts/**'], { eager: true })   // parts/ = page sub-components, not pages
 const pages = Object.entries(modules).map(([path, m]) => [path.replace('../pages/', '').replace('.tsx', ''), m.default] as const)
 
@@ -26,7 +26,7 @@ function controls(root: HTMLElement): HTMLElement[] {
 }
 
 const mount = (Page: ComponentType<PageProps>) =>
-  render(<OrgProvider orgData={{}}><Page currentUser={MOCK_USERS[0]} navigate={() => {}} /></OrgProvider>)
+  render(<OrgProvider orgData={{}}><Page currentUser={MOCK_USERS[0]} navigate={() => {}} id="1" /></OrgProvider>)
 
 describe('page smoke tests', () => {
   afterEach(() => vi.restoreAllMocks())
