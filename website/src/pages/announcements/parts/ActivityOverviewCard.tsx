@@ -27,8 +27,8 @@ export default function ActivityOverviewCard({ tiles, onSelect }: { tiles: TileI
             <div style={{ fontSize:11.5, color:'var(--text-muted)', marginTop:1 }}>Ongoing &amp; upcoming activities</div>
           </div>
           <div style={{ display:'flex', gap:12, alignItems:'center' }}>
-            <LegendDot color="var(--accent)"  label={`${org.project_label}s`} />
-            <LegendDot color="var(--success)" label={`${org.event_label}s`} />
+            <LegendDot color="var(--accent)"  label={`${org.project_label_plural}`} />
+            <LegendDot color="var(--success)" label={`${org.event_label_plural}`} />
           </div>
         </div>
 

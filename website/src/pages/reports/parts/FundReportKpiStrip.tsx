@@ -14,7 +14,7 @@ export default function FundReportKpiStrip({ funds }: { funds: FundWithBalance[]
   const active       = funds.filter((f) => f.status === 'active').length
   const inactive     = funds.filter((f) => f.status !== 'active').length
   const kpis = [
-    { label: `Total ${org.fund_label}s`, value: funds.length, color: 'var(--text-primary)' },
+    { label: `Total ${org.fund_label_plural}`, value: funds.length, color: 'var(--text-primary)' },
     { label: 'Active',                   value: active,        color: 'var(--success)'      },
     { label: 'Inactive',                 value: inactive,      color: 'var(--danger)'       },
     { label: 'Overall Balance',          value: formatCurrency(totalBalance, org.currency_symbol), color: 'var(--warning)' },

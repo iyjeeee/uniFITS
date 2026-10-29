@@ -4,11 +4,13 @@ import { IconBtn } from '../../../components/TableUtils'
 import { BtnIco } from '../../../components/Icons'
 import { formatCurrency, formatDate, fmt12 } from '../../../api/mockData'
 import { rowStyle, rowHoverBg } from '../../../constants/tableColors'
+import { useOrg } from '../../../context/OrgContext'
 import type { EventWithFunding } from '../../../types'
 
 interface Props { rows: EventWithFunding[]; onRowClick: (e: EventWithFunding) => void; onApprove: (e: EventWithFunding) => void; onReject: (e: EventWithFunding) => void; onDelete: (e: EventWithFunding) => void }
 
 export default function EventsTable({ rows, onRowClick, onApprove, onReject, onDelete }: Props) {
+  const org = useOrg()
   return (
     <div style={{ overflowX: 'auto' as const }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -30,11 +32,11 @@ export default function EventsTable({ rows, onRowClick, onApprove, onReject, onD
               <td style={{ padding: '10px 14px' }}>{formatDate(r.event_date)}</td>
               <td style={{ padding: '10px 14px', color: 'var(--text-muted)' }}>{r.event_time ? fmt12(r.event_time) : '—'}</td>
               <td style={{ padding: '10px 14px' }}>{r.location}</td>
-              <td style={{ padding: '10px 14px' }}>{r.target_funding > 0 ? formatCurrency(r.target_funding) : <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>None</span>}</td>
+              <td style={{ padding: '10px 14px' }}>{r.target_funding > 0 ? formatCurrency(r.target_funding, org.currency_symbol) : <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>None</span>}</td>
               {/* Current funding with progress bar — same as Projects */}
               <td style={{ padding: '10px 14px' }}>
                 <div style={{ fontWeight: 600, color: r.current_funding >= r.target_funding && r.target_funding > 0 ? 'var(--success)' : 'var(--text-primary)' }}>
-                  {r.current_funding > 0 ? formatCurrency(r.current_funding) : '—'}
+                  {r.current_funding > 0 ? formatCurrency(r.current_funding, org.currency_symbol) : '—'}
                 </div>
                 {r.target_funding > 0 && r.current_funding > 0 && (
                   <div style={{ marginTop: 4, height: 4, width: 80, background: 'var(--border)', borderRadius: 4, overflow: 'hidden' }}>

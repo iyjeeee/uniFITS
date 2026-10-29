@@ -2,11 +2,13 @@
 import { useState } from 'react'
 import { getProjectsWithFunding } from '../../../api/mockData'
 import { decide } from '../../../utils/approvals'
+import { useOrg } from '../../../context/OrgContext'
 import { PROJECT_PAGE_SIZE } from './projectsShared'
 import type { ProjectActionResult } from './projectsShared'
 import type { ProjectWithFunding, User } from '../../../types'
 
 export default function useProjects(currentUser: User | null = null) {
+  const org = useOrg()   // labels for the feedback titles (B-72)
   const [data,         setData]         = useState(getProjectsWithFunding)   // lazy: funding raised is derived from approved transactions
   const [viewItem,     setViewItem]     = useState<ProjectWithFunding | null>(null)
   const [editItem,     setEditItem]     = useState<ProjectWithFunding | null>(null)
@@ -41,19 +43,19 @@ export default function useProjects(currentUser: User | null = null) {
     const title = deleteItem?.title
     setData(prev => prev.filter((r) => r.id !== deleteItem?.id))
     setDeleteItem(null)
-    setTimeout(() => setActionResult({ variant: 'danger', title: 'Project Deleted', message: `"${title}" has been permanently removed.` }), 260)
+    setTimeout(() => setActionResult({ variant: 'danger', title: `${org.project_label} Deleted`, message: `"${title}" has been permanently removed.` }), 260)
   }
   function handleApprove(r: ProjectWithFunding) {
     setData(prev => prev.map((p) => p.id === r.id ? { ...p, ...decide('approved', currentUser?.id ?? null) } : p))   // approval only: lifecycle status is untouched
-    setActionResult({ variant: 'success', title: 'Project Approved', message: `"${r.title}" has been approved.` })
+    setActionResult({ variant: 'success', title: `${org.project_label} Approved`, message: `"${r.title}" has been approved.` })
   }
   function handleReject(r: ProjectWithFunding) {
     setData(prev => prev.map((p) => p.id === r.id ? { ...p, ...decide('rejected', currentUser?.id ?? null) } : p))
-    setActionResult({ variant: 'danger', title: 'Project Rejected', message: `"${r.title}" has been rejected.` })
+    setActionResult({ variant: 'danger', title: `${org.project_label} Rejected`, message: `"${r.title}" has been rejected.` })
   }
   function handleSaveEdit(updated: ProjectWithFunding) {
     setData(prev => prev.map((r) => r.id === updated.id ? updated : r))
-    setActionResult({ variant: 'success', title: 'Project Updated', message: `"${updated.title}" has been saved successfully.` })
+    setActionResult({ variant: 'success', title: `${org.project_label} Updated`, message: `"${updated.title}" has been saved successfully.` })
   }
 
   return {

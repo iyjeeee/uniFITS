@@ -44,10 +44,10 @@ function EditFundForm({ fund }: { fund: Fund }) {
           {form.is_required && (
             <>
               <Select label="Payment Frequency" value={form.payment_frequency} onChange={set('payment_frequency')} options={FREQ_OPTIONS} />
-              <Input label="Total Annual Fee (₱)" type="number" value={form.annual_fee} onChange={set('annual_fee')} />
+              <Input label={`Total Annual Fee (${org.currency_symbol})`} type="number" value={form.annual_fee} onChange={set('annual_fee')} />
               <div style={{ padding: '12px 16px', background: 'var(--info-light)', borderRadius: 8, fontSize: 13.5 }}>
                 <span style={{ color: 'var(--text-muted)' }}>Required Amount (Calculated):</span>
-                <span style={{ fontWeight: 700, color: 'var(--info)', marginLeft: 10 }}>₱{Number(computedRequired).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
+                <span style={{ fontWeight: 700, color: 'var(--info)', marginLeft: 10 }}>{org.currency_symbol}{Number(computedRequired).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
                 <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4 }}>Auto-calculated based on Annual Fee ÷ Payment Frequency</div>
               </div>
             </>

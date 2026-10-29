@@ -2,13 +2,15 @@
 import { Card } from '../../../components/ui'
 import { TableIco } from '../../../components/Icons'
 import ReportActionButton from './ReportActionButton'
+import { useOrg } from '../../../context/OrgContext'
 
 export default function EmployeeReportHeader({ onPrint, onExport }: { onPrint: () => void; onExport: () => void }) {
+  const org = useOrg()
   return (
     <Card style={{ padding: '12px 18px' }}>
       <div style={{ display: 'flex' as const, alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Employee Report</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{org.people_label} Report</div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1 }}>View and export individual member financial reports</div>
         </div>
         <div style={{ display: 'flex' as const, gap: 10 }}>

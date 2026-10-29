@@ -12,13 +12,13 @@ export default function EmployeeReportSidebar({ officers, members, selected, onS
     <Card>
       <div style={{ display: 'flex' as const, alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: '1px solid var(--border-inner)' }}>
         <div style={{ fontSize: 14, fontWeight: 600 }}>{org.people_label} List</div>
-        <button onClick={onViewAll} title="View All Employees"
+        <button onClick={onViewAll} title={`View All ${org.people_label_plural}`}
           style={{ width: 32, height: 32, borderRadius: 7, border: '1.5px solid var(--accent)', background: 'var(--accent-light)', color: 'var(--accent)', cursor: 'pointer' as const, display: 'flex' as const, alignItems: 'center', justifyContent: 'center' }}>
           <BtnIco.View />
         </button>
       </div>
       <div style={{ padding: '8px 0' }}>
-        {[{ label: 'Officers', list: officers }, { label: `${org.people_label}s`, list: members }].map(({ label, list }) => (
+        {[{ label: 'Officers', list: officers }, { label: `${org.people_label_plural}`, list: members }].map(({ label, list }) => (
           <div key={label}>
             <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase' as const, color: 'var(--text-muted)', padding: '8px 14px 4px' }}>
               {label}

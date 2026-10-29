@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { MOCK_USERS, MOCK_FUNDS, MOCK_PROJECTS, MOCK_EVENTS } from '../../../api/mockData'
 import { approvedOnly } from '../../../utils/approvals'
 import { useOrg } from '../../../context/OrgContext'
+import { indefinite } from '../../../utils/labels'
 import { required, isNonZeroAmount, validateStep } from '../../../utils/validation'
 import { ADD_TX_STEPS, EMPTY_TX_FORM } from './addTransactionShared'
 
@@ -32,7 +33,7 @@ export default function useAddTransaction() {
       const errs = validateStep({ source: [() => required(form.source, 'Transaction Source')] })
       // If member/officer selected, also require a user
       if ((form.source === 'member' || form.source === 'officer') && !form.user_id) {
-        errs.user_id = `Please select a ${org.people_label}.`
+        errs.user_id = `Please select ${indefinite(org.people_label)} ${org.people_label}.`   // "an Employee" / "a Member" (B-69)
       }
       return errs
     },

@@ -15,7 +15,7 @@ export default function ClubReportActivity({ stats }: { stats: ClubReportStats }
       <div style={{ display: 'grid' as const, gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
         {/* Projects */}
         <div>
-          <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--accent)', marginBottom: 10, textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>{org.project_label}s</div>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--accent)', marginBottom: 10, textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>{org.project_label_plural}</div>
           <div style={{ borderRadius: 10, overflow: 'hidden', border: '1.5px solid var(--border-card)' }}>
             <StatRow label="Total Projects"    value={totalProjects} />
             <StatRow label="Completed"         value={completedProjects} indent color="var(--success)" />
@@ -27,7 +27,7 @@ export default function ClubReportActivity({ stats }: { stats: ClubReportStats }
         </div>
         {/* Events */}
         <div>
-          <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--success)', marginBottom: 10, textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>{org.event_label}s</div>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--success)', marginBottom: 10, textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>{org.event_label_plural}</div>
           <div style={{ borderRadius: 10, overflow: 'hidden', border: '1.5px solid var(--border-card)' }}>
             <StatRow label="Total Events"      value={totalEvents} />
             <StatRow label="Completed"         value={completedEvents}  indent color="var(--success)" />

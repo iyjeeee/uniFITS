@@ -57,7 +57,7 @@ export default function AddTransaction() {
       )}
     </div>
     <ResponseModal open={w.feedback} onClose={() => { w.setFeedback(false); window.location.hash = '/transactions' }}
-      variant="success" title="Transaction Recorded!" message="The transaction has been successfully recorded." confirmLabel="Go to Transactions" />
+      variant="success" title={`${org.transaction_label} Recorded!`} message={`The ${org.transaction_label.toLowerCase()} has been successfully recorded.`} confirmLabel={`Go to ${org.transaction_label_plural}`} />
     </>
   )
 }

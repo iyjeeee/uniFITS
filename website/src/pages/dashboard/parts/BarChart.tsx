@@ -1,6 +1,8 @@
-// parts/BarChart.tsx — SVG bar chart: monthly income vs expense (labels hard-code ₱ — see bug log)
+// parts/BarChart.tsx — SVG bar chart: monthly income vs expense (axis labels use org.currency_symbol)
+import { useOrg } from '../../../context/OrgContext'
 import type { MonthlyPoint } from './dashboardData'
 export default function BarChart({ data }: { data: MonthlyPoint[] }) {
+  const org    = useOrg()
   const maxVal = Math.max(...data.flatMap((d) => [d.income, d.expense]), 1)
   const barW   = 20
   const gap    = 5
@@ -18,7 +20,7 @@ export default function BarChart({ data }: { data: MonthlyPoint[] }) {
           <g key={i}>
             <line x1={padL} x2={svgW - 6} y1={y} y2={y} stroke="var(--border)" strokeWidth={1} strokeDasharray={i === 0 ? 'none' : '3,3'} />
             <text x={padL - 4} y={y + 4} fontSize={8} fill="var(--text-muted)" textAnchor="end">
-              {frac === 0 ? '0' : `₱${Math.round(maxVal * frac / 1000)}k`}
+              {frac === 0 ? '0' : `${org.currency_symbol}${Math.round(maxVal * frac / 1000)}k`}
             </text>
           </g>
         )

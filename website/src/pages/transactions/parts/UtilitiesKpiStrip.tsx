@@ -10,7 +10,7 @@ export default function UtilitiesKpiStrip({ data }: { data: UtilityWithBalance[]
   const totalPaid   = data.reduce((s, u) => s + u.amount_paid, 0)
   const totalUnpaid = totalOwed - totalPaid
   const kpis = [
-    { label: `Total ${org.utility_label}s`, value: data.length,                                     color: 'var(--accent)'  },
+    { label: `Total ${org.utility_label_plural}`, value: data.length,                                     color: 'var(--accent)'  },
     { label: 'Total Owed',                   value: formatCurrency(totalOwed,   org.currency_symbol), color: 'var(--warning)' },
     { label: 'Total Paid',                   value: formatCurrency(totalPaid,   org.currency_symbol), color: 'var(--success)' },
     { label: 'Remaining Unpaid',             value: formatCurrency(totalUnpaid, org.currency_symbol), color: totalUnpaid > 0 ? 'var(--danger)' : 'var(--success)' },

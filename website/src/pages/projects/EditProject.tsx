@@ -111,7 +111,7 @@ function EditProjectForm({ proj, navigate }: { proj: Project; navigate?: Navigat
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <Select label="Status" value={form.status} onChange={set('status')} options={STATUS_OPTIONS} />
-            <Input label="Target Funding (₱)" type="number" value={form.target_funding} onChange={set('target_funding')} />
+            <Input label={`Target Funding (${org.currency_symbol})`} type="number" value={form.target_funding} onChange={set('target_funding')} />
           </div>
         </div>
       </Card>

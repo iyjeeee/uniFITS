@@ -11,7 +11,7 @@ export default function EmployeeReportView({ selected, myTx }: { selected: User;
     <Card>
       {/* Report header */}
       <div style={{ padding: '22px 28px', borderBottom: '1px solid var(--border-inner)', textAlign: 'center' as const }}>
-        <div style={{ fontSize: 18, fontWeight: 700 }}>uniFITS Organization</div>
+        <div style={{ fontSize: 18, fontWeight: 700 }}>{org.name}</div>
         <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--accent)', marginTop: 3 }}>
           {org.people_label} Report
         </div>

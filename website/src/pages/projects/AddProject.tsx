@@ -143,7 +143,7 @@ export default function AddProject() {
         {step === 3 && <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 16 }}>
           <SectionDivider label="Funding" />
           <div>
-            <Input label="Target Funding (₱)" type="number" value={form.target_funding} onChange={set('target_funding')} placeholder="0.00" hint="Leave as 0 if no specific funding target" error={errors.target_funding} />
+            <Input label={`Target Funding (${org.currency_symbol})`} type="number" value={form.target_funding} onChange={set('target_funding')} placeholder="0.00" hint="Leave as 0 if no specific funding target" error={errors.target_funding} />
             <FieldError msg={errors.target_funding} />
           </div>
         </div>}
@@ -157,7 +157,7 @@ export default function AddProject() {
             ['Start Date',     form.start_date],
             ['End Date',       form.end_date],
             ['Location',       form.location],
-            ['Target Funding', form.target_funding ? `₱${form.target_funding}` : '—'],
+            ['Target Funding', form.target_funding ? `${org.currency_symbol}${form.target_funding}` : '—'],
           ].map(([k, v]) => (
             <div key={k} style={{ display: 'flex' as const, gap: 16, padding: '9px 0', borderBottom: '1px solid var(--border-inner)', fontSize: 13.5 }}>
               <div style={{ width: 140, color: 'var(--text-muted)', flexShrink: 0 }}>{k}</div>
@@ -181,7 +181,7 @@ export default function AddProject() {
         <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '.07em', marginBottom: 14 }}>Live Preview</div>
         <div style={{ height: 6, background: '#4B5EAA', borderRadius: 3, marginBottom: 12 }} />
         <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>{form.title || '—'}</div>
-        {[['Type', form.project_type], ['Start', form.start_date], ['End', form.end_date], ['Location', form.location], ['Target', form.target_funding ? `₱${form.target_funding}` : '—'], ['Status', 'Upcoming']].map(([k, v]) => (
+        {[['Type', form.project_type], ['Start', form.start_date], ['End', form.end_date], ['Location', form.location], ['Target', form.target_funding ? `${org.currency_symbol}${form.target_funding}` : '—'], ['Status', 'Upcoming']].map(([k, v]) => (
           <div key={k} style={{ display: 'flex' as const, justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border-inner)', fontSize: 12.5 }}>
             <span style={{ color: 'var(--text-muted)' }}>{k}</span>
             <span style={{ color: v ? 'var(--text-primary)' : 'var(--border-card)', fontWeight: v ? 500 : 400 }}>{v || '—'}</span>

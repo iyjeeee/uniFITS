@@ -34,7 +34,7 @@ function ProjectDetailView({ proj }: { proj: ProjectWithFunding }) {
           <div style={{ flex: 1, minWidth: 200 }}>
             <div style={{ display: 'flex' as const, justifyContent: 'space-between', marginBottom: 6, fontSize: 13 }}>
               <span style={{ color: 'var(--text-muted)' }}>Funding Progress</span>
-              <span style={{ fontWeight: 600 }}>{formatCurrency(proj.current_funding)} / {formatCurrency(proj.target_funding)}</span>
+              <span style={{ fontWeight: 600 }}>{formatCurrency(proj.current_funding, org.currency_symbol)} / {formatCurrency(proj.target_funding, org.currency_symbol)}</span>
             </div>
             <div style={{ height: 8, background: 'var(--border)', borderRadius: 8, overflow: 'hidden' }}>
               <div style={{ height: '100%', background: 'var(--success)', width: `${Math.min(100, proj.target_funding > 0 ? (proj.current_funding / proj.target_funding) * 100 : 0)}%`, borderRadius: 8, transition: 'width .5s' }} />

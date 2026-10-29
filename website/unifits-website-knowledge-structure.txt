@@ -6,6 +6,38 @@
   Status: TYPESCRIPT MIGRATION COMPLETE & VERIFIED (2026-09-10)
   NEXT STEPS (owner decision 2026-10-14): finish splitting (bugs found meanwhile are only
     logged in section 1.18, not fixed) -> fix section 1.18 -> discuss Supabase first.
+  Session 2026-10-29 (2) — STEP B, PHASE 2 (org labels, plurals, currency): B-63, B-69 (wording), B-72, B-53, B-36, B-29, B-73 FIXED; B-64 part.
+    tsc clean, eslint 0 errors + the 1 known warning, tests: 379 pass in 41 files (300 before). Nothing Supabase-related was touched.
+    · B-63: OrgConfig has 7 new fields people_/project_/event_/fund_/transaction_/utility_/report_label_plural. OrgProvider fills any
+      missing one with pluralize(label) (utils/labels.ts: Utility->Utilities, Entry->Entries, Box->Boxes), so a custom singular label
+      still gets a correct plural without extra config; an explicit plural wins (Person/People). DEFAULT_ORG in App.tsx lists all 7
+      explicitly (what the API will return). All 29 label+"s" constructions now use the plural fields (sidebar, KPI strips, dashboard,
+      reports, activity card). "Utilitys" is gone (menu, "Manage Utilities", "Total Utilities").
+    · B-72: Projects/Events KPI "Overall <Plural>", feedback titles (<Label> Approved/Rejected/Updated/Deleted — useProjects/useEvents now
+      call useOrg), delete modal title and the "<Label> Name" row use org labels.
+    · B-73: Projects/Events tables, delete bodies and detail pages pass org.currency_symbol; the Projects table no longer draws the funding
+      green when the target is 0 (needs target > 0, same as Events). The remaining hard-coded peso signs in forms (Target Funding (₱),
+      Total Amount (₱), Annual Fee (₱), the Add* preview rows, AddFund "Currency: PHP" -> org.currency_code) now use the org currency.
+    · B-29: dashboard BarChart/FundBarChart axis labels use org.currency_symbol. B-36: Club/Employee report headers show org.name.
+    · B-53: Employee Report title, "View All <Plural>" tooltip, "All <Plural> List" modal (+ "N officers · N <plural>" subtitle),
+      group label and export title/message use org.people_label.
+    · B-69: "Please select an Employee." (a/an via utils/labels.ts indefinite; was "a Employee"); Add Transaction / Add Utility success title,
+      message and "Go to <Plural>" button use the org labels.
+    · Visible changes with the default org (241 page states compared with batch 33): "Total Utilitys" -> "Total Utilities"; the report headers
+      show the org name (real app: "uniFITS Demo Organization" instead of "uniFITS Organization"); Employee Report modal subtitle
+      "3 members" -> "3 employees"; grammar "an Employee" in the Add Transaction error. Everything else identical.
+    · NOT done on purpose (logged): B-64 leftovers — "Club Report", "Roles & Permissions", "Audit Logs", "Announcements" and the "uniFITS"
+      brand are fixed product/system names, not entity labels, so they stay; the unused `navigate` prop/badge belong to B-09/dead code.
+      B-72 residual: Add*/Edit* form headings and field labels ("Project Information", "Project Name", "Go to Projects", "No projects
+      found.") still hard-code the entity word. B-69 residual: "Transaction Source is required.", "Who is this transaction from?",
+      "Officer", "External / Sponsor" and the payment-method icons keyed by NAME. LoginBrand "₱140K+" and the mock notification text keep
+      the peso sign (static marketing / sample text). utils/formatters.ts formatCurrency (compact, hard-coded ₱) is not used by any page.
+      Settings does not offer the new plural fields (no persistence yet, B-57).
+    · Tests: NEW utils/labels.test.ts (pluralize/indefinite), test/orgLabels.test.tsx (54: provider plurals, buildNav + real Sidebar, Dashboard KPIs,
+      a scan that renders every page with a custom org and finds no "Entrys"/"Activitys"/"₱", Projects/Events wording + currency + zero-target
+      colour, Employee Report wording, Club Report after Generate, chart currency, Add wizards); 4 test fixtures typed OrgConfig got the
+      plural fields; addTransaction.test expects "an Employee". Mutation checks (5): undoing the KPI plural, the zero-target colour, the
+      Events currency, the report org name and the a/an helper each fail at least one test.
   Session 2026-10-29 — STEP B, P1d: B-01 FIXED (record id in the address). tsc clean, build clean, eslint 0 errors + the 1 known warning,
     tests: 300 pass in 39 files (263 before). Nothing Supabase-related was touched.
     · App.tsx parses the hash with splitHash (utils/route.ts): "/projects/detail?id=2" -> path "/projects/detail" + id "2". ROUTES keys are
@@ -1054,6 +1086,9 @@ OrgContext (src/context/OrgContext.tsx)
     org.utility_label     → 'Utility'
     org.attendance_label  → 'Attendance'
     org.report_label      → 'Report'
+    org.<x>_label_plural  → 'Employees' / 'Projects' / 'Events' / 'Funds' / 'Transactions' / 'Utilities' / 'Reports'
+                            (x = people, project, event, fund, transaction, utility, report; explicit value wins,
+                             else pluralize(label) from utils/labels.ts; attendance has no plural)
   To rename entities app-wide: update DEFAULT_ORG in App.tsx
   (or replace with real /api/organizations/me response).
   Sidebar, Header, and all pages that show entity names use useOrg().
@@ -1501,7 +1536,7 @@ LOW — cosmetic / cleanup
         (pending/rejected would be counted). Not visible yet: all mock transactions are completed.
   B-28  Dashboard "Recent Transactions" = first 6 of the array, not sorted by date, although
         the subtitle says "Latest N financial entries".
-  B-29  Dashboard BarChart and FundBarChart hard-code "₱" instead of org.currency_symbol.
+  B-29  FIXED (phase 2). Dashboard BarChart and FundBarChart use org.currency_symbol.
   B-30  TopContributorsCard bar width divides by topContributors[0].total — NaN% if the top
         total is 0 (edge case; not reachable with current mock data).
   B-31  ClubReport figures ignore the selected report type/period: getClubReportStats() takes
@@ -1524,8 +1559,8 @@ LOW — cosmetic / cleanup
         or expenses in other categories are dropped from the totals; transaction status
         (pending/rejected) is ignored (same family as B-27); utility expense uses amount_paid of
         every utility regardless of date.
-  B-36  Report header hard-codes "uniFITS Organization" (ClubReportHeader.tsx and
-        EmployeeReportView.tsx) although OrgConfig has a `name` field.
+  B-36  FIXED (phase 2). ClubReportHeader and EmployeeReportView show org.name. In the real app that is "uniFITS Demo Organization" (DEFAULT_ORG),
+        a visible change from the old fixed "uniFITS Organization". Settings still has a different fallback text (useSettings) — see B-57.
   B-37  "Export PDF" only shows a success message — no file is produced (ClubReport, EmployeeReport
         and FundReport all verified). FundReport's message is generic ("Fund Report PDF has been
         generated") even when started from one fund's detail.
@@ -1581,9 +1616,8 @@ LOW — cosmetic / cleanup
         groups, and the subtitle "Page X of Y" is computed from ALL users (users / 8), not from
         the larger group. With 27 users it says "of 4" while each group has 2 pages; a group can
         show an empty page.
-  B-53  EmployeeReport hard-codes "Employee(s)" in the page title, the View All tooltip, the
-        modal title, the group label and the export title (and "officers / members" in the modal
-        subtitle) instead of org.people_label — other labels on the same page do use it.
+  B-53  FIXED (phase 2). Employee Report title, View All tooltip, "All <Plural> List" modal (+ subtitle), group label and export title/message use
+        org.people_label ("officers" stays a fixed word). Residual: the page subtitle "View and export individual member financial reports".
   B-54  EmployeeReport "Recent Transactions" = the member's first 6 transactions in array order
         (not sorted by date), and every amount is drawn green (var(--success)) even for expenses.
   B-55  On mobile the member list stacks ABOVE the report (reportLayout = '1fr') and selecting a
@@ -1615,15 +1649,12 @@ LOW — cosmetic / cleanup
         never drawn (sub-items need the labels visible), so "Add …" / "Manage …" pages cannot be
         reached until the sidebar is expanded. Verified in snapshots. (Also, a sub-menu opened while
         collapsed is already open when the sidebar is expanded again.)
-  B-63  VISIBLE — plural labels are built as label + "s": with the default org the menu shows
-        "Utilitys" and "Manage Utilitys"; a label like "Entry" or "Activity" gives "Entrys" /
-        "Activitys". Same pattern in many places: sidebarNav.ts (7 items), KPI strips (Funds,
-        Transactions, Utilities "Total Utilitys", Employees), DashboardKpiRows, ActivityOverviewCard,
-        FundReport, EmployeeReportSidebar. Fix: add plural labels to OrgConfig (or a pluralize helper).
-  B-64  Sidebar leftovers: the `navigate` prop is declared (SidebarProps) but never used — the
-        sidebar sets window.location.hash itself (B-09 family); NavItemDef.badge is never set by
-        buildNav (dead feature); "Club Report", "Roles & Permissions", "Audit Logs", "Announcements"
-        and the "uniFITS" brand are hard-coded while other entries use org labels (B-36 family).
+  B-63  FIXED (phase 2, 2026-10-29). Plural labels were built as label + "s" ("Utilitys"). Now OrgConfig has *_label_plural fields
+        (default pluralize(label)); all 29 places use them. Residual: attendance has no plural (used as is); Settings has no inputs for the
+        plural fields yet.
+  B-64  PART DONE (phase 2: the sidebar plurals came with B-63). Decided to KEEP "Club Report", "Roles & Permissions", "Audit Logs", "Announcements"
+        and the "uniFITS" brand: they are fixed product/system names, not entity labels in OrgConfig. STILL OPEN (other families): the unused `navigate`
+        prop in SidebarProps (B-09) and NavItemDef.badge never set (dead feature, B-11/B-20). The permissions part of B-64 is phase 6.
   B-65  Sidebar does not open the sub-menu of the current route: on /employees/add the Employees
         row is highlighted but its sub-menu is closed until clicked (verified in snapshots), and a
         sub-item is marked active only on an exact path match (e.g. not on /employees/123).
@@ -1637,10 +1668,9 @@ LOW — cosmetic / cleanup
   B-68  AddTransaction has no cross-field rules: an External source can be a Contribution, an
         Officer can record Income, a Utility category is allowed with a Contribution, etc.
         Amount has no maximum and notes no length limit. (Zero and negative amounts ARE blocked.)
-  B-69  AddTransaction text: the error reads "Please select a Employee." with the default label
-        (grammar breaks with org labels); "Officer", "External / Sponsor" and the payment-method
-        icons/subtitles are hard-coded by method NAME (a new method gets a generic card); the success
-        title "Transaction Recorded!" ignores org.transaction_label while the button uses it.
+  B-69  PART FIXED (phase 2). Fixed: "Please select an Employee." (a/an helper), success title/message/button of Add Transaction and Add Utility
+        use the org labels. STILL OPEN: "Transaction Source is required.", "Who is this transaction from?", "Officer", "External / Sponsor" and the
+        payment-method icons/subtitles hard-coded by method NAME (a new method gets a generic card).
   B-70  PARTLY DONE (batch 18): the two ToggleCard components are now ONE shared ToggleCard in
         components/FormWizard with two variants ("choice", "category") that still differ in min-width,
         gap, font sizes and sublabel support — unify the look in step B. The review rows also differ
@@ -1653,15 +1683,13 @@ LOW — cosmetic / cleanup
         any project to Ongoing (a Completed or Cancelled project is reopened, and an Upcoming one
         starts before its start date); "Reject" sets any project to Cancelled (also a Completed one).
         Same family as B-40. No role check (B-02). Events behave identically (useEvents.ts).
-  B-72  Projects wording is not org-aware: KPI label "Overall Projects", table headers, and the
-        messages "Project Approved / Rejected / Updated / Deleted", modal title "Delete Project"
-        and the delete-body labels hard-code "Project" while the toolbar and Add button use
-        org.project_label (same family as B-53). Events does the same with "Event" / "Overall Events".
-  B-73  Projects table and delete body call formatCurrency(amount) without org.currency_symbol,
-        and the funding value is drawn green whenever current >= target (always true when the
-        target is 0). Events handles both cases (shows "None" / "—" and needs target > 0 for green)
-        but also omits org.currency_symbol. EditItemModal labels "Target Funding (₱)" with a fixed
-        peso sign (see B-19).
+  B-72  PART FIXED (phase 2). Fixed: Projects/Events KPI "Overall <Plural>", feedback titles, delete modal title and "<Label> Name" row.
+        (The table headers named in the original note are generic "Title/Type/..." and never contained the entity word.) STILL OPEN: Add*/Edit*
+        form headings and field labels ("Project Information", "Project Name", "Event Type", "Go to Projects") and the empty rows
+        ("No projects found.") hard-code the entity word.
+  B-73  FIXED (phase 2). Projects/Events tables, delete bodies and detail pages pass org.currency_symbol; the Projects table is green only when
+        target > 0 and raised >= target; EditItemModal, Add*/Edit* forms and UtilityEditFields label amounts with the org currency symbol.
+        Still hard-coded on purpose: LoginBrand "₱140K+", mock notification text, the unused compact formatCurrency in utils/formatters.ts.
   B-74  FIXED (P1b-2): events now have a stored event_type; the keyword guess is gone (see the P1b-2 note at the top).
         Original report: Events have no type field: the "type" filter was derived from title keywords (getEventCategory):
         gala / fundrais / benefit -> Fundraising; sport / game / tournament -> Sports; parade / civic /
@@ -1681,7 +1709,7 @@ LOW — cosmetic / cleanup
         "x of N members have contributed" counts all users including inactive ones and hard-codes
         "members" (org.people_label elsewhere on the same page); Currency falls back to a fixed
         "PHP"; the Inactive KPI counts any status other than "active"; "Funds … for All {label}s"
-        uses the naive plural (B-63).
+        used the naive plural (fixed by B-63).
   B-78  (UI-only form; paid/status are derived once saving exists.) AddUtility has no status/amount consistency rule: Status is chosen by hand, so "Paid" with
         0 paid (verified 2026-10-26) or "Unpaid" with an amount paid is accepted (same family as
         B-19). "Record Utility" saves nothing (B-66). The category card shows "Internet" while the
@@ -1810,7 +1838,8 @@ TO VERIFY (suspected, not yet checked)
         3 creators/recorders by id (B-06): announcements, funds, audit logs, backups ........ DONE
         4 transactions: stored user_name (text) -> derived from user_id (getPartyName); searches/lists/top contributors by id ........ DONE (P1c COMPLETE)
     P1d B-01: pass record id via query param (#/employees/details?id=5); ROUTES table unchanged; "not found" state ........ DONE
-    Then phases 2-7 of the agreed fix order. B-47 is fixed by batch 19 (belongsToItem matches by project_id/event_id) - included in this delivery.
+    P2 org labels/plurals/currency (B-63, B-69 wording, B-72, B-53, B-36, B-29, B-73) ........ DONE (residuals in the session note)
+    Then phases 3-7 of the agreed fix order. B-47 is fixed by batch 19 (belongsToItem matches by project_id/event_id) - included in this delivery.
     Items needing a backend are DISABLED until Supabase: Add* saving (B-66/B-78), Settings persistence (B-57),
     Wipe All Data (B-58), Import (B-23), live notifications (B-43). Real PDF export (B-37/B-51) comes after the bug fixes.
 
@@ -2195,7 +2224,7 @@ src/components/ItemDetailContent.tsx
 
 src/context/OrgContext.tsx
   Global org config provider typed with OrgConfig from src/types/org.ts.
-  Provides useOrg(): OrgConfig hook. OrgProvider<{ orgData: Partial<OrgConfig> }>.
+  Provides useOrg(): OrgConfig hook. OrgProvider<{ orgData: Partial<OrgConfig> }>. Fills the *_label_plural fields with pluralize(label) when missing.
   Include in any prompt involving labels or currency.
 
 
@@ -2228,6 +2257,17 @@ src/utils/formatters.ts
 src/utils/formatters.test.ts
   Vitest tests for parseDate/formatDate (local-date, no day shift) and entryTypeLabel.
   Include when changing date helpers.
+
+src/utils/labels.ts
+  pluralize(word) and indefinite(word) ("a"/"an"): grammar helpers for org labels. Used by OrgContext (default plurals) and useAddTransaction.
+  Include when adding label-driven text.
+
+src/utils/labels.test.ts
+  Unit tests for labels.ts.
+
+src/test/orgLabels.test.tsx
+  Phase-2 tests: plurals, Projects/Events wording, Employee Report wording, org name in report headers, org currency symbol (every page is
+  scanned with a custom org), Add wizards wording. Include when changing org labels/currency or adding a page that shows them.
 
 src/utils/route.ts
   splitHash ("#/p?id=5" -> path + params) and withId (build an address with ?id=). Used by App.tsx and useSidebarNav. Include for any
@@ -2321,7 +2361,7 @@ src/types/user.ts
   Include when working on employee, profile, auth, or role pages.
 
 src/types/org.ts
-  OrgConfig interface — shape of org context value.
+  OrgConfig interface — shape of org context value (labels, 7 *_label_plural fields, currency, name).
   Include when working on OrgContext, Settings, or label-driven UI.
 
 src/types/project.ts

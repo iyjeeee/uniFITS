@@ -4,11 +4,13 @@ import { IconBtn } from '../../../components/TableUtils'
 import { BtnIco } from '../../../components/Icons'
 import { formatCurrency, formatDate } from '../../../api/mockData'
 import { rowStyle, rowHoverBg } from '../../../constants/tableColors'
+import { useOrg } from '../../../context/OrgContext'
 import type { ProjectWithFunding } from '../../../types'
 
 interface Props { rows: ProjectWithFunding[]; onRowClick: (p: ProjectWithFunding) => void; onApprove: (p: ProjectWithFunding) => void; onReject: (p: ProjectWithFunding) => void; onDelete: (p: ProjectWithFunding) => void }
 
 export default function ProjectsTable({ rows, onRowClick, onApprove, onReject, onDelete }: Props) {
+  const org = useOrg()
   return (
     <div style={{ overflowX: 'auto' as const }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -30,10 +32,10 @@ export default function ProjectsTable({ rows, onRowClick, onApprove, onReject, o
               <td style={{ padding: '10px 14px' }}>
                 <TypePill>{r.project_type || '—'}</TypePill>
               </td>
-              <td style={{ padding: '10px 14px' }}>{formatCurrency(r.target_funding)}</td>
+              <td style={{ padding: '10px 14px' }}>{formatCurrency(r.target_funding, org.currency_symbol)}</td>
               {/* Current funding with progress bar */}
               <td style={{ padding: '10px 14px' }}>
-                <div style={{ fontWeight: 600, color: r.current_funding >= r.target_funding ? 'var(--success)' : 'var(--text-primary)' }}>{formatCurrency(r.current_funding)}</div>
+                <div style={{ fontWeight: 600, color: r.target_funding > 0 && r.current_funding >= r.target_funding ? 'var(--success)' : 'var(--text-primary)' }}>{formatCurrency(r.current_funding, org.currency_symbol)}</div>
                 {r.target_funding > 0 && (
                   <div style={{ marginTop: 4, height: 4, width: 80, background: 'var(--border)', borderRadius: 4, overflow: 'hidden' }}>
                     <div style={{ height: '100%', background: '#2E7D52', width: Math.min(100,(r.current_funding/r.target_funding)*100) + '%', borderRadius: 4 }} />

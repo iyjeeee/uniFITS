@@ -33,9 +33,9 @@ function LivePreview({ form, org }: { form: FundForm; org: OrgConfig }) {
         ['Fund Type',              capitalize(form.fund_type)],
         ['Required?',              form.is_required ? 'Yes — all members' : 'No'],
         ['Pay Frequency',          form.is_required ? capitalize(form.payment_frequency) : '—'],
-        ['Annual Fee',             form.is_required && form.annual_fee ? `₱${form.annual_fee}` : '—'],
+        ['Annual Fee',             form.is_required && form.annual_fee ? `${org.currency_symbol}${form.annual_fee}` : '—'],
         ['Owner / Manager',        form.owner || '—'],
-        ['Currency',               'PHP'],
+        ['Currency',               org.currency_code],
         ['Status',                 'Active (Default)'],
       ].map(([k, v]) => (
         <div key={k} style={{ display: 'flex' as const, justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid var(--border-inner)', fontSize: 12.5 }}>

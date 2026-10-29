@@ -53,7 +53,7 @@ export default function AddUtility() {
       )}
     </div>
     <ResponseModal open={w.feedback} onClose={() => { w.setFeedback(false); window.location.hash = '/transactions/utilities' }}
-      variant="success" title="Utility Recorded!" message="The utility expense has been successfully recorded." confirmLabel="Go to Utilities" />
+      variant="success" title={`${org.utility_label} Recorded!`} message={`The ${org.utility_label.toLowerCase()} expense has been successfully recorded.`} confirmLabel={`Go to ${org.utility_label_plural}`} />
     </>
   )
 }

@@ -23,13 +23,13 @@ export default function FundReport() {
 
       {/* ── Required Funds Section ─────────────────────────────── */}
       {r.required.length > 0 && (
-        <FundTileSection title={`Funds Required for All ${org.people_label}s`} icon={<IcoLock />} iconBg="var(--accent-light)" iconColor="var(--accent)"
+        <FundTileSection title={`Funds Required for All ${org.people_label_plural}`} icon={<IcoLock />} iconBg="var(--accent-light)" iconColor="var(--accent)"
           funds={r.required} columns={fundCols} org={org} onSelect={r.setViewFund} />
       )}
 
       {/* ── Optional Funds Section ─────────────────────────────── */}
       {r.optional.length > 0 && (
-        <FundTileSection title={`Funds NOT Required for All ${org.people_label}s`} icon={<IcoGlobe />} iconBg="var(--info-light)" iconColor="var(--info)"
+        <FundTileSection title={`Funds NOT Required for All ${org.people_label_plural}`} icon={<IcoGlobe />} iconBg="var(--info-light)" iconColor="var(--info)"
           funds={r.optional} columns={fundCols} org={org} onSelect={r.setViewFund} />
       )}
 

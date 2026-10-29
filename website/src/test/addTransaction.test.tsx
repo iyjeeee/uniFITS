@@ -7,7 +7,7 @@ import { getSummaryRows, EMPTY_TX_FORM, ADD_TX_STEPS } from '../pages/transactio
 import { MOCK_FUNDS, MOCK_PROJECTS, MOCK_USERS } from '../api/mockData'
 import type { OrgConfig } from '../types'
 
-const org: OrgConfig = { name: 'Test', currency_symbol: '₱', currency_code: 'PHP', people_label: 'Employee', project_label: 'Project', event_label: 'Event', fund_label: 'Fund', transaction_label: 'Transaction', utility_label: 'Utility', attendance_label: 'Attendance', report_label: 'Report' }
+const org: OrgConfig = { name: 'Test', currency_symbol: '₱', currency_code: 'PHP', people_label: 'Employee', project_label: 'Project', event_label: 'Event', fund_label: 'Fund', transaction_label: 'Transaction', utility_label: 'Utility', attendance_label: 'Attendance', report_label: 'Report', people_label_plural: 'Employees', project_label_plural: 'Projects', event_label_plural: 'Events', fund_label_plural: 'Funds', transaction_label_plural: 'Transactions', utility_label_plural: 'Utilities', report_label_plural: 'Reports' }
 const btn = (re: RegExp) => { const b = screen.getAllByRole('button').filter(x => re.test(x.textContent ?? '')).pop(); if (!b) throw new Error('no button ' + re); return b }
 const mount = () => render(<OrgProvider orgData={{}}><AddTransaction /></OrgProvider>)
 const sel = (i = 0) => document.querySelectorAll('select')[i] as HTMLSelectElement
@@ -31,7 +31,7 @@ describe('getSummaryRows', () => {
 describe('AddTransaction wizard', () => {
   it('Continue is blocked with an error until a source (and a person for member/officer) is chosen', () => {
     mount(); next(); expect(document.body.textContent).toContain('Transaction Source is required.')
-    fireEvent.click(btn(/Employee/)); next(); expect(document.body.textContent).toContain('Please select a Employee.')
+    fireEvent.click(btn(/Employee/)); next(); expect(document.body.textContent).toContain('Please select an Employee.')
     fireEvent.change(sel(), { target: { value: MOCK_USERS[0].id } }); next(); expect(screen.getByText('How was this payment made?')).toBeTruthy()
   })
   it('an external source needs no person', () => {

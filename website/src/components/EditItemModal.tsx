@@ -106,7 +106,7 @@ export default function EditItemModal<T extends Project | AppEvent>({ open, onCl
                 <Input label="Start Date" type="date" value={(form as Partial<Project>).start_date ?? ''} onChange={set('start_date')} />
                 <Input label="End Date"   type="date" value={(form as Partial<Project>).end_date   ?? ''} onChange={set('end_date')} />
               </div>
-              <Input label="Target Funding (₱)" type="number" value={form.target_funding ?? ''} onChange={set('target_funding')} hint="0 = no target" />
+              <Input label={`Target Funding (${org.currency_symbol})`} type="number" value={form.target_funding ?? ''} onChange={set('target_funding')} hint="0 = no target" />
             </div>
           </div>
         )}
@@ -121,7 +121,7 @@ export default function EditItemModal<T extends Project | AppEvent>({ open, onCl
                 <Input label="Event Date" type="date" value={(form as Partial<AppEvent>).event_date ?? ''} onChange={set('event_date')} />
                 <Input label="Start Time" type="time" value={(form as Partial<AppEvent>).event_time ?? ''} onChange={set('event_time')} />
               </div>
-              <Input label="Target Funding (₱)" type="number" value={form.target_funding ?? ''} onChange={set('target_funding')} hint="0 = no target" />
+              <Input label={`Target Funding (${org.currency_symbol})`} type="number" value={form.target_funding ?? ''} onChange={set('target_funding')} hint="0 = no target" />
             </div>
           </div>
         )}

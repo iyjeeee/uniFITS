@@ -2,11 +2,13 @@
 import { useState } from 'react'
 import { getEventsWithFunding } from '../../../api/mockData'
 import { decide } from '../../../utils/approvals'
+import { useOrg } from '../../../context/OrgContext'
 import { EVENT_PAGE_SIZE } from './eventsShared'
 import type { EventActionResult } from './eventsShared'
 import type { EventWithFunding, User } from '../../../types'
 
 export default function useEvents(currentUser: User | null = null) {
+  const org = useOrg()   // labels for the feedback titles (B-72)
   const [data,         setData]         = useState(getEventsWithFunding)   // lazy: funding raised is derived from approved transactions
   const [viewItem,     setViewItem]     = useState<EventWithFunding | null>(null)
   const [editItem,     setEditItem]     = useState<EventWithFunding | null>(null)
@@ -40,19 +42,19 @@ export default function useEvents(currentUser: User | null = null) {
     const title = deleteItem?.title
     setData(prev => prev.filter((r) => r.id !== deleteItem?.id))
     setDeleteItem(null)
-    setTimeout(() => setActionResult({ variant: 'danger', title: 'Event Deleted', message: `"${title}" has been permanently removed.` }), 260)
+    setTimeout(() => setActionResult({ variant: 'danger', title: `${org.event_label} Deleted`, message: `"${title}" has been permanently removed.` }), 260)
   }
   function handleApprove(r: EventWithFunding) {
     setData(prev => prev.map((e) => e.id === r.id ? { ...e, ...decide('approved', currentUser?.id ?? null) } : e))   // approval only: lifecycle status is untouched
-    setActionResult({ variant: 'success', title: 'Event Approved', message: `"${r.title}" has been approved.` })
+    setActionResult({ variant: 'success', title: `${org.event_label} Approved`, message: `"${r.title}" has been approved.` })
   }
   function handleReject(r: EventWithFunding) {
     setData(prev => prev.map((e) => e.id === r.id ? { ...e, ...decide('rejected', currentUser?.id ?? null) } : e))
-    setActionResult({ variant: 'danger', title: 'Event Rejected', message: `"${r.title}" has been rejected.` })
+    setActionResult({ variant: 'danger', title: `${org.event_label} Rejected`, message: `"${r.title}" has been rejected.` })
   }
   function handleSaveEdit(updated: EventWithFunding) {
     setData(prev => prev.map((r) => r.id === updated.id ? updated : r))
-    setActionResult({ variant: 'success', title: 'Event Updated', message: `"${updated.title}" has been saved successfully.` })
+    setActionResult({ variant: 'success', title: `${org.event_label} Updated`, message: `"${updated.title}" has been saved successfully.` })
   }
 
   return {

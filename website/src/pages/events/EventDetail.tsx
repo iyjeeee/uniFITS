@@ -23,8 +23,8 @@ function EventDetailView({ event }: { event: EventWithFunding }) {
           <div><div style={ml}>Date</div><div style={mv}>{formatDate(event.event_date)}</div></div>
           <div><div style={ml}>Time</div><div style={mv}>{event.event_time ? fmt12(event.event_time) : '—'}</div></div>
           <div><div style={ml}>Location</div><div style={mv}>{event.location || '—'}</div></div>
-          <div><div style={ml}>Target Funding</div><div style={mv}>{formatCurrency(event.target_funding)}</div></div>
-          <div><div style={ml}>Current Funding</div><div style={{ ...mv, color: 'var(--success)', fontWeight: 700 }}>{formatCurrency(event.current_funding)}</div></div>
+          <div><div style={ml}>Target Funding</div><div style={mv}>{formatCurrency(event.target_funding, org.currency_symbol)}</div></div>
+          <div><div style={ml}>Current Funding</div><div style={{ ...mv, color: 'var(--success)', fontWeight: 700 }}>{formatCurrency(event.current_funding, org.currency_symbol)}</div></div>
         </div>
         {event.description && <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{event.description}</p>}
       </Card>

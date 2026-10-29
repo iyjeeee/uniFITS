@@ -1,10 +1,12 @@
 // parts/EventDeleteBody.tsx — Delete confirmation content: warning banner + event summary rows
 import { formatCurrency, formatDate } from '../../../api/mockData'
 import { capitalize } from '../../../utils/formatters'
+import { useOrg } from '../../../context/OrgContext'
 import type { AppEvent } from '../../../types'
 
 export default function EventDeleteBody({ item, type }: { item: AppEvent; type: string }) {
-  const rows = [['Event Name', item.title], ['Date', formatDate(item.event_date)], ['Location', item.location || '—'], ['Status', capitalize(item.status)], ['Target Funding', item.target_funding > 0 ? formatCurrency(item.target_funding) : 'None']]
+  const org  = useOrg()
+  const rows = [[`${type} Name`, item.title], ['Date', formatDate(item.event_date)], ['Location', item.location || '—'], ['Status', capitalize(item.status)], ['Target Funding', item.target_funding > 0 ? formatCurrency(item.target_funding, org.currency_symbol) : 'None']]
   return (
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 16 }}>
       <div style={{ padding: '14px 16px', borderRadius: 10, background: '#fdecea', border: '1.5px solid rgba(192,57,43,.30)', display: 'flex' as const, gap: 10, alignItems: 'flex-start' }}>

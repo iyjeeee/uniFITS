@@ -1,10 +1,12 @@
 // parts/ProjectDeleteBody.tsx — Delete confirmation content: warning banner + project summary rows
 import { formatCurrency, formatDate } from '../../../api/mockData'
 import { capitalize } from '../../../utils/formatters'
+import { useOrg } from '../../../context/OrgContext'
 import type { Project } from '../../../types'
 
 export default function ProjectDeleteBody({ item, type }: { item: Project; type: string }) {
-  const rows = [['Project Name', item.title], ['Type', capitalize(item.project_type)], ['Start Date', formatDate(item.start_date)], ['End Date', formatDate(item.end_date)], ['Status', capitalize(item.status)], ['Target Funding', formatCurrency(item.target_funding)]]
+  const org  = useOrg()
+  const rows = [[`${type} Name`, item.title], ['Type', capitalize(item.project_type)], ['Start Date', formatDate(item.start_date)], ['End Date', formatDate(item.end_date)], ['Status', capitalize(item.status)], ['Target Funding', formatCurrency(item.target_funding, org.currency_symbol)]]
   return (
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 16 }}>
       <div style={{ padding: '14px 16px', borderRadius: 10, background: '#fdecea', border: '1.5px solid rgba(192,57,43,.30)', display: 'flex' as const, gap: 10, alignItems: 'flex-start' }}>

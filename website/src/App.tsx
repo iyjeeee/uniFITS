@@ -111,6 +111,13 @@ const DEFAULT_ORG: OrgConfig = {
   utility_label:      'Utility',
   attendance_label:   'Attendance',
   report_label:       'Report',
+  people_label_plural:      'Employees',
+  project_label_plural:     'Projects',
+  event_label_plural:       'Events',
+  fund_label_plural:        'Funds',
+  transaction_label_plural: 'Transactions',
+  utility_label_plural:     'Utilities',
+  report_label_plural:      'Reports',
 }
 
 export default function App() {

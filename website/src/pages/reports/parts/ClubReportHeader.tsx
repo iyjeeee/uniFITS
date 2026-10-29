@@ -1,11 +1,13 @@
-// parts/ClubReportHeader.tsx — Report title block: organization, report type, period, generated date (en-PH)
+// parts/ClubReportHeader.tsx — Report title block: organization name (org.name), report type, period, generated date (en-PH)
 import { capitalize } from '../../../utils/formatters'
+import { useOrg } from '../../../context/OrgContext'
 
 export default function ClubReportHeader({ reportType, reportPeriod }: { reportType: string; reportPeriod: string }) {
+  const org = useOrg()
   return (
     <div style={{ textAlign: 'center' as const, padding: '28px 0 24px', borderBottom: '2px solid var(--border-inner)', marginBottom: 28 }}>
       <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 4 }}>
-        uniFITS Organization
+        {org.name}
       </div>
       <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--accent)', marginBottom: 4 }}>
         {capitalize(reportType)} Financial Report

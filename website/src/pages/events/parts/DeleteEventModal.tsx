@@ -14,7 +14,7 @@ export default function DeleteEventModal({ item, onClose, onConfirm }: Props) {
     <InfoModal
       open={!!item}
       onClose={onClose}
-      title="Delete Event"
+      title={`Delete ${org.event_label}`}
       subtitle="This action is permanent and cannot be undone"
       accentColor="var(--danger)"
       footer={
