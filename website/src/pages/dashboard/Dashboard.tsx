@@ -25,7 +25,7 @@ export default function Dashboard() {
       {/* Row 2: Top Contributors (left big) + Fund Breakdown (right) */}
       <div style={{ display: 'grid' as const, gridTemplateColumns: topRowCols, gap: 12 }}>
         <TopContributorsCard topContributors={stats.topContributors} />
-        <FundBalancesCard totalBalance={stats.totalBalance} />
+        <FundBalancesCard totalBalance={stats.totalBalance} funds={stats.fundPoints} />
       </div>
 
       {/* Row 3: Recent Transactions table */}
@@ -33,8 +33,8 @@ export default function Dashboard() {
 
       {/* Row 4: Analytics charts (3-col desktop → 2-col tablet → 1-col mobile) */}
       <div style={{ display: 'grid' as const, gridTemplateColumns: chartCols, gap: 12 }}>
-        <MonthlyChartCard />
-        <ProjectStatusCard />
+        <MonthlyChartCard data={stats.monthlyData} />
+        <ProjectStatusCard data={stats.statusBreakdown} />
         <AttendanceOverviewCard />
       </div>
     </div>

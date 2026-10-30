@@ -4,6 +4,7 @@ import { StatusBadge, InfoModal } from '../../../components/ui'
 import { formatDate, formatCurrency, getFundName, getPaymentMethodName, MOCK_TRANSACTIONS } from '../../../api/mockData'
 import { IcoMoney } from './ProfileIcons'
 import type { User } from '../../../types'
+import { isOutflow } from '../../../utils/ledger'
 
 export default function AllTransactionsModal({ user, open, onClose }: { user: User; open: boolean; onClose: () => void }) {
   const org = useOrg()
@@ -30,7 +31,7 @@ export default function AllTransactionsModal({ user, open, onClose }: { user: Us
           ? <div style={{ textAlign: 'center' as const, padding: '32px', color: 'var(--text-muted)', fontSize: 13 }}>No transactions found.</div>
           : MOCK_TRANSACTIONS.filter((t) => t.user_id === user.id).map((t) => (
               <div key={t.id} style={{ display: 'flex' as const, alignItems: 'center', gap: 14, padding: '12px 16px', borderRadius: 10, background: 'var(--neutral-light)', border: '1px solid var(--border-card)' }}>
-                <div style={{ width: 36, height: 36, borderRadius: 9, background: t.entry_type === 'expense' ? 'var(--danger-light)' : 'var(--success-light)', display: 'flex' as const, alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: t.entry_type === 'expense' ? 'var(--danger)' : 'var(--success)' }}>
+                <div style={{ width: 36, height: 36, borderRadius: 9, background: isOutflow(t) ? 'var(--danger-light)' : 'var(--success-light)', display: 'flex' as const, alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: isOutflow(t) ? 'var(--danger)' : 'var(--success)' }}>
                   <IcoMoney />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -43,8 +44,8 @@ export default function AllTransactionsModal({ user, open, onClose }: { user: Us
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' as const, flexShrink: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: t.entry_type === 'expense' ? 'var(--danger)' : 'var(--success)' }}>
-                    {t.entry_type === 'expense' ? '−' : '+'}{formatCurrency(t.amount, org.currency_symbol)}
+                  <div style={{ fontSize: 14, fontWeight: 700, color: isOutflow(t) ? 'var(--danger)' : 'var(--success)' }}>
+                    {isOutflow(t) ? '−' : '+'}{formatCurrency(t.amount, org.currency_symbol)}
                   </div>
                   <div style={{ marginTop: 3 }}><StatusBadge status={t.status} /></div>
                 </div>

@@ -1,6 +1,6 @@
 // ledger.test.ts -- money maths and balance rules (direction, approved-only, exact sums, overdraw guard)
 import { describe, it, expect } from 'vitest'
-import { signedAmount, isReceipt, sumMoney, fundBalance, overdrawOnApprove, utilityPaid, utilityStatus, fundingRaised } from './ledger'
+import { signedAmount, isReceipt, sumMoney, fundBalance, overdrawOnApprove, utilityPaid, utilityStatus, fundingRaised, isOutflow, approvedTx, ledgerTotals } from './ledger'
 import type { Transaction, EntryType, TransactionStatus } from '../types'
 
 let n = 0
@@ -107,4 +107,24 @@ describe('fundingRaised (projects and events)', () => {
   it('adds exact centavos', () => {
     expect(fundingRaised('event', 'E', [pt('event', 'E', 'income', 0.1), pt('event', 'E', 'income', 0.2)])).toBe(0.3)
   })
+})
+
+// ── Phase 3: isOutflow / approvedTx / ledgerTotals (B-27, B-39, B-80) ─────────────────
+describe('isOutflow', () => {
+  it('expense and refund leave the fund; everything else comes in', () => {
+    expect(isOutflow({ entry_type: 'expense' })).toBe(true); expect(isOutflow({ entry_type: 'refund' })).toBe(true)
+    for (const e of ['income', 'contribution', 'opening_balance'] as const) expect(isOutflow({ entry_type: e })).toBe(false)
+  })
+})
+describe('approvedTx / ledgerTotals', () => {
+  const mk = (id: string, entry_type: Transaction['entry_type'], amount: number, status: Transaction['status'] = 'approved'): Transaction =>
+    ({ id, user_id: null, entry_type, category: 'fund', fund_id: '1', amount, payment_method_id: null, reference_number: id, transaction_date: '2025-03-01', status, description: '' })
+  const all = [mk('1', 'contribution', 100), mk('2', 'income', 50), mk('3', 'expense', 30), mk('4', 'refund', 20), mk('5', 'opening_balance', 999),
+    mk('6', 'contribution', 1000, 'pending'), mk('7', 'income', 1000, 'rejected'), mk('8', 'expense', 1000, 'voided')]
+  it('keeps only approved rows', () => { expect(approvedTx(all).map((t) => t.id)).toEqual(['1', '2', '3', '4', '5']) })
+  it('income = receipts - refunds, expense, net; opening balances and non-approved rows never count', () => {
+    expect(ledgerTotals(all)).toEqual({ income: 130, expense: 30, net: 100 })
+  })
+  it('exact centavos', () => { expect(ledgerTotals([mk('a', 'income', 0.1), mk('b', 'income', 0.2)]).income).toBe(0.3) })
+  it('empty list is all zeros', () => { expect(ledgerTotals([])).toEqual({ income: 0, expense: 0, net: 0 }) })
 })

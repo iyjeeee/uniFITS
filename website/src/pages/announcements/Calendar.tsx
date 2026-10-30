@@ -38,10 +38,10 @@ export default function Calendar() {
     else setMonth(m => m + 1)
   }
 
-  // Upcoming activities in the next 30 days
+  // Upcoming schedule: approved items that are upcoming or ongoing (completed / cancelled ones are not coming up)
   const upcoming = [
-    ...approvedOnly(getProjectsWithFunding()).filter((p) => p.status !== 'completed').map((p) => ({ ...p, kind: 'project', date: p.start_date, name: p.title })),
-    ...approvedOnly(getEventsWithFunding()).filter((e) => e.status !== 'completed').map((e) => ({ ...e, kind: 'event', date: e.event_date, name: e.title })),
+    ...approvedOnly(getProjectsWithFunding()).filter((p) => p.status === 'upcoming' || p.status === 'ongoing').map((p) => ({ ...p, kind: 'project', date: p.start_date, name: p.title })),
+    ...approvedOnly(getEventsWithFunding()).filter((e) => e.status === 'upcoming' || e.status === 'ongoing').map((e) => ({ ...e, kind: 'event', date: e.event_date, name: e.title })),
   ].sort((a, b) => parseDate(a.date).getTime() - parseDate(b.date).getTime())
 
   return (

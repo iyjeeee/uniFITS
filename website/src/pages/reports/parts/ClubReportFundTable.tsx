@@ -1,4 +1,4 @@
-// parts/ClubReportFundTable.tsx — III. Fund Balance Sheet: per-fund received/spent/balance + totals row
+// parts/ClubReportFundTable.tsx — III. Fund Balance Sheet: per-fund opening / received / spent / balance (at the end of the period) + totals row
 import { formatCurrency } from '../../../api/mockData'
 import { useOrg } from '../../../context/OrgContext'
 import { capitalize } from '../../../utils/formatters'
@@ -14,7 +14,7 @@ export default function ClubReportFundTable({ stats }: { stats: ClubReportStats 
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
             <tr style={{ background: 'var(--accent)' }}>
-              {['Fund Name', 'Type', 'Status', 'Total Received', 'Total Spent', 'Current Balance'].map((h) => (
+              {['Fund Name', 'Type', 'Status', 'Opening Balance', 'Total Received', 'Total Spent', 'Closing Balance'].map((h) => (
                 <th key={h} style={{ padding: '10px 14px', textAlign: 'left' as const, fontSize: 11, fontWeight: 700, color: '#fff', textTransform: 'uppercase' as const, letterSpacing: '.06em', borderBottom: '2px solid var(--border-table)', whiteSpace: 'nowrap' as const }}>{h}</th>
               ))}
             </tr>
@@ -29,6 +29,7 @@ export default function ClubReportFundTable({ stats }: { stats: ClubReportStats 
                     {capitalize(f.status)}
                   </span>
                 </td>
+                <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(f.opening, org.currency_symbol)}</td>
                 <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--success)' }}>{formatCurrency(f.received, org.currency_symbol)}</td>
                 <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--danger)'  }}>{formatCurrency(f.spent,    org.currency_symbol)}</td>
                 <td style={{ padding: '10px 14px', fontWeight: 800, color: 'var(--accent)'  }}>{formatCurrency(f.balance,  org.currency_symbol)}</td>
@@ -36,6 +37,9 @@ export default function ClubReportFundTable({ stats }: { stats: ClubReportStats 
             ))}
             <tr style={{ background: '#EAECF0', fontWeight: 700 }}>
               <td colSpan={3} style={{ padding: '10px 14px', fontWeight: 700 }}>TOTAL</td>
+              <td style={{ padding: '10px 14px', fontWeight: 800, color: 'var(--text-primary)' }}>
+                {formatCurrency(fundRows.reduce((s, f) => s + f.opening, 0), org.currency_symbol)}
+              </td>
               <td style={{ padding: '10px 14px', fontWeight: 800, color: 'var(--success)' }}>
                 {formatCurrency(fundRows.reduce((s, f) => s + f.received, 0), org.currency_symbol)}
               </td>

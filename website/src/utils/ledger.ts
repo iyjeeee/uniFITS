@@ -8,9 +8,29 @@ export function sumMoney(values: number[]): number {
   return values.reduce((s, v) => s + Math.round(v * 100), 0) / 100
 }
 
+/* isOutflow -- money leaves the fund: expense or refund (drives the "-" sign and red colour everywhere) */
+export function isOutflow(t: Entry): boolean {
+  return t.entry_type === 'expense' || t.entry_type === 'refund'
+}
+
 /* signedAmount -- inflow (+): income, contribution, opening_balance; outflow (-): expense, refund */
 export function signedAmount(t: Pick<Transaction, 'entry_type' | 'amount'>): number {
-  return t.entry_type === 'expense' || t.entry_type === 'refund' ? -t.amount : t.amount
+  return isOutflow(t) ? -t.amount : t.amount
+}
+
+/* approvedTx -- only approved entries count in totals (pending, rejected and voided never do) */
+export function approvedTx(txs: Transaction[]): Transaction[] {
+  return txs.filter((t) => t.status === 'approved')
+}
+
+/* ledgerTotals -- income (receipts minus refunds), expense and net of the APPROVED entries; opening balances are setup entries, not income */
+export function ledgerTotals(txs: Transaction[]): { income: number; expense: number; net: number } {
+  const ok = approvedTx(txs)
+  const received = sumMoney(ok.filter(isReceipt).map((t) => t.amount))
+  const refunds  = sumMoney(ok.filter((t) => t.entry_type === 'refund').map((t) => t.amount))
+  const income   = sumMoney([received, -refunds])
+  const expense  = sumMoney(ok.filter((t) => t.entry_type === 'expense').map((t) => t.amount))
+  return { income, expense, net: sumMoney([income, -expense]) }
 }
 
 /* isReceipt -- money received during activity (income or member contribution); opening balances and refunds are not */

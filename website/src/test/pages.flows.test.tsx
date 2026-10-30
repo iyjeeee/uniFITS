@@ -123,7 +123,7 @@ describe('edit/save flows', () => {
     clickButton(/Generate Report/)
     fireEvent.change(selects()[0], { target: { value: 'quarterly' } })   // type change resets period + hides report
     expect(screen.queryByText(/Statement of Income/)).toBeNull()
-    expect(selects()[1].value).toBe('Q1 (Jan–Mar)')
+    expect(selects()[1].value).toBe('Q1 2025 (Jan–Mar)')
   })
 
   it('Transactions: type filter narrows the table; Approve and Reject show feedback; delete removes the row', async () => {

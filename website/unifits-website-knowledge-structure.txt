@@ -6,6 +6,42 @@
   Status: TYPESCRIPT MIGRATION COMPLETE & VERIFIED (2026-09-10)
   NEXT STEPS (owner decision 2026-10-14): finish splitting (bugs found meanwhile are only
     logged in section 1.18, not fixed) -> fix section 1.18 -> discuss Supabase first.
+  Session 2026-10-29 (3) — STEP B, PHASE 3 (correct numbers): B-03, B-04, B-05, B-24, B-25, B-26, B-27, B-28, B-31, B-32, B-34, B-35, B-39, B-42, B-48,
+    B-52, B-54, B-67, B-80 FIXED. tsc clean, eslint 0 errors + the 1 known warning, tests: 452 pass in 46 files (379 before). Nothing Supabase-related.
+    · utils/ledger.ts gained isOutflow (expense|refund; drives every "−"/red), approvedTx, ledgerTotals ({income = receipts - refunds, expense, net},
+      approved rows only, opening balances excluded). ONE rule for totals now used by Dashboard, Transactions KPIs and Club Report.
+    · NEW utils/period.ts: manilaToday (Asia/Manila date), periodRange ("2025" / "Q2 2026 (Apr–Jun)" / "March 2025" -> from/to), inRange, dayBefore,
+      getPeriodOptions (first approved record's year .. today, newest first, no future periods), getDefaultPeriod (period of the latest real activity).
+      Quarter values now carry their year: "Q1 2025 (Jan–Mar)". YEARS/QUARTERS constants are gone.
+    · Dashboard (B-03/24/25/26/27/28): getDashboardStats(txs, today) takes data as parameters. Income/expense/count/top contributors = approved rows only;
+      Total <people> = everybody (6); Active Projects = status 'ongoing' (1); Recent = latest 6 by date (newest id first), opening balances left out;
+      charts are DERIVED (dashboardData.ts: getMonthlyData = 6 months ending at the latest activity, labels "Mar 25"; getFundPoints = real fund names,
+      largest 8; getStatusBreakdown = approved projects by status). The monthly chart totals equal the KPI totals.
+    · Transactions KPIs (B-39): Income/Expenses/Net = approved rows only (reject a row and they change); the "Total <Plural>" count still counts every
+      row of the list. Refunds (B-80): sign/colour via isOutflow in ~10 places. Receipt flow (B-42): outflow reads From Fund -> To <payee>.
+    · Club Report (B-04/31/32/34/35): getClubReportStats(range, txs) is period-aware and approved-only. Income lines: member dues = fund contributions only;
+      project / event contributions + income go to project / event income; other receipts = fund income; refunds reduce their line. Expenses: project, event,
+      everything else = "operational" (utility bills + other fund expenses; none dropped); operational breakdown by the bill's expense type ("Other" when
+      unmatched). Fund sheet has Opening Balance (balance before the period + opening entries inside it) + Received - Spent (expenses + refunds) = Closing
+      Balance at period end. "Events Held" is limited to the period; project/event/member counts are current-status snapshots. "Active Projects" tile =
+      ongoing projects. Default period = latest activity (mock: 2025 / Q1 2025 / March 2025), year list = 2026, 2025.
+    · Detail panels (B-48): getItemDetailData(item, kind, txs) counts approved rows only and returns the opening entry and refunds; Financial Summary shows
+      Opening Balance (+) and Refunds (−) lines when they exist, so inflow = the funding bar for every item (tested for all mock projects/events).
+    · Calendar upcoming list (B-05) = approved upcoming/ongoing items (completed and cancelled are out; the "next 30 days" comment was wrong — no date limit).
+    · Employee Report: Recent Transactions = latest approved rows newest first (getRecentTransactions), outflows red with "−" (B-54); each group of the All
+      Employees modal pages on its own (EmployeeListSection owns its page), the misleading "Page X of Y" subtitle is gone (B-52).
+    · Add Transaction (B-67): preview/review show the chosen project/event (row named after the org label); project/event categories no longer show an
+      always-blank Fund row.
+    · Visible changes (241 page states vs batch 34): Dashboard (Total Employees 5->6, Active Projects 3->1, recent list by date, chart axes/labels/fund bars
+      from the data); Club Report year list (2026, 2025) and numbers per period; Transactions KPIs follow the approved rows; project/event detail Financial
+      Summary gains the Opening Balance line and the right totals (e.g. Tree Planting net -7,500 -> +20,000); Employee Report amounts get "+".
+    · NOT done on purpose / open: the project/event wizard asks no fund, so a saved project/event entry would have no fund (decide with the backend);
+      Dashboard has no period selector; Club Report member counts are not period-bound; refunds have no panel in the detail view (only the summary line);
+      B-79 (Manila midnight edge case) is covered for the report periods by manilaToday tests, other date logic is unchecked.
+    · Tests: NEW utils/period.test.ts, test/dashboardNumbers.test.tsx, clubReportNumbers.test.tsx, transactionNumbers.test.tsx, phase3Details.test.tsx;
+      ledger.test.ts +5; itemDetail.test.tsx +4; updated: approvals (ongoing 1), dashboard.stats (recent by date), clubReport.parts (period helpers),
+      pages.flows (quarter value), employeeReport (per-group paging), itemDetail (opening in inflow). Mutation checks (9): approved filter, isOutflow, ongoing
+      rule, member-dues rule, period filter, Calendar filter, opening line, recent sort, receipt direction — each fails at least one test.
   Session 2026-10-29 (2) — STEP B, PHASE 2 (org labels, plurals, currency): B-63, B-69 (wording), B-72, B-53, B-36, B-29, B-73 FIXED; B-64 part.
     tsc clean, eslint 0 errors + the 1 known warning, tests: 379 pass in 41 files (300 before). Nothing Supabase-related was touched.
     · B-63: OrgConfig has 7 new fields people_/project_/event_/fund_/transaction_/utility_/report_label_plural. OrgProvider fills any
@@ -389,7 +425,7 @@
     1 warning, 71 tests pass). 30 rendered states (5 widths, all 8 KPI hovers + click targets,
     custom org labels) compared before/after: all byte-identical.
     · Dashboard.tsx 376 -> 42 lines + dashboard/parts/ (dashboardStats.ts [pure getDashboardStats],
-      dashboardData.ts [hard-coded chart series], DashboardIcons, DashboardKpiRows,
+      dashboardData.ts [derived chart series], DashboardIcons, DashboardKpiRows,
       TopContributorsCard, FundBalancesCard, RecentTransactionsCard, MonthlyChartCard,
       ProjectStatusCard, AttendanceOverviewCard, BarChart, FundBarChart, DonutChart,
       AttendanceChart).
@@ -1452,19 +1488,11 @@ HIGH — wrong data or missing behavior users can see
         Where: whole app. Permissions exist (types/user.ts, RolesPage) but no page or
         component reads them; Sidebar shows every item to every role.
         Fix idea: one hasPermission(user, key) helper + guard Sidebar items, routes, buttons.
-  B-03  Dashboard charts use hard-coded series, not the data.
-        Where: pages/dashboard/parts/dashboardData.ts — MONTHLY_DATA, FUND_DATA, STATUS_BREAKDOWN
-        (moved there from Dashboard.tsx in batch 6).
-        Effect: charts never change when transactions/funds change. Details: see B-24.
-  B-04  Reports hard-code the year 2025.
-        Where: pages/reports/parts/clubReportShared.ts (YEARS, getPeriodOptions, getDefaultPeriod).
-        EmployeeReport has no year/period selector, so it is not affected.
-        Fix idea: derive years/periods from the data and the current date.
+  B-03  FIXED (phase 3). Dashboard charts are derived from the records (dashboardData.ts: getMonthlyData / getFundPoints / getStatusBreakdown).
+  B-04  FIXED (phase 3). Report years/periods come from the data and today's Manila date (utils/period.ts); the default is the latest activity period.
 
 MEDIUM — wrong or misleading behavior
-  B-05  Calendar "upcoming" list includes cancelled/rejected items.
-        Where: pages/announcements/Calendar.tsx lines ~42-43 filter is status !== 'completed'.
-        Compare Announcements/parts/helpers.ts buildSchedule (only upcoming/ongoing).
+  B-05  FIXED (phase 3). Calendar upcoming list = approved upcoming/ongoing items only.
   B-06  FIXED (P1c-1 + P1c-3): new attendance, announcements and backups record the logged-in user's id (backups: null = System).
         Original report: Placeholder author "Current User" saved on new data.
         Where: parts/useAttendanceMarking.ts (recorded_by: FIXED in P1c-1, now the logged-in user's id), parts/useAnnouncements.ts
@@ -1523,42 +1551,25 @@ LOW — cosmetic / cleanup
         in step B (then one of the two ui components can go).
   B-23  Employees Import modal is UI only: Browse File / Import File / template link do
         nothing (no parsing, no upload). Incomplete feature, not a regression.
-  B-24  Dashboard chart data is wrong/unrelated to the records (extends B-03, verified against
-        mock data 2026-10-16): Project Status donut shows Completed 2 / Ongoing 2 / Upcoming 5
-        (total 9) but there are 5 projects (upcoming 3, ongoing 1, completed 1); Monthly chart
-        shows Jan–Jun values although every mock transaction is dated March 2025; Fund bars use
-        shortened names ("Membership") and fixed balances that only match MOCK_FUNDS today.
-  B-25  Dashboard KPI "Total Employees" shows the ACTIVE count (5) — 6 users exist (1 inactive).
-        Label and value disagree. (dashboardStats.ts: activeMembers)
-  B-26  Dashboard KPI "Active Projects" counts every project that is not completed/cancelled
-        (4: includes upcoming) while only 1 is "ongoing". (dashboardStats.ts: ongoingProjects)
-  B-27  Dashboard income, expense totals and Top Contributors ignore transaction status
-        (pending/rejected would be counted). Not visible yet: all mock transactions are completed.
-  B-28  Dashboard "Recent Transactions" = first 6 of the array, not sorted by date, although
-        the subtitle says "Latest N financial entries".
+  B-24  FIXED (phase 3): donut, monthly bars and fund bars are derived (full fund names, real counts, months from the data). See B-03.
+  B-25  FIXED (phase 3). "Total <people>" = every user (6); the stats key is totalMembers.
+  B-26  FIXED (phase 3). "Active Projects" = approved projects with status 'ongoing' (1); equals the Club Report tile (B-32).
+  B-27  FIXED (phase 3). Dashboard income/expense/transaction count/top contributors use approved rows only (ledgerTotals); refunds reduce income.
+  B-28  FIXED (phase 3). Recent Transactions = latest 6 by date (newest id first on the same day), opening balances left out.
   B-29  FIXED (phase 2). Dashboard BarChart and FundBarChart use org.currency_symbol.
   B-30  TopContributorsCard bar width divides by topContributors[0].total — NaN% if the top
         total is 0 (edge case; not reachable with current mock data).
-  B-31  ClubReport figures ignore the selected report type/period: getClubReportStats() takes
-        no arguments and sums ALL mock records, so changing Annual/Quarterly/Monthly or the
-        period only changes the labels (e.g. "Period: 2023" shows the same numbers as 2025).
-  B-32  ClubReport "Active Projects" tile shows MOCK_PROJECTS.length (every project, incl.
-        completed/upcoming), not the active ones (ClubReportSummary.tsx).
+  B-31  FIXED (phase 3). getClubReportStats(range, txs) follows the chosen period; changing type/period changes the figures.
+  B-32  FIXED (phase 3). The Club Report "Active Projects" tile shows the ongoing projects.
   B-33  Printing includes the generator card (selectors, Generate/Print/Export buttons): the
         print CSS hides ".no-print" (index.css) but no component uses that class anywhere.
         EmployeeReport has the same problem (verified 2026-10-19): Print calls window.print() on
         the whole page — sidebar, title card and buttons included — and uses no .no-print class.
         FundReport has no Print button at all (verified 2026-10-25), so despite its "print-ready"
         label in this document it cannot be printed from the page.
-  B-34  PART FIXED (P1a steps 3-4): fund sheet Total Spent now equals the Statement's Total Expenses (50,700; utility
-        payments are ledger entries charged to the bill's fund) and Current Balance is derived. STILL OPEN: Total Received -
-        Spent (9,200) is not the Current Balance (425,500) because the sheet has no Opening Balance column
-        (balance = opening + received - spent). Mock data as of 2026-10-25.
-  B-35  ClubReport classification/status issues (latent with current mock data): contributions
-        tagged to a project/event are counted as "Member Dues", not project/event income; income
-        or expenses in other categories are dropped from the totals; transaction status
-        (pending/rejected) is ignored (same family as B-27); utility expense uses amount_paid of
-        every utility regardless of date.
+  B-34  FIXED (phase 3). The fund sheet has an Opening Balance column: opening + received - spent = closing balance at the end of the period.
+  B-35  FIXED (phase 3). Project/event contributions are project/event income (member dues = fund contributions); every expense lands in a line;
+        approved rows only; operational expense comes from the dated ledger entries, not utility amount_paid.
   B-36  FIXED (phase 2). ClubReportHeader and EmployeeReportView show org.name. In the real app that is "uniFITS Demo Organization" (DEFAULT_ORG),
         a visible change from the old fixed "uniFITS Organization". Settings still has a different fallback text (useSettings) — see B-57.
   B-37  "Export PDF" only shows a success message — no file is produced (ClubReport, EmployeeReport
@@ -1567,9 +1578,7 @@ LOW — cosmetic / cleanup
   B-38  FIXED (P1a step 1): the shim normaliseTransaction/TxRow is gone. TransactionStatus is now
         pending/approved/rejected/voided end to end (types, mock data, filters, colours); "voided"
         is no longer shown as "pending". (Transactions KPIs still ignore status: see B-39/B-27.)
-  B-39  Transactions KPI strip (Total Income / Expenses / Net Balance) counts every row
-        including pending and rejected ones, and does not change when a row is rejected
-        (same family as B-27, B-35).
+  B-39  FIXED (phase 3). Transactions Income/Expenses/Net = approved rows only (ledgerTotals). The "Total" count still counts every listed row.
   B-40  PART FIXED for projects/events (P1b-1): Approve / Reject now show ONLY on rows waiting for approval, so they
         cannot be repeated. STILL OPEN: Transactions (any non-approved row can be approved again; no confirmation),
         no reason is asked when rejecting (rejection_reason exists but is never set), role checks missing (B-02).
@@ -1577,8 +1586,7 @@ LOW — cosmetic / cleanup
         repeats the "Transaction Flow" markup of transactions/parts/TransactionReceiptContent
         with different wording ("Me" vs "External") and a different type pill
         (profile TransactionTypeBadge vs ui Badge). Same data, two looks.
-  B-42  TransactionReceiptContent "Transaction Flow" always reads From = member, To Fund, also
-        for expenses (where money leaves the fund). Direction is reversed for expense rows.
+  B-42  FIXED (phase 3). Receipt flow for outflows (expense, refund) reads From Fund -> To <payee>.
   B-43  Header notifications are hard-coded in components/header/headerData.ts (12 fixed
         texts, e.g. "Emergency Fund reached ₱20,000 milestone"), not in api/mockData. Items are
         not clickable, cannot be marked read one by one, and nothing creates new ones.
@@ -1597,11 +1605,7 @@ LOW — cosmetic / cleanup
         contributions (5,000), expenses (12,500) and net balance, and EVERY event shows the same
         2,500 (verified 2026-10-18). Cause: Transaction has no project_id / event_id field
         (only category + fund). Needs a data-model change (also before the backend phase).
-  B-48  CHANGED (P1b-3): the funding bar is now DERIVED (includes the opening entry) but the detail panels still list only
-        member contributions + external income, so they still disagree. Fix: show the opening entry as its own line in the
-        Financial Summary (numbers phase). Original report: The funding bar used the stored item.current_funding while the panels sum transactions,
-        so the two disagree (e.g. "Scholarship Program 2024": funding 200,000 vs total
-        contributions 5,000).
+  B-48  FIXED (phase 3). Detail panels count approved rows only and show the opening entry (and refunds) as their own Financial Summary lines; total inflow = funding bar.
   B-49  FIXED (P1c-1): attendance points at project_id / event_id and users by id; titles and names are looked up
         (getActivityTitle, getUserName). Original report: Attendance was matched by title text (record.activity === item.title), not by id: two
         items with the same title share records and renaming an item detaches its records.
@@ -1612,14 +1616,10 @@ LOW — cosmetic / cleanup
   B-51  EmployeeReport "Export PDF" confirmation promises "all financial contributions and
         attendance records", but the report contains only member information and the first 6
         transactions — there is no attendance section.
-  B-52  EmployeeReport All Employees modal paging is inconsistent: ONE page number drives both
-        groups, and the subtitle "Page X of Y" is computed from ALL users (users / 8), not from
-        the larger group. With 27 users it says "of 4" while each group has 2 pages; a group can
-        show an empty page.
+  B-52  FIXED (phase 3). Each group of the All Employees modal pages on its own; the "Page X of Y" subtitle was removed.
   B-53  FIXED (phase 2). Employee Report title, View All tooltip, "All <Plural> List" modal (+ subtitle), group label and export title/message use
         org.people_label ("officers" stays a fixed word). Residual: the page subtitle "View and export individual member financial reports".
-  B-54  EmployeeReport "Recent Transactions" = the member's first 6 transactions in array order
-        (not sorted by date), and every amount is drawn green (var(--success)) even for expenses.
+  B-54  FIXED (phase 3). Employee Report Recent Transactions = latest approved rows newest first; outflows red with "−", inflows green with "+".
   B-55  On mobile the member list stacks ABOVE the report (reportLayout = '1fr') and selecting a
         member does not scroll to the report (no scroll code exists). Verified in code only; how
         far apart they are on a real phone is not verified.
@@ -1662,9 +1662,8 @@ LOW — cosmetic / cleanup
         and then goes to /transactions, where the new row never appears (no data is written
         anywhere). AddUtility behaves the same (verified 2026-10-26: B-78); AddFund, AddProject,
         AddEmployee and AddEvent are not verified.
-  B-67  The project / event chosen in the Category step (activity_id) is never shown in the Live
-        Preview or the Review step, and the Fund row is blank for project/event categories — the
-        user cannot confirm which activity the money is for.
+  B-67  FIXED (phase 3). The Add Transaction preview/review show the chosen project/event (row named after the org label). OPEN QUESTION: no fund is
+        asked for project/event entries.
   B-68  AddTransaction has no cross-field rules: an External source can be a Contribution, an
         Officer can record Income, a Utility category is allowed with a Contribution, etc.
         Amount has no maximum and notes no length limit. (Zero and negative amounts ARE blocked.)
@@ -1714,9 +1713,7 @@ LOW — cosmetic / cleanup
         0 paid (verified 2026-10-26) or "Unpaid" with an amount paid is accepted (same family as
         B-19). "Record Utility" saves nothing (B-66). The category card shows "Internet" while the
         stored value is "Internet Service".
-  B-80  Display only treats entry_type 'expense' as an outflow (sign "-", red) in ~10 places (TransactionsTable, receipt,
-        dashboard recent list, profile lists...). A 'refund' would show "+" and green. Latent: no refund rows exist and
-        nothing can create one yet. Fix with the numbers/consistency phase using signedAmount() from utils/ledger.ts.
+  B-80  FIXED (phase 3). isOutflow() (expense|refund) decides sign/colour in every display (~10 places).
   B-79  Dates: the payment-date rule (not in the future) compares against the END OF TODAY in the
         browser's local time and was verified only at the sandbox clock (same result in
         Asia/Manila, UTC and America/Los_Angeles). The Manila-specific edge window around local
@@ -1839,7 +1836,8 @@ TO VERIFY (suspected, not yet checked)
         4 transactions: stored user_name (text) -> derived from user_id (getPartyName); searches/lists/top contributors by id ........ DONE (P1c COMPLETE)
     P1d B-01: pass record id via query param (#/employees/details?id=5); ROUTES table unchanged; "not found" state ........ DONE
     P2 org labels/plurals/currency (B-63, B-69 wording, B-72, B-53, B-36, B-29, B-73) ........ DONE (residuals in the session note)
-    Then phases 3-7 of the agreed fix order. B-47 is fixed by batch 19 (belongsToItem matches by project_id/event_id) - included in this delivery.
+    P3 correct numbers (B-03/04/05/24-28/31/32/34/35/39/42/48/52/54/67/80; B-27/B-38 done earlier) ........ DONE (residuals in the session note)
+    Then phases 4-7 of the agreed fix order. B-47 is fixed by batch 19 (belongsToItem matches by project_id/event_id) - included in this delivery.
     Items needing a backend are DISABLED until Supabase: Add* saving (B-66/B-78), Settings persistence (B-57),
     Wipe All Data (B-58), Import (B-23), live notifications (B-43). Real PDF export (B-37/B-51) comes after the bug fixes.
 
@@ -2287,8 +2285,20 @@ src/test/recordIds.test.tsx
   the logged-in user; real-router deep links. Include when changing routing or detail/edit pages.
 
 src/utils/ledger.ts
-  Money rules, pure functions: sumMoney (exact centavo sums), signedAmount (inflow +/outflow -), isReceipt, fundBalance
-  (approved only), overdrawOnApprove (fund may never go below zero). Mirrors schema.sql. Include for ANY total/balance work.
+  Money rules, pure functions: sumMoney (exact centavo sums), isOutflow / signedAmount (expense+refund out, rest in), isReceipt, approvedTx,
+  ledgerTotals ({income, expense, net}, approved only), fundBalance (approved only), overdrawOnApprove (fund may never go below zero).
+  Mirrors schema.sql. Include for ANY total/balance work.
+
+src/utils/period.ts
+  Report periods: manilaToday, periodRange, inRange, dayBefore, getPeriodOptions, getDefaultPeriod (see the phase-3 session note). Include for any
+  date-range / report-period work.
+
+src/utils/period.test.ts
+  Unit tests for period.ts (Manila midnight, leap years, options and defaults from data).
+
+src/test/dashboardNumbers.test.tsx, clubReportNumbers.test.tsx, transactionNumbers.test.tsx, phase3Details.test.tsx
+  Phase-3 tests (dashboard figures and charts, Club Report classification / periods / fund sheet, Transactions KPIs and refund direction, Calendar,
+  Employee Report, wizard summary). Include when changing any total, KPI, report or chart.
 
 src/utils/approvals.ts
   Approval helpers for projects/events: isApproved, approvedOnly (pending/rejected never count), decide (review record: who/when/reason).
@@ -2450,8 +2460,8 @@ src/pages/dashboard/Dashboard.tsx
   Composition only (42 lines): KPI rows, top contributors, fund balances, recent transactions,
   chart cards. Fully responsive (row grids use useBreakpoint). Include when editing dashboard
   layout, plus only the part you change (src/pages/dashboard/parts/):
-  dashboardStats.ts          getDashboardStats(): all KPI numbers, top 5 contributors, recent 6.
-  dashboardData.ts           hard-coded MONTHLY_DATA / FUND_DATA / STATUS_BREAKDOWN (B-03, B-24).
+  dashboardStats.ts          getDashboardStats(txs, today): KPI numbers, top 5 contributors, recent 6, chart data (approved rows only).
+  dashboardData.ts           getMonthlyData / getFundPoints / getStatusBreakdown: chart series derived from the records (B-03, B-24).
   DashboardKpiRows.tsx       two rows of clickable KpiCards (each navigates); DashboardIcons.tsx = icons.
   TopContributorsCard.tsx    ranked list with rank badge and relative bar.
   FundBalancesCard.tsx       FundBarChart bars + real total across funds.
@@ -2649,12 +2659,12 @@ src/pages/profile/PersonalTransactions.tsx Props: ProfilePageProps (logged-in us
 
 src/pages/reports/EmployeeReport.tsx  Props: {}  (print-ready)
   Composition only (37 lines). Include with only the part you change (src/pages/reports/parts/):
-  useEmployeeReport.ts       state: selected member, export modals, All Employees modal + page; derived officers/members/6 transactions.
+  useEmployeeReport.ts       state: selected member, export modals, All Employees modal; derived officers/members/recent transactions.
   employeeReportShared.ts    LIST_PAGE_SIZE (8), EmployeeReportExportResult.
   EmployeeReportHeader.tsx   title card + Print / Export PDF (ReportActionButton.tsx = the solid button).
   EmployeeReportSidebar.tsx  member list (Officers / Employees groups) + View All button.
   EmployeeReportView.tsx     report card: header (B-36), EmployeeInfoSection.tsx, EmployeeTransactionsSection.tsx (B-54).
-  AllEmployeesModal.tsx      paged modal (B-52); EmployeeListSection.tsx = one group; EmployeeListRow.tsx = one row.
+  AllEmployeesModal.tsx      modal with two groups; EmployeeListSection.tsx = one group that pages on its own (B-52); EmployeeListRow.tsx = one row.
   EmployeeExportModals.tsx   export confirmation + result ResponseModals (B-51).
 src/pages/reports/FundReport.tsx      Props: {}  (no Print button, see B-33)
   Composition only (44 lines). Include with only the part you change (src/pages/reports/parts/):
@@ -2668,8 +2678,8 @@ src/pages/reports/FundReport.tsx      Props: {}  (no Print button, see B-33)
 src/pages/reports/ClubReport.tsx      Props: {}  (print-ready, report type selector)
   Composition only (55 lines). Include with only the part you change (src/pages/reports/parts/):
   useClubReport.ts           state: type, period, generated flag, export feedback; resets on change.
-  clubReportShared.ts        REPORT_TYPE_OPTIONS, YEARS/QUARTERS, getPeriodOptions, getDefaultPeriod (B-04).
-  clubReportStats.ts         getClubReportStats(): every figure in the report (B-31, B-34, B-35).
+  clubReportShared.ts        REPORT_TYPE_OPTIONS, getPeriodOptions / getDefaultPeriod (data- and date-driven, from utils/period.ts) (B-04).
+  clubReportStats.ts         getClubReportStats(range, txs): every figure of the report for ONE period, approved rows only (B-31, B-34, B-35).
   ClubReportControls.tsx     generator card; ReportSelectField.tsx = labelled select (minWidth option).
   ClubReportHeader.tsx       title block + generated date (B-36).
   ClubReportSummary.tsx      I. Executive Summary (tiles + net banner).

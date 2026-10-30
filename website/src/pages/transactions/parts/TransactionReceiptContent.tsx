@@ -2,12 +2,17 @@
 import { formatCurrency, formatDate, getFundName, getPaymentMethodName, getPartyName } from '../../../api/mockData'
 import { useOrg } from '../../../context/OrgContext'
 import useBreakpoint from '../../../hooks/useBreakpoint'
+import { isOutflow } from '../../../utils/ledger'
 import EntryTypeBadge from './EntryTypeBadge'
 import type { Transaction } from '../../../types'
 
 export default function TransactionReceiptContent({ tx }: { tx: Transaction }) {
   const org = useOrg()
   const { isMobile } = useBreakpoint()
+  // Money flow direction (B-42): inflow = party -> fund, outflow (expense / refund) = fund -> party
+  const out = isOutflow(tx)
+  const partyName = getPartyName(tx.user_id, 'External')
+  const fundName  = getFundName(tx.fund_id)
   return (
     <div>
       {/* Receipt header */}
@@ -37,8 +42,8 @@ export default function TransactionReceiptContent({ tx }: { tx: Transaction }) {
         <div style={{ display: 'flex' as const, alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           {/* FROM node */}
           <div style={{ flex: 1, minWidth: 100, padding: '12px 14px', borderRadius: 10, background: 'var(--neutral-light)', border: '1px solid var(--border-card)', textAlign: 'center' as const }}>
-            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '.07em', marginBottom: 5 }}>From</div>
-            <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)' }}>{getPartyName(tx.user_id, 'External')}</div>
+            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '.07em', marginBottom: 5 }}>{out ? 'From Fund' : 'From'}</div>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)' }}>{out ? fundName : partyName}</div>
           </div>
           {/* Arrow + type badge */}
           <div style={{ display: 'flex' as const, flexDirection: 'column' as const, alignItems: 'center', gap: 4, flexShrink: 0 }}>
@@ -46,9 +51,9 @@ export default function TransactionReceiptContent({ tx }: { tx: Transaction }) {
             <svg width="20" height="14" viewBox="0 0 24 14" fill="none"><path d="M0 7h20M15 2l7 5-7 5" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </div>
           {/* TO node */}
-          <div style={{ flex: 1, minWidth: 100, padding: '12px 14px', borderRadius: 10, background: tx.entry_type === 'expense' ? 'var(--danger-light)' : 'var(--success-light)', border: `1px solid ${tx.entry_type === 'expense' ? 'rgba(192,57,43,.20)' : 'rgba(46,125,82,.20)'}`, textAlign: 'center' as const }}>
-            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '.07em', marginBottom: 5 }}>To Fund</div>
-            <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)' }}>{getFundName(tx.fund_id)}</div>
+          <div style={{ flex: 1, minWidth: 100, padding: '12px 14px', borderRadius: 10, background: isOutflow(tx) ? 'var(--danger-light)' : 'var(--success-light)', border: `1px solid ${isOutflow(tx) ? 'rgba(192,57,43,.20)' : 'rgba(46,125,82,.20)'}`, textAlign: 'center' as const }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '.07em', marginBottom: 5 }}>{out ? 'To' : 'To Fund'}</div>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)' }}>{out ? partyName : fundName}</div>
           </div>
         </div>
       </div>
@@ -58,10 +63,10 @@ export default function TransactionReceiptContent({ tx }: { tx: Transaction }) {
           <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '.07em', marginBottom: 5 }}>Category</div>
           <div style={{ fontSize: 14, fontWeight: 600, textTransform: 'capitalize' as const, color: 'var(--text-primary)' }}>{tx.category}</div>
         </div>
-        <div style={{ padding: '12px 14px', borderRadius: 10, background: tx.entry_type === 'expense' ? 'var(--danger-light)' : 'var(--success-light)', border: `1px solid ${tx.entry_type === 'expense' ? 'rgba(192,57,43,.20)' : 'rgba(46,125,82,.20)'}` }}>
+        <div style={{ padding: '12px 14px', borderRadius: 10, background: isOutflow(tx) ? 'var(--danger-light)' : 'var(--success-light)', border: `1px solid ${isOutflow(tx) ? 'rgba(192,57,43,.20)' : 'rgba(46,125,82,.20)'}` }}>
           <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '.07em', marginBottom: 5 }}>Amount</div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: tx.entry_type === 'expense' ? 'var(--danger)' : 'var(--success)' }}>
-            {tx.entry_type === 'expense' ? '−' : '+'}{formatCurrency(tx.amount, org.currency_symbol)}
+          <div style={{ fontSize: 24, fontWeight: 800, color: isOutflow(tx) ? 'var(--danger)' : 'var(--success)' }}>
+            {isOutflow(tx) ? '−' : '+'}{formatCurrency(tx.amount, org.currency_symbol)}
           </div>
         </div>
       </div>

@@ -8,6 +8,7 @@ import { rowStyle, rowHoverBg } from '../../../constants/tableColors'
 import { TX_PAGE_SIZE } from './transactionsShared'
 import EntryTypeBadge from './EntryTypeBadge'
 import type { Transaction } from '../../../types'
+import { isOutflow } from '../../../utils/ledger'
 
 interface Props { rows: Transaction[]; page: number; onRowClick: (t: Transaction) => void; onApprove: (t: Transaction) => void; onReject: (t: Transaction) => void; onDelete: (t: Transaction) => void }
 
@@ -37,8 +38,8 @@ export default function TransactionsTable({ rows, page, onRowClick, onApprove, o
                 <code style={{ fontSize: 11, color: 'var(--text-primary)', fontFamily: 'monospace' }}>{t.reference_number}</code>
               </td>
               <td style={{ padding: '10px 14px', fontWeight: 500 }}>{t.user_id ? getUserName(t.user_id) : <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>External</span>}</td>
-              <td style={{ padding: '10px 14px', fontWeight: 700, color: t.entry_type === 'expense' ? 'var(--danger)' : 'var(--success)' }}>
-                {t.entry_type === 'expense' ? '−' : '+'}{formatCurrency(t.amount, org.currency_symbol)}
+              <td style={{ padding: '10px 14px', fontWeight: 700, color: isOutflow(t) ? 'var(--danger)' : 'var(--success)' }}>
+                {isOutflow(t) ? '−' : '+'}{formatCurrency(t.amount, org.currency_symbol)}
               </td>
               <td style={{ padding: '10px 14px' }}><EntryTypeBadge type={t.entry_type} /></td>
               <td style={{ padding: '10px 14px', textTransform: 'capitalize' as const }}>{t.category}</td>

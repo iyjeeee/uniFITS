@@ -1,6 +1,7 @@
 // itemDetail/itemDetailData.ts — Pure data for the detail panel: filtered transactions/attendance, totals, info-grid rows
 import { formatCurrency, formatDate, MOCK_TRANSACTIONS, MOCK_ATTENDANCES, fmt12 } from '../../api/mockData'
 import { capitalize } from '../../utils/formatters'
+import { approvedTx, sumMoney } from '../../utils/ledger'
 import type { ItemKind } from './itemDetailShared'
 import type { Project, AppEvent, ProjectWithFunding, EventWithFunding, OrgConfig, Transaction, Attendance } from '../../types'
 
@@ -9,19 +10,24 @@ export function belongsToItem(t: Transaction, item: Project | AppEvent, kind: It
   return kind === 'project' ? t.project_id === item.id : t.event_id === item.id
 }
 
-// getItemDetailData — contributions / external income / expenses linked to the item, attendance by title, and the totals
-export function getItemDetailData(item: Project | AppEvent, kind: ItemKind) {
-  const scoped = MOCK_TRANSACTIONS.filter((t: Transaction) => belongsToItem(t, item, kind))
+// getItemDetailData — APPROVED opening entry / contributions / external income / refunds / expenses linked to the item, attendance, and the totals (txs is a parameter for tests)
+export function getItemDetailData(item: Project | AppEvent, kind: ItemKind, txs: Transaction[] = MOCK_TRANSACTIONS) {
+  const scoped = approvedTx(txs).filter((t: Transaction) => belongsToItem(t, item, kind))   // pending / rejected / voided rows never count (B-27)
+  const openingEntries = scoped.filter((t) => t.entry_type === 'opening_balance')
+  const refunds         = scoped.filter((t) => t.entry_type === 'refund')
   const memberContribs  = scoped.filter((t) => t.user_id !== null && t.entry_type === 'contribution')
   const externalIncome  = scoped.filter((t) => t.user_id === null && t.entry_type === 'income')
   const externalExpense = scoped.filter((t) => t.entry_type === 'expense')
   const attendanceRecords = MOCK_ATTENDANCES.filter((r: Attendance) => (kind === 'project' ? r.project_id === item.id : r.event_id === item.id))   // by id (B-49)
-  const totalContrib = memberContribs.reduce((s, t) => s + t.amount, 0)
-  const totalExtInc  = externalIncome.reduce((s, t) => s + t.amount, 0)
-  const totalExtExp  = externalExpense.reduce((s, t) => s + t.amount, 0)
-  const totalInflow  = totalContrib + totalExtInc
-  const netBalance   = totalInflow - totalExtExp
-  return { memberContribs, externalIncome, externalExpense, attendanceRecords, totalContrib, totalExtInc, totalExtExp, totalInflow, netBalance }
+  const sumOf = (rows: Transaction[]) => sumMoney(rows.map((t) => t.amount))
+  const totalContrib = sumOf(memberContribs)
+  const totalExtInc  = sumOf(externalIncome)
+  const totalExtExp  = sumOf(externalExpense)
+  const totalOpening = sumOf(openingEntries)
+  const totalRefunds = sumOf(refunds)
+  const totalInflow  = sumMoney([totalOpening, totalContrib, totalExtInc, -totalRefunds])   // = the funding bar (opening + contributions + income - refunds)
+  const netBalance   = sumMoney([totalInflow, -totalExtExp])
+  return { memberContribs, externalIncome, externalExpense, openingEntries, attendanceRecords, totalContrib, totalExtInc, totalExtExp, totalOpening, totalRefunds, totalInflow, netBalance }
 }
 
 export type ItemDetailData = ReturnType<typeof getItemDetailData>

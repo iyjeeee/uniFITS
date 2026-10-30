@@ -1,6 +1,7 @@
 // itemDetail/ContributionRow.tsx — One transaction line (#, member or External, signed amount) in the contribution/income/expense panels
 import { formatCurrency, getPartyName } from '../../api/mockData'
 import type { Transaction, OrgConfig } from '../../types'
+import { isOutflow } from '../../utils/ledger'
 
 export default function ContributionRow({ tx, idx, org }: { tx: Transaction; idx: number; org: OrgConfig }) {
   return (
@@ -11,8 +12,8 @@ export default function ContributionRow({ tx, idx, org }: { tx: Transaction; idx
           {getPartyName(tx.user_id, 'External')}
         </span>
       </div>
-      <span style={{ fontSize: 13.5, fontWeight: 800, color: tx.entry_type === 'expense' ? 'var(--danger)' : 'var(--success)', flexShrink: 0 }}>
-        {tx.entry_type === 'expense' ? '−' : '+'}{formatCurrency(tx.amount, org.currency_symbol)}
+      <span style={{ fontSize: 13.5, fontWeight: 800, color: isOutflow(tx) ? 'var(--danger)' : 'var(--success)', flexShrink: 0 }}>
+        {isOutflow(tx) ? '−' : '+'}{formatCurrency(tx.amount, org.currency_symbol)}
       </span>
     </div>
   )

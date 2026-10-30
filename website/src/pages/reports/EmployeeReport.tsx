@@ -28,7 +28,7 @@ export default function EmployeeReport() {
 
       {/* All Employees List modal */}
       <AllEmployeesModal open={r.showAllList} onClose={() => r.setShowAllList(false)} total={MOCK_USERS.length}
-        officers={r.officers} members={r.members} page={r.listPage} totalPages={r.listTotalPages} onPageChange={r.setListPage} />
+        officers={r.officers} members={r.members} />
 
       <EmployeeExportModals open={r.showExport} employeeName={r.selected?.full_name} onCancel={() => r.setShowExport(false)} onConfirm={r.confirmExport}
         result={r.exportResult} onCloseResult={() => r.setExportResult(null)} />

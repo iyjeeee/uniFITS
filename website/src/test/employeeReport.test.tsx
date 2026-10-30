@@ -39,8 +39,10 @@ describe('EmployeeReport', () => {
     try {
       for (let i = 0; i < 10; i++) MOCK_USERS.push({ ...MOCK_USERS[3], id: 'x' + i, full_name: 'Extra Member ' + i, employee_number: 'EXM-' + i, role: 'Member' } as User)
       mount(); fireEvent.click(btn(/View All Employees/))
-      expect(document.body.textContent).toContain('Page 1 of 2')
-      fireEvent.click(btn(/^2$/)); expect(document.body.textContent).toContain('Page 2 of 2')
+      const count = (name: string) => (document.body.textContent ?? '').split(name).length - 1   // the page's own people list also shows every name, so compare counts
+      const m0 = count('Extra Member 0'), m9 = count('Extra Member 9')
+      fireEvent.click(btn(/^2$/))   // people group -> page 2 ('Page X of Y' subtitle is gone, B-52)
+      expect(count('Extra Member 9')).toBe(m9 + 1); expect(count('Extra Member 0')).toBe(m0 - 1)
     } finally { MOCK_USERS.length = original }   // restore the shared mock array for other tests
   })
 })

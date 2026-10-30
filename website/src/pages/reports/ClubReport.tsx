@@ -17,7 +17,7 @@ import type { ModalVariant } from '../../types'
 
 export default function ClubReport() {
   const r = useClubReport()
-  const stats = getClubReportStats()
+  const stats = getClubReportStats(r.range)
   return (
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: 14 }}>
       {/* Generator controls — all on one row */}

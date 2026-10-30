@@ -1,7 +1,8 @@
-// parts/RecentTransactionsCard.tsx — Table of the first 6 transactions (array order, not sorted by date)
+// parts/RecentTransactionsCard.tsx — Table of the latest 6 transactions (sorted by date in dashboardStats); outflows (expense, refund) are red with a minus
 import { Badge, Card, CardHeader, StatusBadge } from '../../../components/ui'
 import { formatCurrency, formatDate, getPartyName } from '../../../api/mockData'
 import { useOrg } from '../../../context/OrgContext'
+import { isOutflow } from '../../../utils/ledger'
 import type { DashboardStats } from './dashboardStats'
 
 export default function RecentTransactionsCard({ recentTransactions }: { recentTransactions: DashboardStats['recentTransactions'] }) {
@@ -23,12 +24,12 @@ export default function RecentTransactionsCard({ recentTransactions }: { recentT
             <tr key={t.id} style={{ borderBottom: '1px solid var(--border-inner)' }}>
               <td style={{ padding: '10px 14px' }}><code style={{ fontSize: 11 }}>{t.reference_number}</code></td>
               <td style={{ padding: '10px 14px' }}>{getPartyName(t.user_id, '—')}</td>
-              <td style={{ padding: '10px 14px', fontWeight: 700, color: t.entry_type === 'expense' ? 'var(--danger)' : 'var(--success)' }}>
-                {t.entry_type === 'expense' ? '−' : '+'}{formatCurrency(t.amount, org.currency_symbol)}
+              <td style={{ padding: '10px 14px', fontWeight: 700, color: isOutflow(t) ? 'var(--danger)' : 'var(--success)' }}>
+                {isOutflow(t) ? '−' : '+'}{formatCurrency(t.amount, org.currency_symbol)}
               </td>
               <td style={{ padding: '10px 14px' }}>
                 {/* Type badge: expense=red, contribution=blue(accent), income=green */}
-                <Badge variant={t.entry_type === 'expense' ? 'danger' : t.entry_type === 'contribution' ? 'accent' : 'success'}>
+                <Badge variant={isOutflow(t) ? 'danger' : t.entry_type === 'contribution' ? 'accent' : 'success'}>
                   {t.entry_type.charAt(0).toUpperCase() + t.entry_type.slice(1)}
                 </Badge>
               </td>

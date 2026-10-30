@@ -1,7 +1,8 @@
-// parts/EmployeeTransactionsSection.tsx — "Recent Transactions" table of the selected member (first 6, array order — see bug log)
+// parts/EmployeeTransactionsSection.tsx — "Recent Transactions" table of the selected member (latest approved rows; outflows are red with a minus)
 import { StatusBadge } from '../../../components/ui'
 import { formatCurrency, formatDate, getPaymentMethodName } from '../../../api/mockData'
 import { useOrg } from '../../../context/OrgContext'
+import { isOutflow } from '../../../utils/ledger'
 import type { Transaction } from '../../../types'
 
 export default function EmployeeTransactionsSection({ myTx }: { myTx: Transaction[] }) {
@@ -28,7 +29,7 @@ export default function EmployeeTransactionsSection({ myTx }: { myTx: Transactio
               {myTx.map((t) => (
                 <tr key={t.id} style={{ borderBottom: '1px solid var(--border-inner)' }}>
                   <td style={{ padding: '9px 12px' }}><code style={{ fontSize: 11 }}>{t.reference_number}</code></td>
-                  <td style={{ padding: '9px 12px', fontWeight: 700, color: 'var(--success)' }}>{formatCurrency(t.amount, org.currency_symbol)}</td>
+                  <td style={{ padding: '9px 12px', fontWeight: 700, color: isOutflow(t) ? 'var(--danger)' : 'var(--success)' }}>{isOutflow(t) ? '−' : '+'}{formatCurrency(t.amount, org.currency_symbol)}</td>
                   <td style={{ padding: '9px 12px' }}>
                     <span style={{ display: 'inline-flex' as const, padding: '3px 10px', borderRadius: 20, background: '#4B5EAA', color: '#fff', fontSize: 11, fontWeight: 700 }}>
                       {t.category.charAt(0).toUpperCase() + t.category.slice(1)}

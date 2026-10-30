@@ -1,14 +1,16 @@
-// itemDetail/FinancialSummary.tsx — Balance overview: contributions + external income - external expenses = net balance
+// itemDetail/FinancialSummary.tsx — Balance overview: opening balance + contributions + external income - refunds - external expenses = net balance (first two + last lines only when they exist)
 import { formatCurrency } from '../../api/mockData'
 import type { ItemDetailData } from './itemDetailData'
 import type { OrgConfig } from '../../types'
 
 export default function FinancialSummary({ data, org }: { data: ItemDetailData; org: OrgConfig }) {
-  const { totalContrib, totalExtInc, totalExtExp, totalInflow, netBalance } = data
+  const { totalOpening, totalContrib, totalExtInc, totalRefunds, totalExtExp, totalInflow, netBalance } = data
   const isPositive = netBalance >= 0
   const rows: { label: string; value: number; color: string; sign: string }[] = [
+    ...(totalOpening !== 0 ? [{ label: 'Opening Balance', value: totalOpening, color: 'var(--accent)', sign: '+' }] : []),   // the starting amount entered for this item (B-48)
     { label: `${org.people_label} Contributions`, value: totalContrib, color: 'var(--success)', sign: '+' },
     { label: 'External Income',                    value: totalExtInc,  color: 'var(--info)',    sign: '+' },
+    ...(totalRefunds !== 0 ? [{ label: 'Refunds', value: totalRefunds, color: 'var(--warning)', sign: '−' }] : []),
     { label: 'External Expenses',                  value: totalExtExp,  color: 'var(--danger)',  sign: '−' },
   ]
   return (

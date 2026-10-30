@@ -1,7 +1,8 @@
 // clubReport.parts.test.ts — club report stats (pure) and period helpers
 import { describe, it, expect } from 'vitest'
 import { getClubReportStats } from '../pages/reports/parts/clubReportStats'
-import { getPeriodOptions, getDefaultPeriod, YEARS, QUARTERS } from '../pages/reports/parts/clubReportShared'
+import { getPeriodOptions, getDefaultPeriod } from '../pages/reports/parts/clubReportShared'
+import { manilaToday } from '../utils/period'
 import { getUtilitiesWithBalance, MOCK_FUNDS } from '../api/mockData'
 
 describe('getClubReportStats', () => {
@@ -24,19 +25,17 @@ describe('getClubReportStats', () => {
   })
 })
 
-describe('period helpers', () => {
-  it('annual options are the YEARS list, default 2025', () => {
-    expect(getPeriodOptions('annual').map((o) => o.value)).toEqual(YEARS.map(String))
-    expect(getDefaultPeriod('annual')).toBe('2025')
+describe('period helpers (derived from the data and today; more cases in utils/period.test.ts)', () => {
+  const thisYear = manilaToday().slice(0, 4)
+  it('annual: from the first record (2025) to this year, newest first; default = latest activity year', () => {
+    const v = getPeriodOptions('annual').map((o) => o.value)
+    expect(v[0]).toBe(thisYear); expect(v).toContain('2025'); expect(v[v.length - 1]).toBe('2025'); expect(getDefaultPeriod('annual')).toBe('2025')
   })
-  it('quarterly options are the 4 quarters, default Q1', () => {
-    expect(getPeriodOptions('quarterly').map((o) => o.value)).toEqual(QUARTERS)
-    expect(getDefaultPeriod('quarterly')).toBe(QUARTERS[0])
+  it('quarterly: every option carries its year; default is the quarter of the latest activity', () => {
+    const v = getPeriodOptions('quarterly').map((o) => o.value)
+    expect(v.every((x) => /^Q[1-4] \d{4} \(/.test(x))).toBe(true); expect(v).toContain('Q1 2025 (Jan–Mar)'); expect(getDefaultPeriod('quarterly')).toBe('Q1 2025 (Jan–Mar)')
   })
-  it('monthly options are 12 months of 2025, default January 2025', () => {
-    const o = getPeriodOptions('monthly')
-    expect(o.length).toBe(12)
-    expect(o[0].value).toBe('January 2025')
-    expect(getDefaultPeriod('monthly')).toBe('January 2025')
+  it('monthly: default is the month of the latest activity (March 2025)', () => {
+    expect(getPeriodOptions('monthly').map((o) => o.value)).toContain('March 2025'); expect(getDefaultPeriod('monthly')).toBe('March 2025')
   })
 })

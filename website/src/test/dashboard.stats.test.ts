@@ -27,7 +27,8 @@ describe('getDashboardStats', () => {
     })
   })
 
-  it('recent transactions: first 6 in array order', () => {
-    expect(s.recentTransactions).toEqual(MOCK_TRANSACTIONS.slice(0, 6))
+  it('recent transactions: the 6 latest by date, no opening balances (B-28)', () => {
+    const latest = MOCK_TRANSACTIONS.filter((t) => t.entry_type !== 'opening_balance').map((t) => t.transaction_date).sort().reverse().slice(0, 6)
+    expect(s.recentTransactions.map((t) => t.transaction_date)).toEqual(latest)
   })
 })

@@ -8,13 +8,13 @@ import type { ClubReportStats } from './clubReportStats'
 export default function ClubReportSummary({ stats, reportPeriod }: { stats: ClubReportStats; reportPeriod: string }) {
   const org = useOrg()
   const { isMobile } = useBreakpoint()
-  const { completedEvents, totalFundBalance, netSurplus, totalProjects } = stats
+  const { completedEvents, totalFundBalance, netSurplus, ongoingProjects } = stats
   return (
     <ReportSection title="I. Executive Summary">
       <div style={{ display: 'grid' as const, gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4,1fr)', gap: 12, marginBottom: 16 }}>
         {[
           { label: 'Total Members',      value: MOCK_USERS.length,       color: 'var(--accent)'  },
-          { label: 'Active Projects',     value: totalProjects,           color: 'var(--warning)' },
+          { label: 'Active Projects',     value: ongoingProjects,         color: 'var(--warning)' },
           { label: 'Events Held',         value: completedEvents,         color: 'var(--success)' },
           { label: 'Fund Balance',        value: formatCurrency(totalFundBalance, org.currency_symbol), color: 'var(--success)' },
         ].map((k) => (

@@ -1,7 +1,7 @@
 // parts/useTransactions.ts — Transactions page state: list data, filters, paging, detail/delete modals, approve/reject/delete, feedback
 import { useState } from 'react'
 import { MOCK_TRANSACTIONS, getFundName, getPaymentMethodName, getUserName, formatCurrency } from '../../../api/mockData'
-import { isReceipt, overdrawOnApprove, sumMoney } from '../../../utils/ledger'
+import { overdrawOnApprove, ledgerTotals } from '../../../utils/ledger'
 import { useOrg } from '../../../context/OrgContext'
 import { TX_PAGE_SIZE } from './transactionsShared'
 import type { TransactionActionResult } from './transactionsShared'
@@ -24,9 +24,7 @@ export default function useTransactions() {
   const changeStatus = (v: string) => { setStatusFilter(v); setPage(1) }
 
   /* Computed KPIs */
-  const totalIncome  = sumMoney(data.filter(isReceipt).map((t) => t.amount))   // opening balances are not income
-  const totalExpense = sumMoney(data.filter((t) => t.entry_type === 'expense').map((t) => t.amount))
-  const balance      = totalIncome - totalExpense
+  const { income: totalIncome, expense: totalExpense, net: balance } = ledgerTotals(data)   // approved rows only; refunds reduce income; opening balances are not income (B-39)
 
   /* Filter + paginate */
   const filtered = data

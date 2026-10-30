@@ -88,7 +88,8 @@ describe('Events page', () => {
 describe('only approved items count elsewhere', () => {
   it('dashboard and club report counts', () => {
     const d = getDashboardStats()
-    expect(d.ongoingProjects).toBe(3)        // Medical Mission, School Feeding, Tree Planting (Livelihood is pending)
+    expect(d.ongoingProjects).toBe(1)        // only Medical Mission is 'ongoing' (B-26); School Feeding / Tree Planting are upcoming, Livelihood is pending
+    expect(d.ongoingProjects).toBe(getClubReportStats().ongoingProjects)   // Dashboard and Club Report agree
     expect(d.upcomingEvents).toBe(2)
     const c = getClubReportStats()
     expect(c.ongoingProjects).toBe(1); expect(c.completedProjects).toBe(1); expect(c.upcomingEvents).toBe(2); expect(c.completedEvents).toBe(1)

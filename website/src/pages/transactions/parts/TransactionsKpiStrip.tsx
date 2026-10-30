@@ -1,4 +1,4 @@
-// parts/TransactionsKpiStrip.tsx — Four KPI tiles: record count, income, expenses, net balance (all statuses counted — see bug log)
+// parts/TransactionsKpiStrip.tsx — Four KPI tiles: record count (every row in the list), then income, expenses and net balance of the APPROVED rows only
 import { useOrg } from '../../../context/OrgContext'
 import KpiStrip from '../../../components/KpiStrip'
 import { formatCurrency } from '../../../api/mockData'
